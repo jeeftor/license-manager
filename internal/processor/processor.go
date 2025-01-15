@@ -17,6 +17,8 @@ type Config struct {
 	Prompt      bool
 	DryRun      bool
 	Verbose     bool
+	IgnoreFail  bool // If true will return 0 on a fail
+
 }
 
 type FileProcessor struct {
@@ -90,12 +92,24 @@ func (fp *FileProcessor) Update() error {
 }
 
 func (fp *FileProcessor) Check() error {
-	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
+	hasFailures := false
+	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		if !license.CheckLicense(content) {
+			hasFailures = true
 			fmt.Printf("%s %s\n", errorColor("License missing or invalid in file:"), filename)
 		} else if fp.config.Verbose {
 			fmt.Printf("%s %s\n", successColor("License valid in file:"), filename)
 		}
 		return nil
 	})
+
+	if err != nil {
+		return err // Return any processing errors directly
+	}
+
+	if hasFailures && !fp.config.IgnoreFail {
+		return NewCheckError("one or more files are missing required license headers")
+	}
+
+	return nil
 }
