@@ -6,14 +6,13 @@ import (
 )
 
 var (
-	cfgHeader  string
-	cfgFooter  string
-	cfgLicense string
-	cfgInput   string
-	cfgSkip    string
-	cfgPrompt  bool
-	cfgDryRun  bool
-	cfgVerbose bool // Add verbose flag
+	cfgLicense     string
+	cfgInput       string
+	cfgSkip        string
+	cfgPrompt      bool
+	cfgDryRun      bool
+	cfgVerbose     bool   // Add verbose flag
+	cfgPresetStyle string // header/footer style
 )
 
 var rootCmd = &cobra.Command{
@@ -28,8 +27,9 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&cfgHeader, "header", "/* LICENSE HEADER */", "License header text")
-	rootCmd.PersistentFlags().StringVar(&cfgFooter, "footer", "/* LICENSE FOOTER */", "License footer text")
+
+	rootCmd.PersistentFlags().StringVar(&cfgPresetStyle, "style", "simple", "Preset style for header/footer (e.g., simple, modern, elegant)")
+
 	rootCmd.PersistentFlags().StringVar(&cfgLicense, "license", "", "Path to license text file")
 	rootCmd.PersistentFlags().StringVar(&cfgInput, "input", "", "Input file patterns (comma-separated)")
 	rootCmd.PersistentFlags().StringVar(&cfgSkip, "skip", "", "Patterns to skip (comma-separated)")

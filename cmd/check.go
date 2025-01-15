@@ -13,8 +13,7 @@ var checkCmd = &cobra.Command{
 	Long:  `Check if files have the specified license headers`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := processor.Config{
-			Header:      cfgHeader,
-			Footer:      cfgFooter,
+
 			LicenseText: cfgLicense,
 			Input:       cfgInput,
 			Skip:        cfgSkip,

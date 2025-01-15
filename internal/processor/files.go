@@ -99,9 +99,11 @@ func (fp *FileProcessor) processFile(filename string, action func(string, string
 		return fmt.Errorf("%s: %v", errorColor("Error reading file "+filename), err)
 	}
 
-	style := getCommentStyle(filename)
-	fp.logVerbose("%s %s: %s", infoColor("Using comment style for"), filename, style.FileType)
-	license := NewLicenseManager(fp.config.Header, fp.config.Footer, fp.config.LicenseText, style)
+	commentStyle := getCommentStyle(filename)
+	fp.logVerbose("%s %s: %s", infoColor("Using comment style for"), filename, commentStyle.FileType)
+
+	// Create LicenseManager with the HeaderFooterStyle
+	license := NewLicenseManager(fp.style, fp.config.LicenseText, commentStyle)
 
 	return action(filename, string(content), license)
 }

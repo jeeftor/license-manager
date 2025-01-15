@@ -7,18 +7,16 @@ import (
 )
 
 type LicenseManager struct {
-	header      string
-	footer      string
-	licenseText string
-	style       CommentStyle
+	style        HeaderFooterStyle // Replace separate header/footer with HeaderFooterStyle
+	licenseText  string
+	commentStyle CommentStyle
 }
 
-func NewLicenseManager(header, footer, licenseText string, style CommentStyle) *LicenseManager {
+func NewLicenseManager(style HeaderFooterStyle, licenseText string, commentStyle CommentStyle) *LicenseManager {
 	return &LicenseManager{
-		header:      header,
-		footer:      footer,
-		licenseText: licenseText,
-		style:       style,
+		style:        style,
+		licenseText:  licenseText,
+		commentStyle: commentStyle,
 	}
 }
 
@@ -27,45 +25,45 @@ func (lm *LicenseManager) formatLicenseBlock(content string) string {
 	var lines []string
 
 	// Special handling for Go files
-	if lm.style.FileType == "go" {
+	if lm.commentStyle.FileType == "go" {
 		return lm.formatGoLicenseBlock(content)
 	}
 
-	if lm.style.PreferMulti && lm.style.MultiStart != "" {
+	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
 		// Use multi-line comment style
-		lines = append(lines, lm.style.MultiStart)
-		lines = append(lines, lm.header)
+		lines = append(lines, lm.commentStyle.MultiStart)
+		lines = append(lines, stripMarkers(lm.style.Header))
 		lines = append(lines, "")
 		for _, line := range strings.Split(lm.licenseText, "\n") {
 			lines = append(lines, line)
 		}
 		lines = append(lines, "")
-		lines = append(lines, lm.footer)
-		lines = append(lines, lm.style.MultiEnd)
-	} else if lm.style.Single != "" {
+		lines = append(lines, stripMarkers(lm.style.Footer))
+		lines = append(lines, lm.commentStyle.MultiEnd)
+	} else if lm.commentStyle.Single != "" {
 		// Use single-line comment style
-		lines = append(lines, lm.style.Single+" "+lm.header)
+		lines = append(lines, lm.commentStyle.Single+" "+stripMarkers(lm.style.Header))
 		lines = append(lines, "")
 		for _, line := range strings.Split(lm.licenseText, "\n") {
 			if line == "" {
-				lines = append(lines, lm.style.Single)
+				lines = append(lines, lm.commentStyle.Single)
 			} else {
-				lines = append(lines, lm.style.Single+" "+line)
+				lines = append(lines, lm.commentStyle.Single+" "+line)
 			}
 		}
 		lines = append(lines, "")
-		lines = append(lines, lm.style.Single+" "+lm.footer)
+		lines = append(lines, lm.commentStyle.Single+" "+stripMarkers(lm.style.Footer))
 	} else {
 		// HTML/XML-style or similar
-		lines = append(lines, lm.style.MultiStart)
-		lines = append(lines, lm.header)
+		lines = append(lines, lm.commentStyle.MultiStart)
+		lines = append(lines, stripMarkers(lm.style.Header))
 		lines = append(lines, "")
 		for _, line := range strings.Split(lm.licenseText, "\n") {
 			lines = append(lines, line)
 		}
 		lines = append(lines, "")
-		lines = append(lines, lm.footer)
-		lines = append(lines, lm.style.MultiEnd)
+		lines = append(lines, stripMarkers(lm.style.Footer))
+		lines = append(lines, lm.commentStyle.MultiEnd)
 	}
 
 	return strings.Join(lines, "\n")
@@ -76,8 +74,7 @@ func (lm *LicenseManager) formatGoLicenseBlock(content string) string {
 	var lines []string
 
 	// For Go files, we always use the "//" style for license headers
-	// This makes it easier to maintain and more idiomatic Go
-	lines = append(lines, "// "+lm.header)
+	lines = append(lines, "// "+stripMarkers(lm.style.Header))
 	lines = append(lines, "//")
 	for _, line := range strings.Split(lm.licenseText, "\n") {
 		if line == "" {
@@ -87,7 +84,7 @@ func (lm *LicenseManager) formatGoLicenseBlock(content string) string {
 		}
 	}
 	lines = append(lines, "//")
-	lines = append(lines, "// "+lm.footer)
+	lines = append(lines, "// "+stripMarkers(lm.style.Footer))
 
 	return strings.Join(lines, "\n")
 }
@@ -100,7 +97,7 @@ func (lm *LicenseManager) AddLicense(content string) string {
 	}
 
 	var buf bytes.Buffer
-	if lm.style.FileType == "go" {
+	if lm.commentStyle.FileType == "go" {
 		// Handle build tags for Go files
 		lines := strings.Split(content, "\n")
 		buildTagsEnd := 0
@@ -161,13 +158,13 @@ func (lm *LicenseManager) RemoveLicense(content string) string {
 	}
 
 	// If exact match not found, try to find the block between header and footer
-	if lm.style.PreferMulti && lm.style.MultiStart != "" {
+	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
 		// For multi-line comments, find the block including comment markers
-		start := strings.Index(content, lm.style.MultiStart)
+		start := strings.Index(content, lm.commentStyle.MultiStart)
 		if start != -1 {
-			end := strings.Index(content[start:], lm.style.MultiEnd)
+			end := strings.Index(content[start:], lm.commentStyle.MultiEnd)
 			if end != -1 {
-				end += start + len(lm.style.MultiEnd)
+				end += start + len(lm.commentStyle.MultiEnd)
 				// Remove the license block and any following whitespace
 				remainder := content[end:]
 				return strings.TrimLeft(remainder, "\n\r\t ")
@@ -175,8 +172,8 @@ func (lm *LicenseManager) RemoveLicense(content string) string {
 		}
 	} else {
 		// For single-line comments, find the block between header and footer
-		headerLine := lm.style.Single + " " + lm.header
-		footerLine := lm.style.Single + " " + lm.footer
+		headerLine := lm.commentStyle.Single + " " + stripMarkers(lm.style.Header)
+		footerLine := lm.commentStyle.Single + " " + stripMarkers(lm.style.Footer)
 
 		start := strings.Index(content, headerLine)
 		if start != -1 {
@@ -210,9 +207,9 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 	}
 
 	// Handle different comment styles
-	if lm.style.FileType == "go" {
-		headerLine := "// " + lm.header
-		footerLine := "// " + lm.footer
+	if lm.commentStyle.FileType == "go" {
+		headerLine := "// " + stripMarkers(lm.style.Header)
+		footerLine := "// " + stripMarkers(lm.style.Footer)
 
 		hasHeader := strings.Contains(content, headerLine)
 		hasFooter := strings.Contains(content, footerLine)
@@ -226,24 +223,24 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 		}
 
 		return hasHeader && hasFooter
-	} else if lm.style.PreferMulti && lm.style.MultiStart != "" {
+	} else if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
 		// For multi-line comments
-		hasStart := strings.Contains(content, lm.style.MultiStart)
-		hasEnd := strings.Contains(content, lm.style.MultiEnd)
-		hasHeader := strings.Contains(content, lm.header)
-		hasFooter := strings.Contains(content, lm.footer)
+		hasStart := strings.Contains(content, lm.commentStyle.MultiStart)
+		hasEnd := strings.Contains(content, lm.commentStyle.MultiEnd)
+		hasHeader := strings.Contains(content, stripMarkers(lm.style.Header))
+		hasFooter := strings.Contains(content, stripMarkers(lm.style.Footer))
 
 		// Check if license text exists between the multi-line comments
 		if hasStart && hasEnd && hasHeader && hasFooter {
-			start := strings.Index(content, lm.style.MultiStart)
-			end := strings.Index(content[start:], lm.style.MultiEnd) + start
+			start := strings.Index(content, lm.commentStyle.MultiStart)
+			end := strings.Index(content[start:], lm.commentStyle.MultiEnd) + start
 			block := content[start:end]
 			return strings.Contains(block, lm.licenseText)
 		}
 	} else {
 		// For single-line comments
-		headerLine := lm.style.Single + " " + lm.header
-		footerLine := lm.style.Single + " " + lm.footer
+		headerLine := lm.commentStyle.Single + " " + stripMarkers(lm.style.Header)
+		footerLine := lm.commentStyle.Single + " " + stripMarkers(lm.style.Footer)
 
 		hasHeader := strings.Contains(content, headerLine)
 		hasFooter := strings.Contains(content, footerLine)
@@ -251,7 +248,7 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 		// Check if license text exists with comment prefixes
 		licenseLines := strings.Split(lm.licenseText, "\n")
 		for _, line := range licenseLines {
-			if line != "" && !strings.Contains(content, lm.style.Single+" "+line) {
+			if line != "" && !strings.Contains(content, lm.commentStyle.Single+" "+line) {
 				return false
 			}
 		}

@@ -11,8 +11,6 @@ var addCmd = &cobra.Command{
 	Long:  `Add license headers to files that don't already have them`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := processor.Config{
-			Header:      cfgHeader,
-			Footer:      cfgFooter,
 			LicenseText: cfgLicense,
 			Input:       cfgInput,
 			Skip:        cfgSkip,

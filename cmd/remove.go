@@ -11,8 +11,7 @@ var removeCmd = &cobra.Command{
 	Long:  `Remove license headers from files that have them`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := processor.Config{
-			Header:      cfgHeader,
-			Footer:      cfgFooter,
+
 			LicenseText: cfgLicense,
 			Input:       cfgInput,
 			Skip:        cfgSkip,

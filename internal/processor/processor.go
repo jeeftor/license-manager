@@ -8,21 +8,9 @@ import (
 	"github.com/fatih/color"
 )
 
-type Config struct {
-	Header      string
-	Footer      string
-	LicenseText string
-	Input       string
-	Skip        string
-	Prompt      bool
-	DryRun      bool
-	Verbose     bool
-	IgnoreFail  bool // If true will return 0 on a fail
-
-}
-
 type FileProcessor struct {
 	config Config
+	style  HeaderFooterStyle
 }
 
 // Colored output helpers
@@ -44,8 +32,12 @@ func NewFileProcessor(config Config) *FileProcessor {
 		config.LicenseText = string(content)
 	}
 
+	// Get the preset style - the markers are already included in preset styles
+	style := GetPresetStyle(config.PresetStyle)
+
 	return &FileProcessor{
 		config: config,
+		style:  style,
 	}
 }
 

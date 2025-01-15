@@ -11,8 +11,7 @@ var updateCmd = &cobra.Command{
 	Long:  `Update existing license headers in files with new content`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := processor.Config{
-			Header:      cfgHeader,
-			Footer:      cfgFooter,
+
 			LicenseText: cfgLicense,
 			Input:       cfgInput,
 			Skip:        cfgSkip,
