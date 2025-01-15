@@ -4,6 +4,7 @@ package processor
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -50,11 +51,10 @@ func (fp *FileProcessor) logVerbose(format string, args ...interface{}) {
 func (fp *FileProcessor) Add() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		if license.CheckLicense(content) {
-			fp.logVerbose("%s %s", successColor("License already present in:"), filename)
-			return nil
+			return NewCheckError(fmt.Sprintf("license already exists in file: %s (use 'update' command to modify existing licenses)", filename))
 		}
 		newContent := license.AddLicense(content)
-		fp.logVerbose("%s %s", successColor("Adding license to:"), filename)
+		fp.logVerbose("%s %s", successColor("✅ Adding license to:"), filename)
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
 }
@@ -63,9 +63,9 @@ func (fp *FileProcessor) Remove() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		newContent := license.RemoveLicense(content)
 		if newContent != content {
-			fp.logVerbose("%s %s", successColor("Removing license from:"), filename)
+			fp.logVerbose("%s %s", successColor("✅ Removing license from:"), filename)
 		} else {
-			fp.logVerbose("%s %s", infoColor("No license found in:"), filename)
+			fp.logVerbose("%s %s", infoColor("ℹ️ No license found in:"), filename)
 		}
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
@@ -73,11 +73,16 @@ func (fp *FileProcessor) Remove() error {
 
 func (fp *FileProcessor) Update() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
+		status := license.CheckLicenseStatus(content)
+		if status == NoLicense {
+			return NewCheckError(fmt.Sprintf("no license found to update in file: %s", filename))
+		}
+		
 		newContent := license.UpdateLicense(content)
-		if newContent != content {
-			fp.logVerbose("%s %s", successColor("Updating license in:"), filename)
+		if status == DifferentLicense {
+			fp.logVerbose("%s %s", warningColor("⚠️ Updating different license in:"), filename)
 		} else {
-			fp.logVerbose("%s %s", infoColor("No license found to update in:"), filename)
+			fp.logVerbose("%s %s", successColor("✅ Updating matching license in:"), filename)
 		}
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
@@ -86,21 +91,54 @@ func (fp *FileProcessor) Update() error {
 func (fp *FileProcessor) Check() error {
 	hasFailures := false
 	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
-		if !license.CheckLicense(content) {
+		status := license.CheckLicenseStatus(content)
+		switch status {
+		case NoLicense:
 			hasFailures = true
-			fmt.Printf("%s %s\n", errorColor("❌ License missing or invalid in file:"), filename)
-		} else if fp.config.Verbose {
-			fmt.Printf("%s %s\n", successColor("✅️ License valid in file:"), filename)
+			fmt.Printf("%s %s\n", errorColor("❌ No license found in file:"), filename)
+		case DifferentLicense:
+			hasFailures = true
+			fmt.Printf("%s %s\n", warningColor("⚠️ License doesn't match in file:"), filename)
+			if fp.config.Verbose {
+				current, expected := license.GetLicenseComparison(content)
+				fmt.Printf("\nCurrent license in %s:\n%s\n", filename, infoColor(current))
+				fmt.Printf("\nExpected license:\n%s\n", successColor(expected))
+				fmt.Println("\nDifferences:")
+				// Print a simple character-based diff
+				currentLines := strings.Split(current, "\n")
+				expectedLines := strings.Split(expected, "\n")
+				for i := 0; i < len(currentLines) || i < len(expectedLines); i++ {
+					var currentLine, expectedLine string
+					if i < len(currentLines) {
+						currentLine = currentLines[i]
+					}
+					if i < len(expectedLines) {
+						expectedLine = expectedLines[i]
+					}
+					if currentLine != expectedLine {
+						if currentLine == "" {
+							fmt.Printf("%s %s\n", errorColor("-"), expectedLine)
+						} else if expectedLine == "" {
+							fmt.Printf("%s %s\n", warningColor("+"), currentLine)
+						} else {
+							fmt.Printf("%s %s\n%s %s\n", errorColor("-"), expectedLine, warningColor("+"), currentLine)
+						}
+					}
+				}
+				fmt.Println()
+			}
+		case MatchingLicense:
+			fp.logVerbose("%s %s", successColor("✅ License matches in:"), filename)
 		}
 		return nil
 	})
 
 	if err != nil {
-		return err // Return any processing errors directly
+		return err
 	}
 
-	if hasFailures && !fp.config.IgnoreFail {
-		return NewCheckError("one or more files are missing required license headers")
+	if hasFailures {
+		return fmt.Errorf("one or more files have missing or incorrect licenses")
 	}
 
 	return nil
