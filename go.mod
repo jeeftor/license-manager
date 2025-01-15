@@ -3,6 +3,7 @@ module license-manager
 go 1.22.4
 
 require (
+	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/fatih/color v1.18.0
 	github.com/spf13/cobra v1.8.1
 )

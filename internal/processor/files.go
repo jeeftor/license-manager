@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
+
+	"github.com/bmatcuk/doublestar/v2"
 )
 
 func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManager) error) error {
@@ -18,49 +19,14 @@ func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManage
 			continue
 		}
 
-		if strings.Contains(basePattern, "**") {
-			regexPattern := basePattern
-			regexPattern = strings.ReplaceAll(regexPattern, ".", "\\.")
-			regexPattern = strings.ReplaceAll(regexPattern, "**", ".+")
-			regexPattern = strings.ReplaceAll(regexPattern, "*", "[^/]+")
-			regexPattern = "(" + regexPattern + ")"
-
-			regex, err := regexp.Compile(regexPattern)
-			if err != nil {
-				return fmt.Errorf("%s %s: %v", errorColor("Invalid pattern"), basePattern, err)
-			}
-
-			fp.logVerbose("%s %s", infoColor("Using regex pattern:"), regexPattern)
-
-			err = filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-				if !info.IsDir() {
-					if regex.MatchString(path) {
-						fp.logVerbose("%s %s", successColor("Found matching file:"), path)
-						if err := fp.processFile(path, action); err != nil {
-							return err
-						}
-					} else if strings.HasSuffix(path, ".go") {
-						fp.logVerbose("%s %s", warningColor("Non-matching Go file:"), path)
-					}
-				}
-				return nil
-			})
-			if err != nil {
+		matches, err := doublestar.Glob(basePattern)
+		if err != nil {
+			return fmt.Errorf("%s %s: %v", errorColor("Error with pattern"), basePattern, err)
+		}
+		for _, match := range matches {
+			fp.logVerbose("%s %s", successColor("Processing file:"), match)
+			if err := fp.processFile(match, action); err != nil {
 				return err
-			}
-		} else {
-			matches, err := filepath.Glob(basePattern)
-			if err != nil {
-				return fmt.Errorf("%s %s: %v", errorColor("Error with pattern"), basePattern, err)
-			}
-			for _, match := range matches {
-				fp.logVerbose("%s %s", successColor("Processing file:"), match)
-				if err := fp.processFile(match, action); err != nil {
-					return err
-				}
 			}
 		}
 	}
@@ -68,6 +34,16 @@ func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManage
 }
 
 func (fp *FileProcessor) processFile(filename string, action func(string, string, *LicenseManager) error) error {
+	// Check if path is a directory first
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		return NewCheckError(fmt.Sprintf("error accessing file %s: %v", filename, err))
+	}
+	if fileInfo.IsDir() {
+		fp.logVerbose("%s %s", warningColor("Skipping directory:"), filename)
+		return nil
+	}
+
 	// Skip files that match skip patterns
 	for _, pattern := range strings.Split(fp.config.Skip, ",") {
 		if pattern != "" {
@@ -96,7 +72,7 @@ func (fp *FileProcessor) processFile(filename string, action func(string, string
 
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("%s: %v", errorColor("Error reading file "+filename), err)
+		return NewCheckError(fmt.Sprintf("%s: %v", errorColor("Error reading file "+filename), err))
 	}
 
 	commentStyle := getCommentStyle(filename)
