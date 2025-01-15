@@ -1,4 +1,3 @@
-// internal/processor/headers_and_footers.go
 package processor
 
 type HeaderFooterStyle struct {
