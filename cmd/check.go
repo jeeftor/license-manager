@@ -1,3 +1,4 @@
+// cmd/check.go
 package cmd
 
 import (
@@ -18,6 +19,7 @@ var checkCmd = &cobra.Command{
 			Skip:        cfgSkip,
 			Prompt:      cfgPrompt,
 			DryRun:      cfgDryRun,
+			Verbose:     cfgVerbose,
 		}
 
 		p := processor.NewFileProcessor(config)

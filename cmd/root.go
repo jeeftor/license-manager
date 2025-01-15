@@ -1,3 +1,4 @@
+// cmd/root.go
 package cmd
 
 import (
@@ -12,6 +13,7 @@ var (
 	cfgSkip    string
 	cfgPrompt  bool
 	cfgDryRun  bool
+	cfgVerbose bool // Add verbose flag
 )
 
 var rootCmd = &cobra.Command{
@@ -33,4 +35,5 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgSkip, "skip", "", "Patterns to skip (comma-separated)")
 	rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
 	rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
+	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
 }

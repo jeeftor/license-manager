@@ -26,6 +26,11 @@ func NewLicenseManager(header, footer, licenseText string, style CommentStyle) *
 func (lm *LicenseManager) formatLicenseBlock(content string) string {
 	var lines []string
 
+	// Special handling for Go files
+	if lm.style.FileType == "go" {
+		return lm.formatGoLicenseBlock(content)
+	}
+
 	if lm.style.PreferMulti && lm.style.MultiStart != "" {
 		// Use multi-line comment style
 		lines = append(lines, lm.style.MultiStart)
@@ -66,7 +71,28 @@ func (lm *LicenseManager) formatLicenseBlock(content string) string {
 	return strings.Join(lines, "\n")
 }
 
-// AddLicense adds the license text to the content, respecting build tags for Go files
+// formatGoLicenseBlock handles special cases for Go files like build tags
+func (lm *LicenseManager) formatGoLicenseBlock(content string) string {
+	var lines []string
+
+	// For Go files, we always use the "//" style for license headers
+	// This makes it easier to maintain and more idiomatic Go
+	lines = append(lines, "// "+lm.header)
+	lines = append(lines, "//")
+	for _, line := range strings.Split(lm.licenseText, "\n") {
+		if line == "" {
+			lines = append(lines, "//")
+		} else {
+			lines = append(lines, "// "+line)
+		}
+	}
+	lines = append(lines, "//")
+	lines = append(lines, "// "+lm.footer)
+
+	return strings.Join(lines, "\n")
+}
+
+// AddLicense adds the license text to the content
 func (lm *LicenseManager) AddLicense(content string) string {
 	// If content already has a license, don't add another one
 	if lm.CheckLicense(content) {
@@ -74,9 +100,8 @@ func (lm *LicenseManager) AddLicense(content string) string {
 	}
 
 	var buf bytes.Buffer
-
-	// Special handling for Go files
 	if lm.style.FileType == "go" {
+		// Handle build tags for Go files
 		lines := strings.Split(content, "\n")
 		buildTagsEnd := 0
 
@@ -109,7 +134,7 @@ func (lm *LicenseManager) AddLicense(content string) string {
 		}
 
 		// Add the license
-		buf.WriteString(lm.formatLicenseBlock(lm.licenseText))
+		buf.WriteString(lm.formatLicenseBlock(content))
 		buf.WriteString("\n\n")
 
 		// Write the rest of the file
@@ -119,8 +144,7 @@ func (lm *LicenseManager) AddLicense(content string) string {
 			buf.WriteString(content)
 		}
 	} else {
-		// Normal handling for non-Go files
-		buf.WriteString(lm.formatLicenseBlock(lm.licenseText))
+		buf.WriteString(lm.formatLicenseBlock(content))
 		buf.WriteString("\n\n")
 		buf.WriteString(content)
 	}
@@ -131,9 +155,9 @@ func (lm *LicenseManager) AddLicense(content string) string {
 // RemoveLicense removes the license text from the content
 func (lm *LicenseManager) RemoveLicense(content string) string {
 	// Try to find the complete license block
-	formattedLicense := lm.formatLicenseBlock(lm.licenseText)
+	formattedLicense := lm.formatLicenseBlock("")
 	if strings.Contains(content, formattedLicense) {
-		return strings.Replace(content, formattedLicense, "", 1)
+		return strings.Replace(content, formattedLicense+"\n\n", "", 1)
 	}
 
 	// If exact match not found, try to find the block between header and footer
@@ -166,7 +190,6 @@ func (lm *LicenseManager) RemoveLicense(content string) string {
 		}
 	}
 
-	// If no license block found, return original content
 	return content
 }
 
@@ -181,21 +204,42 @@ func (lm *LicenseManager) UpdateLicense(content string) string {
 // CheckLicense verifies if the content contains the license text
 func (lm *LicenseManager) CheckLicense(content string) bool {
 	// First check for exact formatted license
-	formattedLicense := lm.formatLicenseBlock(lm.licenseText)
+	formattedLicense := lm.formatLicenseBlock("")
 	if strings.Contains(content, formattedLicense) {
 		return true
 	}
 
-	// Then check for header and footer with any content between
-	if lm.style.PreferMulti && lm.style.MultiStart != "" {
+	// Handle different comment styles
+	if lm.style.FileType == "go" {
+		headerLine := "// " + lm.header
+		footerLine := "// " + lm.footer
+
+		hasHeader := strings.Contains(content, headerLine)
+		hasFooter := strings.Contains(content, footerLine)
+
+		// Check if license text exists with comment prefixes
+		licenseLines := strings.Split(lm.licenseText, "\n")
+		for _, line := range licenseLines {
+			if line != "" && !strings.Contains(content, "// "+line) {
+				return false
+			}
+		}
+
+		return hasHeader && hasFooter
+	} else if lm.style.PreferMulti && lm.style.MultiStart != "" {
 		// For multi-line comments
 		hasStart := strings.Contains(content, lm.style.MultiStart)
 		hasEnd := strings.Contains(content, lm.style.MultiEnd)
 		hasHeader := strings.Contains(content, lm.header)
 		hasFooter := strings.Contains(content, lm.footer)
-		hasLicense := strings.Contains(content, lm.licenseText)
 
-		return hasStart && hasEnd && hasHeader && hasFooter && hasLicense
+		// Check if license text exists between the multi-line comments
+		if hasStart && hasEnd && hasHeader && hasFooter {
+			start := strings.Index(content, lm.style.MultiStart)
+			end := strings.Index(content[start:], lm.style.MultiEnd) + start
+			block := content[start:end]
+			return strings.Contains(block, lm.licenseText)
+		}
 	} else {
 		// For single-line comments
 		headerLine := lm.style.Single + " " + lm.header
@@ -214,35 +258,6 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 
 		return hasHeader && hasFooter
 	}
-}
 
-// FormatLicenseText returns the formatted license text without adding it to any content
-// Useful for preview or verification purposes
-func (lm *LicenseManager) FormatLicenseText() string {
-	return lm.formatLicenseBlock(lm.licenseText)
-}
-
-// RemoveComments removes comment markers from license text
-// Useful when comparing license content regardless of comment style
-func (lm *LicenseManager) RemoveComments(content string) string {
-	lines := strings.Split(content, "\n")
-	var result []string
-
-	for _, line := range lines {
-		if lm.style.Single != "" {
-			line = strings.TrimPrefix(line, lm.style.Single)
-		}
-		if lm.style.MultiStart != "" {
-			line = strings.TrimPrefix(line, lm.style.MultiStart)
-		}
-		if lm.style.MultiEnd != "" {
-			line = strings.TrimSuffix(line, lm.style.MultiEnd)
-		}
-		line = strings.TrimSpace(line)
-		if line != "" {
-			result = append(result, line)
-		}
-	}
-
-	return strings.Join(result, "\n")
+	return false
 }

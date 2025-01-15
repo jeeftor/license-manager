@@ -1,11 +1,11 @@
+// internal/processor/processor.go
 package processor
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
+
+	"github.com/fatih/color"
 )
 
 type Config struct {
@@ -16,18 +16,27 @@ type Config struct {
 	Skip        string
 	Prompt      bool
 	DryRun      bool
+	Verbose     bool
 }
 
 type FileProcessor struct {
 	config Config
 }
 
+// Colored output helpers
+var (
+	errorColor   = color.New(color.FgRed).SprintFunc()
+	warningColor = color.New(color.FgYellow).SprintFunc()
+	successColor = color.New(color.FgGreen).SprintFunc()
+	infoColor    = color.New(color.FgCyan).SprintFunc()
+)
+
 func NewFileProcessor(config Config) *FileProcessor {
 	// Read license text from file if provided
 	if config.LicenseText != "" {
 		content, err := os.ReadFile(config.LicenseText)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading license file: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%s: %v\n", errorColor("Error reading license file"), err)
 			os.Exit(1)
 		}
 		config.LicenseText = string(content)
@@ -38,69 +47,20 @@ func NewFileProcessor(config Config) *FileProcessor {
 	}
 }
 
-func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManager) error) error {
-	var files []string
-	for _, pattern := range strings.Split(fp.config.Input, ",") {
-		if pattern != "" {
-			matches, err := filepath.Glob(pattern)
-			if err != nil {
-				return fmt.Errorf("error with pattern %s: %v", pattern, err)
-			}
-			files = append(files, matches...)
-		}
+func (fp *FileProcessor) logVerbose(format string, args ...interface{}) {
+	if fp.config.Verbose {
+		fmt.Printf(format+"\n", args...)
 	}
-
-	for _, file := range files {
-		if err := fp.processFile(file, action); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (fp *FileProcessor) processFile(filename string, action func(string, string, *LicenseManager) error) error {
-	// Skip files that match skip patterns
-	for _, pattern := range strings.Split(fp.config.Skip, ",") {
-		if pattern != "" {
-			matched, err := filepath.Match(pattern, filepath.Base(filename))
-			if err != nil {
-				return fmt.Errorf("invalid skip pattern %s: %v", pattern, err)
-			}
-			if matched {
-				return nil
-			}
-		}
-	}
-
-	if fp.config.DryRun {
-		fmt.Printf("Would process file: %s\n", filename)
-		return nil
-	}
-
-	if fp.config.Prompt {
-		if !promptUser(fmt.Sprintf("Process file %s?", filename)) {
-			return nil
-		}
-	}
-
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("error reading file %s: %v", filename, err)
-	}
-
-	// Create a new LicenseManager with the appropriate comment style for this file
-	style := getCommentStyle(filename)
-	license := NewLicenseManager(fp.config.Header, fp.config.Footer, fp.config.LicenseText, style)
-
-	return action(filename, string(content), license)
 }
 
 func (fp *FileProcessor) Add() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		if license.CheckLicense(content) {
+			fp.logVerbose("%s %s", successColor("License already present in:"), filename)
 			return nil
 		}
 		newContent := license.AddLicense(content)
+		fp.logVerbose("%s %s", successColor("Adding license to:"), filename)
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
 }
@@ -108,6 +68,11 @@ func (fp *FileProcessor) Add() error {
 func (fp *FileProcessor) Remove() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		newContent := license.RemoveLicense(content)
+		if newContent != content {
+			fp.logVerbose("%s %s", successColor("Removing license from:"), filename)
+		} else {
+			fp.logVerbose("%s %s", infoColor("No license found in:"), filename)
+		}
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
 }
@@ -115,6 +80,11 @@ func (fp *FileProcessor) Remove() error {
 func (fp *FileProcessor) Update() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		newContent := license.UpdateLicense(content)
+		if newContent != content {
+			fp.logVerbose("%s %s", successColor("Updating license in:"), filename)
+		} else {
+			fp.logVerbose("%s %s", infoColor("No license found to update in:"), filename)
+		}
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
 }
@@ -122,19 +92,10 @@ func (fp *FileProcessor) Update() error {
 func (fp *FileProcessor) Check() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		if !license.CheckLicense(content) {
-			fmt.Printf("License missing or invalid in file: %s\n", filename)
+			fmt.Printf("%s %s\n", errorColor("License missing or invalid in file:"), filename)
+		} else if fp.config.Verbose {
+			fmt.Printf("%s %s\n", successColor("License valid in file:"), filename)
 		}
 		return nil
 	})
-}
-
-func promptUser(message string) bool {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("%s (y/n): ", message)
-	response, err := reader.ReadString('\n')
-	if err != nil {
-		return false
-	}
-	response = strings.ToLower(strings.TrimSpace(response))
-	return response == "y" || response == "yes"
 }
