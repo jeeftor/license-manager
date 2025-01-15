@@ -88,9 +88,9 @@ func (fp *FileProcessor) Check() error {
 	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		if !license.CheckLicense(content) {
 			hasFailures = true
-			fmt.Printf("%s %s\n", errorColor("License missing or invalid in file:"), filename)
+			fmt.Printf("%s %s\n", errorColor("❌ License missing or invalid in file:"), filename)
 		} else if fp.config.Verbose {
-			fmt.Printf("%s %s\n", successColor("License valid in file:"), filename)
+			fmt.Printf("%s %s\n", successColor("✅️ License valid in file:"), filename)
 		}
 		return nil
 	})
