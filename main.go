@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"license-manager/cmd"
 	"os"
 )
 

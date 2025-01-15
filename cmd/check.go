@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yourusername/license-manager/internal/processor"
+	"license-manager/internal/processor"
 )
 
 var checkCmd = &cobra.Command{
