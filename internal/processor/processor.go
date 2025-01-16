@@ -48,6 +48,15 @@ func (fp *FileProcessor) logVerbose(format string, args ...interface{}) {
 	}
 }
 
+func (fp *FileProcessor) logVerboseWithLineNumbers(text string, startLine int, prefix string) {
+	if fp.config.Verbose {
+		if prefix != "" {
+			fmt.Printf("%s\n", prefix)
+		}
+		fmt.Printf("%s\n", formatWithLineNumbers(text, startLine))
+	}
+}
+
 func (fp *FileProcessor) Add() error {
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		if license.CheckLicense(content) {
@@ -142,4 +151,21 @@ func (fp *FileProcessor) Check() error {
 	}
 
 	return nil
+}
+
+// formatWithLineNumbers adds line numbers to a block of text
+func formatWithLineNumbers(text string, startLine int) string {
+	lines := strings.Split(text, "\n")
+	var result []string
+	
+	// Find the width needed for line numbers
+	width := len(fmt.Sprintf("%d", startLine+len(lines)))
+	
+	// Format each line with its number
+	for i, line := range lines {
+		lineNum := fmt.Sprintf("%*d", width, startLine+i)
+		result = append(result, fmt.Sprintf("%s: %s", lineNum, line))
+	}
+	
+	return strings.Join(result, "\n")
 }

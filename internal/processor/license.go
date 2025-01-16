@@ -59,17 +59,13 @@ func (lm *LicenseManager) formatGoLicenseBlock(content string) string {
 	var lines []string
 
 	// For Go files, we always use the "//" style for license headers
-	lines = append(lines, "// "+lm.style.Header)
-	lines = append(lines, "//")
-	for _, line := range strings.Split(lm.licenseText, "\n") {
+	for _, line := range strings.Split(content, "\n") {
 		if line == "" {
 			lines = append(lines, "//")
 		} else {
 			lines = append(lines, "// "+line)
 		}
 	}
-	lines = append(lines, "//")
-	lines = append(lines, "// "+lm.style.Footer)
 
 	return strings.Join(lines, "\n")
 }
@@ -80,55 +76,86 @@ func (lm *LicenseManager) AddLicense(content string) string {
 	header := lm.style.Header
 	footer := lm.style.Footer
 
+	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+		fp.logVerbose("Starting AddLicense process...")
+		fp.logVerbose("Header to look for: %q", header)
+		fp.logVerbose("Footer to look for: %q", footer)
+	}
+
 	// If either header or footer exists, skip adding the license
 	if strings.Contains(content, header) || strings.Contains(content, footer) {
+		if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+			fp.logVerbose("Found existing header or footer - skipping license addition")
+		}
 		return content
 	}
 
-	// Format the license block with header, footer, and properly commented license text
+	// Format the license block with comments
 	var formattedLicense string
+	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+		fp.logVerbose("Raw license text:")
+		fp.logVerboseWithLineNumbers(lm.licenseText, 1, "")
+	}
+
+	// Add comments to the license text
+	commentedLicenseText := lm.formatLicenseBlock(lm.licenseText)
+	
+	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+		fp.logVerbose("Commented license text:")
+		fp.logVerboseWithLineNumbers(commentedLicenseText, 1, "")
+	}
+	
+	// Add header and footer
 	if lm.commentStyle.Single != "" {
-		formattedLicense = lm.commentStyle.Single + " " + lm.style.Header + "\n\n" + 
-			lm.formatLicenseBlock(lm.licenseText) + "\n" + 
-			lm.commentStyle.Single + " " + lm.style.Footer + "\n\n"
+		formattedLicense = lm.commentStyle.Single + " " + header + "\n" + 
+			commentedLicenseText + "\n" + 
+			lm.commentStyle.Single + " " + footer + "\n\n"
 	} else {
-		formattedLicense = lm.style.Header + "\n\n" + 
-			lm.formatLicenseBlock(lm.licenseText) + "\n" + 
-			lm.style.Footer + "\n\n"
+		formattedLicense = header + "\n" + 
+			commentedLicenseText + "\n" + 
+			footer + "\n\n"
+	}
+
+	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+		fp.logVerbose("Final formatted license block:")
+		fp.logVerboseWithLineNumbers(formattedLicense, 1, "")
 	}
 
 	var buf bytes.Buffer
-	if lm.commentStyle.FileType == "go" {
-		// Handle build tags for Go files
-		lines := strings.Split(content, "\n")
-		buildTagsEnd := 0
 
-		// Find where build tags end
+	// Special handling for Go files with build tags
+	if lm.commentStyle.FileType == "go" {
+		if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+			fp.logVerbose("Processing Go file - checking for build tags...")
+		}
+
+		lines := strings.Split(content, "\n")
+		var buildTagsEnd int
+
+		// Find the end of build tags section
 		for i, line := range lines {
-			trimmed := strings.TrimSpace(line)
-			if strings.HasPrefix(trimmed, "//") &&
-				(strings.Contains(trimmed, "+build") || strings.Contains(trimmed, "go:build")) {
+			line = strings.TrimSpace(line)
+			if !strings.HasPrefix(line, "//") || strings.HasPrefix(line, "// +build") {
+				continue
+			}
+			if line == "//" || line == "" {
 				buildTagsEnd = i + 1
-				// Skip the required empty line after build tags
-				if len(lines) > buildTagsEnd && len(strings.TrimSpace(lines[buildTagsEnd])) == 0 {
-					buildTagsEnd++
+				if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+					fp.logVerbose("Found build tags section ending at line %d", buildTagsEnd)
 				}
-			} else if buildTagsEnd > 0 && len(trimmed) == 0 {
-				// Keep the empty line after build tags
-				buildTagsEnd = i + 1
-			} else if buildTagsEnd > 0 {
-				// We've found the end of the build tags section
-				break
-			} else if len(trimmed) > 0 {
-				// No build tags found, stop looking
 				break
 			}
 		}
 
-		// Write any build tags first
+		// Write build tags if they exist
 		if buildTagsEnd > 0 {
-			buf.WriteString(strings.Join(lines[:buildTagsEnd], "\n"))
-			buf.WriteString("\n")
+			buildTagsSection := strings.Join(lines[:buildTagsEnd], "\n")
+			if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+				fp.logVerbose("Writing build tags section:")
+				fp.logVerboseWithLineNumbers(buildTagsSection, 1, "")
+			}
+			buf.WriteString(buildTagsSection)
+			buf.WriteString("\n\n")
 		}
 
 		// Add the license
@@ -136,17 +163,36 @@ func (lm *LicenseManager) AddLicense(content string) string {
 
 		// Write the rest of the file
 		if buildTagsEnd > 0 {
-			buf.WriteString(strings.Join(lines[buildTagsEnd:], "\n"))
+			remainingContent := strings.Join(lines[buildTagsEnd:], "\n")
+			if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+				fp.logVerbose("Writing remaining content after build tags:")
+				fp.logVerboseWithLineNumbers(remainingContent, buildTagsEnd+1, "")
+			}
+			buf.WriteString("\n")
+			buf.WriteString(remainingContent)
 		} else {
+			if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+				fp.logVerbose("No build tags found - writing entire content:")
+				fp.logVerboseWithLineNumbers(content, 1, "")
+			}
 			buf.WriteString(content)
 		}
 	} else {
 		// For non-Go files, simply prepend the license
+		if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+			fp.logVerbose("Processing non-Go file - prepending license and writing content")
+		}
 		buf.WriteString(formattedLicense)
 		buf.WriteString(content)
 	}
 
-	return buf.String()
+	result := buf.String()
+	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+		fp.logVerbose("Final result:")
+		fp.logVerboseWithLineNumbers(result, 1, "")
+	}
+
+	return result
 }
 
 // extractLicenseText extracts the license text between header and footer
@@ -282,8 +328,20 @@ func (lm *LicenseManager) RemoveLicense(content string) string {
 		return content
 	}
 
+	// Get the line number information
+	preContent := content[:startIdx]
+	startLine := len(strings.Split(preContent, "\n"))
+	licenseBlock := content[startIdx:startIdx+endIdx+len(footer)]
+	
 	// Remove everything up to the end of the footer
-	return strings.TrimLeft(content[startIdx+endIdx+len(footer):], "\n\r\t ")
+	result := strings.TrimLeft(content[startIdx+endIdx+len(footer):], "\n\r\t ")
+
+	// Log the removed content with line numbers if in verbose mode
+	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
+		fp.logVerboseWithLineNumbers(licenseBlock, startLine, "Removing license block:")
+	}
+
+	return result
 }
 
 // GetLicenseComparison returns the current and expected license text for comparison
