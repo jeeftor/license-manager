@@ -30,12 +30,11 @@ func (lm *LicenseManager) formatLicenseBlock(content string) string {
 	}
 
 	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
-		// Use multi-line comment style
-		lines = append(lines, lm.commentStyle.MultiStart)
+		// When using multi-line comments, don't add the markers here
+		// They will be added in AddLicense
 		for _, line := range strings.Split(content, "\n") {
 			lines = append(lines, line)
 		}
-		lines = append(lines, lm.commentStyle.MultiEnd)
 	} else if lm.commentStyle.Single != "" {
 		// Use single-line comment style
 		for _, line := range strings.Split(strings.TrimSpace(content), "\n") {
@@ -106,7 +105,13 @@ func (lm *LicenseManager) AddLicense(content string) string {
 	}
 	
 	// Add header and footer
-	if lm.commentStyle.Single != "" {
+	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
+		formattedLicense = lm.commentStyle.MultiStart + "\n" +
+			header + "\n" +
+			commentedLicenseText + "\n" +
+			footer + "\n" +
+			lm.commentStyle.MultiEnd + "\n\n"
+	} else if lm.commentStyle.Single != "" {
 		formattedLicense = lm.commentStyle.Single + " " + header + "\n" + 
 			commentedLicenseText + "\n" + 
 			lm.commentStyle.Single + " " + footer + "\n\n"

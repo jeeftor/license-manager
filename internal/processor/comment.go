@@ -37,7 +37,7 @@ var extensionStyles = map[string]CommentStyle{
 	".r":     {Single: "#", MultiStart: "", MultiEnd: "", PreferMulti: false, FileType: "r"},
 	".html":  {Single: "", MultiStart: "<!--", MultiEnd: "-->", PreferMulti: false, FileType: "html"},
 	".xml":   {Single: "", MultiStart: "<!--", MultiEnd: "-->", PreferMulti: false, FileType: "xml"},
-	".css":   {Single: "", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "css"},
+	".css":   {Single: "", MultiStart: "/*", MultiEnd: "*/", PreferMulti: true, FileType: "css"},
 	".scss":  {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "scss"},
 	".sass":  {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "sass"},
 	".lua":   {Single: "--", MultiStart: "--[[", MultiEnd: "--]]", PreferMulti: false, FileType: "lua"},
