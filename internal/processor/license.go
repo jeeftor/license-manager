@@ -2,7 +2,6 @@
 package processor
 
 import (
-	"bytes"
 	"strings"
 	"unicode"
 )
@@ -22,42 +21,37 @@ func NewLicenseManager(style HeaderFooterStyle, licenseText string, commentStyle
 }
 
 // formatLicenseBlock formats the license text with appropriate comment styles
-func (lm *LicenseManager) formatLicenseBlock(content string) string {
-	var lines []string
-
-	// Special handling for Go files
-	if lm.commentStyle.FileType == "go" {
-		return lm.formatGoLicenseBlock(content)
-	}
-
-	// For multi-line comments, we need to:
-	// 1. Add each line with a * prefix
-	// 2. The multi-line comment markers will be added in AddLicense
+func (lm *LicenseManager) formatLicenseBlock(license string) string {
 	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
-		// For all multi-line comment styles
-		for _, line := range strings.Split(content, "\n") {
-			if line == "" {
-				lines = append(lines, " *")
+		// For multi-line comments, just add indentation
+		lines := strings.Split(license, "\n")
+		var builder strings.Builder
+
+		// Add license text with proper indentation
+		for _, line := range lines {
+			if strings.TrimSpace(line) != "" {
+				builder.WriteString(" " + line + "\n")
 			} else {
-				lines = append(lines, " * "+line)
+				builder.WriteString(" \n")
 			}
 		}
-	} else if lm.commentStyle.Single != "" {
-		// Use single-line comment style
-		for _, line := range strings.Split(strings.TrimSpace(content), "\n") {
-			if line == "" {
-				lines = append(lines, lm.commentStyle.Single)
-			} else {
-				// Add a space after the comment character only if the line is not empty
-				lines = append(lines, lm.commentStyle.Single+" "+line)
-			}
-		}
-	} else {
-		// No comment style available, use the content as-is
-		return content
+		return builder.String()
 	}
 
-	return strings.TrimSpace(strings.Join(lines, "\n"))
+	// For single-line comments
+	lines := strings.Split(license, "\n")
+	var builder strings.Builder
+	for i, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			builder.WriteString(lm.commentStyle.Single + " " + line)
+		} else {
+			builder.WriteString(lm.commentStyle.Single)
+		}
+		if i < len(lines)-1 {
+			builder.WriteString("\n")
+		}
+	}
+	return builder.String()
 }
 
 // formatGoLicenseBlock handles special cases for Go files like build tags
@@ -76,9 +70,9 @@ func (lm *LicenseManager) formatGoLicenseBlock(content string) string {
 	return strings.Join(lines, "\n")
 }
 
-// AddLicense adds the license text to the content
+// AddLicense adds a license header to the content if one doesn't already exist
 func (lm *LicenseManager) AddLicense(content string) string {
-	// Check if the file already has a license
+	// Check if the content already has the license
 	if lm.CheckLicense(content) {
 		if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
 			fp.logVerbose("Found existing license - skipping license addition")
@@ -86,171 +80,87 @@ func (lm *LicenseManager) AddLicense(content string) string {
 		return content
 	}
 
-	// Format the license block with comments
-	var formattedLicense string
-	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
-		fp.logVerbose("Raw license text:")
-		fp.logVerboseWithLineNumbers(lm.licenseText, 1, "")
-	}
+	// Format the license text with appropriate comment style
+	formattedLicense := lm.formatLicenseBlock(lm.licenseText)
 
-	// Add comments to the license text
-	commentedLicenseText := lm.formatLicenseBlock(lm.licenseText)
-	
-	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
-		fp.logVerbose("Commented license text:")
-		fp.logVerboseWithLineNumbers(commentedLicenseText, 1, "")
-	}
-	
-	// Add header, footer, and comment markers
+	// For multi-line comments, wrap the formatted license in comment markers
 	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
-		// Handle JSX-style comments
-		if strings.HasSuffix(lm.commentStyle.MultiEnd, "}") {
-			formattedLicense = lm.commentStyle.MultiStart + "\n" +
-				commentedLicenseText + "\n" +
-				lm.commentStyle.MultiEnd + "\n\n"
-		} else {
-			formattedLicense = lm.commentStyle.MultiStart + "\n" +
-				commentedLicenseText + "\n" +
-				lm.commentStyle.MultiEnd + "\n\n"
-		}
-	} else if lm.commentStyle.Single != "" {
-		formattedLicense = commentedLicenseText + "\n\n"
-	} else {
-		formattedLicense = commentedLicenseText + "\n\n"
+		formattedLicense = lm.commentStyle.MultiStart + "\n" + formattedLicense + lm.commentStyle.MultiEnd + "\n"
 	}
 
-	if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
-		fp.logVerbose("Final formatted license block:")
-		fp.logVerboseWithLineNumbers(formattedLicense, 1, "")
+	// Add an extra newline after the license block
+	formattedLicense = formattedLicense + "\n"
+
+	// If the content is empty, just return the license
+	if strings.TrimSpace(content) == "" {
+		return formattedLicense
 	}
 
-	var buf bytes.Buffer
-
-	// Special handling for Go files with build tags
-	if lm.commentStyle.FileType == "go" {
-		if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
-			fp.logVerbose("Processing Go file - checking for build tags...")
-		}
-
-		lines := strings.Split(content, "\n")
-		var buildTagsEnd int
-
-		// Find the end of build tags section
-		for i, line := range lines {
-			line = strings.TrimSpace(line)
-			if !strings.HasPrefix(line, "//") || strings.HasPrefix(line, "// +build") {
-				continue
-			}
-			if line == "//" || line == "" {
-				buildTagsEnd = i + 1
-				if fp, ok := interface{}(lm).(*FileProcessor); ok && fp.config.Verbose {
-					fp.logVerbose("Found build tags section ending at line %d", buildTagsEnd)
-				}
-				break
-			}
-		}
-
-		// Write build tags if they exist
-		if buildTagsEnd > 0 {
-			buf.WriteString(strings.Join(lines[:buildTagsEnd], "\n") + "\n\n")
-			content = strings.Join(lines[buildTagsEnd:], "\n")
-		}
-	}
-
-	buf.WriteString(formattedLicense)
-	buf.WriteString(content)
-
-	return buf.String()
+	// Otherwise, add the license before the content
+	return formattedLicense + content
 }
 
 // RemoveLicense removes the license text from the content
 func (lm *LicenseManager) RemoveLicense(content string) string {
-	// For JSX files, we need to find the license within JSX comments
-	if lm.commentStyle.FileType == "javascript" && strings.HasSuffix(lm.commentStyle.MultiEnd, "}") {
-		// Find all JSX comment blocks
-		var result []string
-		parts := strings.Split(content, lm.commentStyle.MultiStart)
-		for i, part := range parts {
-			if i == 0 {
-				// Keep everything before the first comment block
-				result = append(result, strings.TrimSpace(part))
-				continue
-			}
-
-			// Find the end of this comment block
-			commentParts := strings.SplitN(part, lm.commentStyle.MultiEnd, 2)
-			if len(commentParts) != 2 {
-				// If we can't find the end, keep the part as is
-				result = append(result, lm.commentStyle.MultiStart+part)
-				continue
-			}
-
-			// Check if this comment block contains our formatted license text
-			commentContent := commentParts[0]
-			formattedLicense := lm.formatLicenseBlock(lm.licenseText)
-			if !strings.Contains(commentContent, formattedLicense) {
-				// If it's not a license block, keep it
-				result = append(result, lm.commentStyle.MultiStart+part)
-			} else {
-				// If it is a license block, only keep what comes after it
-				afterLicense := strings.TrimSpace(commentParts[1])
-				if afterLicense != "" {
-					result = append(result, afterLicense)
-				}
-			}
-		}
-		return strings.Join(result, "\n")
-	}
-
-	// For other files with multi-line comments
+	// For multi-line comments
 	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
 		start := strings.Index(content, lm.commentStyle.MultiStart)
 		if start != -1 {
 			end := strings.Index(content[start:], lm.commentStyle.MultiEnd)
 			if end != -1 {
-				commentContent := content[start : start+end+len(lm.commentStyle.MultiEnd)]
-				// Clean up the comment content
-				commentContent = strings.TrimSpace(commentContent)
-				commentContent = strings.TrimPrefix(commentContent, lm.commentStyle.MultiStart)
-				commentContent = strings.TrimSuffix(commentContent, lm.commentStyle.MultiEnd)
-				commentContent = strings.TrimSpace(commentContent)
-				// For each line, remove leading asterisk and spaces
-				lines := strings.Split(commentContent, "\n")
-				var cleanedContent strings.Builder
-				for _, line := range lines {
-					line = strings.TrimSpace(line)
-					line = strings.TrimPrefix(line, "*")
-					line = strings.TrimSpace(line)
-					cleanedContent.WriteString(line + "\n")
-				}
-				if strings.Contains(cleanedContent.String(), lm.licenseText) {
-					// Keep content before the license and after the footer
-					beforeLicense := strings.TrimSpace(content[:start])
-					afterLicense := strings.TrimSpace(content[start+end+len(lm.commentStyle.MultiEnd):])
+				// Extract the comment block without the comment markers
+				commentBlock := content[start+len(lm.commentStyle.MultiStart) : start+end]
+				commentBlock = strings.TrimSpace(commentBlock)
+
+				// Format the license text without comment markers for comparison
+				formattedLicense := lm.formatLicenseBlock(lm.licenseText)
+				formattedLicense = strings.TrimSpace(formattedLicense)
+
+				// Compare normalized text to check if this is our license
+				normalizedComment := lm.normalizeText(commentBlock)
+				normalizedLicense := lm.normalizeText(formattedLicense)
+
+				if strings.Contains(normalizedComment, normalizedLicense) {
+					// Keep content before and after the license block
+					beforeLicense := content[:start]
+					afterLicense := content[start+end+len(lm.commentStyle.MultiEnd):]
+
+					// Remove any leading newlines from afterLicense
+					afterLicense = strings.TrimLeft(afterLicense, "\n")
 					
-					if beforeLicense == "" {
+					if strings.TrimSpace(beforeLicense) == "" {
 						return afterLicense
 					}
-					if afterLicense == "" {
+					if strings.TrimSpace(afterLicense) == "" {
 						return beforeLicense
 					}
-					return beforeLicense + "\n\n" + afterLicense
+					return beforeLicense + afterLicense
 				}
 			}
 		}
 		return content
 	}
 
-	// For files with single-line comments
+	// For single-line comments
 	if lm.commentStyle.Single != "" {
 		formattedLicense := lm.formatLicenseBlock(lm.licenseText)
 		lines := strings.Split(content, "\n")
 		var result []string
 		var inLicense bool
 		var licenseStarted bool
+		var shebangLine string
 
+		// Extract shebang line if present
+		if len(lines) > 0 && strings.HasPrefix(lines[0], "#!") {
+			shebangLine = lines[0]
+			lines = lines[1:]
+		}
+
+		// Process lines
 		for _, line := range lines {
 			trimmedLine := strings.TrimSpace(line)
+
+			// Skip license block
 			if !licenseStarted && strings.HasPrefix(trimmedLine, lm.commentStyle.Single) {
 				// Check if this is the start of our license block
 				remainingLines := make([]string, 0)
@@ -277,12 +187,16 @@ func (lm *LicenseManager) RemoveLicense(content string) string {
 				}
 			}
 
-			if strings.TrimSpace(line) != "" {
-				result = append(result, line)
-			}
+			result = append(result, line)
 		}
 
-		return strings.Join(result, "\n")
+		// Add shebang line back to the beginning if present
+		if shebangLine != "" {
+			result = append([]string{shebangLine}, result...)
+		}
+
+		// Join all lines and preserve newlines
+		return preserveNewlines(strings.Join(result, "\n"), content)
 	}
 
 	// For files without comments, just look for the raw license text
@@ -304,9 +218,58 @@ func (lm *LicenseManager) RemoveLicense(content string) string {
 	return beforeLicense + "\n\n" + afterLicense
 }
 
+// preserveNewlines ensures that the content has the same number of leading and trailing newlines as the original
+func preserveNewlines(content, original string) string {
+	// Count leading newlines in original
+	originalLeadingCount := 0
+	for i := 0; i < len(original); i++ {
+		if original[i] != '\n' {
+			break
+		}
+		originalLeadingCount++
+	}
+
+	// Count trailing newlines in original
+	originalTrailingCount := 0
+	for i := len(original) - 1; i >= 0; i-- {
+		if original[i] != '\n' {
+			break
+		}
+		originalTrailingCount++
+	}
+
+	// Trim all newlines from content
+	trimmedContent := strings.Trim(content, "\n")
+
+	// Add the same number of newlines as in original
+	result := strings.Repeat("\n", originalLeadingCount) + trimmedContent + strings.Repeat("\n", originalTrailingCount)
+	return result
+}
+
+// normalizeText removes whitespace and comment markers from text
+func (lm *LicenseManager) normalizeText(text string) string {
+	// Remove all whitespace
+	text = strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, text)
+
+	// Remove all punctuation
+	text = strings.Map(func(r rune) rune {
+		if unicode.IsPunct(r) {
+			return -1
+		}
+		return r
+	}, text)
+
+	return strings.ToLower(text)
+}
+
 // CheckLicense verifies if the content contains a matching license
 func (lm *LicenseManager) CheckLicense(content string) bool {
-	normalizedLicense := normalizeText(lm.licenseText)
+	normalizedLicense := lm.normalizeText(lm.licenseText)
 
 	// For files with multi-line comments
 	if lm.commentStyle.MultiStart != "" {
@@ -329,7 +292,7 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 					line = strings.TrimSpace(line)
 					cleanedContent.WriteString(line + "\n")
 				}
-				normalizedComment := normalizeText(cleanedContent.String())
+				normalizedComment := lm.normalizeText(cleanedContent.String())
 				if strings.Contains(normalizedComment, normalizedLicense) {
 					return true
 				}
@@ -358,7 +321,7 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 				inComment = true
 			} else if inComment && trimmedLine == "" {
 				// Empty line after comment block
-				normalizedComment := normalizeText(commentBlock.String())
+				normalizedComment := lm.normalizeText(commentBlock.String())
 				if strings.Contains(normalizedComment, normalizedLicense) {
 					return true
 				}
@@ -366,7 +329,7 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 				inComment = false
 			} else if inComment {
 				// Non-empty line after comment block
-				normalizedComment := normalizeText(commentBlock.String())
+				normalizedComment := lm.normalizeText(commentBlock.String())
 				if strings.Contains(normalizedComment, normalizedLicense) {
 					return true
 				}
@@ -376,7 +339,7 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 		}
 		// Check last comment block
 		if inComment {
-			normalizedComment := normalizeText(commentBlock.String())
+			normalizedComment := lm.normalizeText(commentBlock.String())
 			if strings.Contains(normalizedComment, normalizedLicense) {
 				return true
 			}
@@ -384,24 +347,8 @@ func (lm *LicenseManager) CheckLicense(content string) bool {
 	}
 
 	// For files without comments
-	normalizedContent := normalizeText(content)
+	normalizedContent := lm.normalizeText(content)
 	return strings.Contains(normalizedContent, normalizedLicense)
-}
-
-// normalizeText removes all whitespace and punctuation from text to make it easier to compare
-func normalizeText(text string) string {
-	// Convert to lowercase
-	text = strings.ToLower(text)
-	// Remove all whitespace
-	text = strings.Join(strings.Fields(text), "")
-	// Remove all punctuation
-	text = strings.Map(func(r rune) rune {
-		if unicode.IsPunct(r) {
-			return -1
-		}
-		return r
-	}, text)
-	return text
 }
 
 // extractLicenseText extracts the license text between header and footer

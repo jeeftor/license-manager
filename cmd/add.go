@@ -29,7 +29,6 @@ var addCmd = &cobra.Command{
 		
 		// Don't show usage for any error from Add()
 		cmd.SilenceUsage = true
-		
 		return err
 	},
 }

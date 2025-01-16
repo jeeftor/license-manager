@@ -2,6 +2,7 @@ package processor
 
 import (
 	"path/filepath"
+	"strings"
 )
 
 type CommentStyle struct {
@@ -13,14 +14,12 @@ type CommentStyle struct {
 }
 
 var extensionStyles = map[string]CommentStyle{
-	".py":    {Single: "#", MultiStart: "", MultiEnd: "", PreferMulti: false, FileType: "python"},
 	".rb":    {Single: "#", MultiStart: "=begin", MultiEnd: "=end", PreferMulti: false, FileType: "ruby"},
 	".js":    {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: true, FileType: "javascript"},
 	".jsx":   {Single: "//", MultiStart: "{/*", MultiEnd: "*/}", PreferMulti: true, FileType: "javascript"},
 	".ts":    {Single: "//", MultiStart: "/*", MultiEnd: "*/}", PreferMulti: false, FileType: "typescript"},
 	".tsx":   {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "typescript"},
 	".java":  {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "java"},
-	".go":    {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "go"},
 	".c":     {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "c"},
 	".cpp":   {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "cpp"},
 	".hpp":   {Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: false, FileType: "cpp"},
@@ -45,16 +44,35 @@ var extensionStyles = map[string]CommentStyle{
 }
 
 func getCommentStyle(filename string) CommentStyle {
-	ext := filepath.Ext(filename)
-	if style, ok := extensionStyles[ext]; ok {
-		return style
-	}
-	// Default to C-style comments if unknown
-	return CommentStyle{
-		Single:      "//",
-		MultiStart:  "/*",
-		MultiEnd:    "*/",
-		PreferMulti: false,
-		FileType:    "unknown",
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".go":
+		return CommentStyle{
+			Single:      "//",
+			MultiStart:  "/*",
+			MultiEnd:    "*/",
+			PreferMulti: true,
+			FileType:    "go",
+		}
+	case ".py":
+		return CommentStyle{
+			Single:      "#",
+			MultiStart:  "",
+			MultiEnd:    "",
+			PreferMulti: false,
+			FileType:    "python",
+		}
+	default:
+		if style, ok := extensionStyles[ext]; ok {
+			return style
+		}
+		// Default to C-style comments if unknown
+		return CommentStyle{
+			Single:      "//",
+			MultiStart:  "/*",
+			MultiEnd:    "*/",
+			PreferMulti: false,
+			FileType:    "unknown",
+		}
 	}
 }
