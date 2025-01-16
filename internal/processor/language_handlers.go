@@ -1,25 +1,30 @@
 package processor
 
-import "strings"
+import (
+	"fmt"
+	"strings"
 
-// LanguageHandler defines the interface for language-specific license handling
+	"license-manager/internal/styles"
+)
+
+// LanguageHandler defines the interface for language-specific license formatting
 type LanguageHandler interface {
 	// FormatLicense formats the license text according to language conventions
-	FormatLicense(license string, commentStyle CommentStyle, style HeaderFooterStyle) string
+	FormatLicense(license string, commentStyle styles.CommentStyle, style styles.HeaderFooterStyle) string
 	// PreservePreamble extracts and preserves any language-specific preamble (e.g., shebang, package declaration)
 	PreservePreamble(content string) (preamble, rest string)
 }
 
-// GenericHandler implements basic license handling for most languages
+// GenericHandler provides default license formatting
 type GenericHandler struct {
-	style HeaderFooterStyle
+	style styles.HeaderFooterStyle
 }
 
-func NewGenericHandler(style HeaderFooterStyle) *GenericHandler {
+func NewGenericHandler(style styles.HeaderFooterStyle) *GenericHandler {
 	return &GenericHandler{style: style}
 }
 
-func (h *GenericHandler) FormatLicense(license string, commentStyle CommentStyle, style HeaderFooterStyle) string {
+func (h *GenericHandler) FormatLicense(license string, commentStyle styles.CommentStyle, style styles.HeaderFooterStyle) string {
 	header := strings.TrimSpace(style.Header)
 	footer := strings.TrimSpace(style.Footer)
 
@@ -66,7 +71,7 @@ type GoHandler struct {
 	*GenericHandler
 }
 
-func NewGoHandler(style HeaderFooterStyle) *GoHandler {
+func NewGoHandler(style styles.HeaderFooterStyle) *GoHandler {
 	return &GoHandler{GenericHandler: NewGenericHandler(style)}
 }
 
@@ -124,7 +129,7 @@ type HTMLHandler struct {
 	*GenericHandler
 }
 
-func NewHTMLHandler(style HeaderFooterStyle) *HTMLHandler {
+func NewHTMLHandler(style styles.HeaderFooterStyle) *HTMLHandler {
 	return &HTMLHandler{GenericHandler: NewGenericHandler(style)}
 }
 
@@ -144,7 +149,7 @@ type JavaScriptHandler struct {
 	*GenericHandler
 }
 
-func NewJavaScriptHandler(style HeaderFooterStyle) *JavaScriptHandler {
+func NewJavaScriptHandler(style styles.HeaderFooterStyle) *JavaScriptHandler {
 	return &JavaScriptHandler{GenericHandler: NewGenericHandler(style)}
 }
 
@@ -164,7 +169,7 @@ type YAMLHandler struct {
 	*GenericHandler
 }
 
-func NewYAMLHandler(style HeaderFooterStyle) *YAMLHandler {
+func NewYAMLHandler(style styles.HeaderFooterStyle) *YAMLHandler {
 	return &YAMLHandler{GenericHandler: NewGenericHandler(style)}
 }
 
@@ -193,7 +198,7 @@ type ShebangHandler struct {
 	*GenericHandler
 }
 
-func NewShebangHandler(style HeaderFooterStyle) *ShebangHandler {
+func NewShebangHandler(style styles.HeaderFooterStyle) *ShebangHandler {
 	return &ShebangHandler{GenericHandler: NewGenericHandler(style)}
 }
 
@@ -209,7 +214,7 @@ func (h *ShebangHandler) PreservePreamble(content string) (string, string) {
 }
 
 // GetLanguageHandler returns the appropriate handler for a given file type
-func GetLanguageHandler(fileType string, style HeaderFooterStyle) LanguageHandler {
+func GetLanguageHandler(fileType string, style styles.HeaderFooterStyle) LanguageHandler {
 	switch fileType {
 	case "go":
 		return NewGoHandler(style)

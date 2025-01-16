@@ -18,6 +18,8 @@ var updateCmd = &cobra.Command{
 			Prompt:      cfgPrompt,
 			DryRun:      cfgDryRun,
 			Verbose:     cfgVerbose,
+			PresetStyle: cfgPresetStyle,
+			PreferMulti: cfgPreferMulti,
 		}
 
 		p := processor.NewFileProcessor(config)

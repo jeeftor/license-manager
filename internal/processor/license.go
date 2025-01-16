@@ -4,15 +4,15 @@ package processor
 import (
 	"fmt"
 	"strings"
-	"unicode"
+
+	"license-manager/internal/styles"
 )
 
-// LicenseBlock represents a complete license block with its components
+// LicenseBlock represents a complete license block with style information
 type LicenseBlock struct {
-	CommentStyle CommentStyle
-	Header       string
-	Body         string
-	Footer       string
+	style        styles.HeaderFooterStyle
+	licenseText  string
+	commentStyle styles.CommentStyle
 }
 
 // String returns the complete license block as a string
@@ -27,103 +27,70 @@ func (lb *LicenseBlock) String() string {
 		return addMarkers(text)
 	}
 
-	if lb.CommentStyle.PreferMulti && lb.CommentStyle.MultiStart != "" {
+	if lb.commentStyle.PreferMulti && lb.commentStyle.MultiStart != "" {
 		// Multi-line comment style
-		result = append(result, lb.CommentStyle.MultiStart)
-		result = append(result, " * "+addMarkersIfNeeded(lb.Header))
-		
+		result = append(result, lb.commentStyle.MultiStart)
+		result = append(result, " * "+addMarkersIfNeeded(lb.style.Header))
+
 		// Add body with comment markers
-		for _, line := range strings.Split(lb.Body, "\n") {
+		for _, line := range strings.Split(lb.licenseText, "\n") {
 			if line == "" {
 				result = append(result, " *")
 			} else {
 				result = append(result, " * "+line)
 			}
 		}
-		
-		result = append(result, " * "+addMarkersIfNeeded(lb.Footer))
-		result = append(result, " "+lb.CommentStyle.MultiEnd)
-	} else if lb.CommentStyle.Single != "" {
+
+		result = append(result, " * "+addMarkersIfNeeded(lb.style.Footer))
+		result = append(result, " "+lb.commentStyle.MultiEnd)
+	} else if lb.commentStyle.Single != "" {
 		// Single-line comment style
-		result = append(result, lb.CommentStyle.Single+" "+addMarkersIfNeeded(lb.Header))
-		
+		result = append(result, lb.commentStyle.Single+" "+addMarkersIfNeeded(lb.style.Header))
+
 		// Add body with comment markers
-		for _, line := range strings.Split(lb.Body, "\n") {
+		for _, line := range strings.Split(lb.licenseText, "\n") {
 			if line == "" {
-				result = append(result, lb.CommentStyle.Single)
+				result = append(result, lb.commentStyle.Single)
 			} else {
-				result = append(result, lb.CommentStyle.Single+" "+line)
+				result = append(result, lb.commentStyle.Single+" "+line)
 			}
 		}
-		
-		result = append(result, lb.CommentStyle.Single+" "+addMarkersIfNeeded(lb.Footer))
+
+		result = append(result, lb.commentStyle.Single+" "+addMarkersIfNeeded(lb.style.Footer))
 	} else {
 		// No comment style (e.g., for text files)
-		result = append(result, addMarkersIfNeeded(lb.Header))
-		result = append(result, lb.Body)
-		result = append(result, addMarkersIfNeeded(lb.Footer))
+		result = append(result, addMarkersIfNeeded(lb.style.Header))
+		result = append(result, lb.licenseText)
+		result = append(result, addMarkersIfNeeded(lb.style.Footer))
 	}
 
 	return strings.Join(result, "\n")
 }
 
-// ParseLicenseBlock attempts to parse a license block from content
-func ParseLicenseBlock(content string, style CommentStyle) (*LicenseBlock, bool) {
-	// First uncomment the content if needed
-	content = uncommentContent(content, style)
-
-	// Look for markers
-	start, end := findLicenseBlock(content)
-	if start == -1 || end == -1 {
-		return nil, false
-	}
-
-	// Split the content into lines
-	lines := strings.Split(content[start:end], "\n")
-	if len(lines) < 3 { // Need at least header, body, footer
-		return nil, false
-	}
-
-	// Extract header and footer (they should have markers)
-	header := stripMarkers(lines[0])
-	footer := stripMarkers(lines[len(lines)-1])
-
-	// Everything in between is the body
-	body := strings.Join(lines[1:len(lines)-1], "\n")
-
+// NewLicenseBlock creates a new LicenseBlock instance
+func NewLicenseBlock(style styles.HeaderFooterStyle, licenseText string, commentStyle styles.CommentStyle) *LicenseBlock {
 	return &LicenseBlock{
-		CommentStyle: style,
-		Header:       header,
-		Body:         body,
-		Footer:       footer,
-	}, true
-}
-
-// NewLicenseBlock creates a new license block with the given style and content
-func NewLicenseBlock(style HeaderFooterStyle, licenseText string, commentStyle CommentStyle) *LicenseBlock {
-	return &LicenseBlock{
-		CommentStyle: commentStyle,
-		Header:       style.Header,
-		Body:         licenseText,
-		Footer:       style.Footer,
+		style:        style,
+		licenseText:  licenseText,
+		commentStyle: commentStyle,
 	}
 }
 
-// LicenseManager handles license text operations
+// LicenseManager handles license operations for a specific style and text
 type LicenseManager struct {
-	style        HeaderFooterStyle
+	style        styles.HeaderFooterStyle
 	licenseText  string
-	commentStyle CommentStyle
-	handler      LanguageHandler
+	commentStyle styles.CommentStyle
+	checker      *LicenseChecker
 }
 
-// NewLicenseManager creates a new instance of LicenseManager
-func NewLicenseManager(style HeaderFooterStyle, licenseText string, commentStyle CommentStyle) *LicenseManager {
+// NewLicenseManager creates a new LicenseManager instance
+func NewLicenseManager(style styles.HeaderFooterStyle, licenseText string, commentStyle styles.CommentStyle) *LicenseManager {
 	return &LicenseManager{
 		style:        style,
 		licenseText:  licenseText,
 		commentStyle: commentStyle,
-		handler:      GetLanguageHandler(commentStyle.Language, style),
+		checker:      NewLicenseChecker(commentStyle, style),
 	}
 }
 
@@ -133,7 +100,17 @@ func (lm *LicenseManager) CheckLicense(content string, verbose bool) bool {
 		lm.debugLicenseCheck(content)
 	}
 
-	// Create the expected comment
+	// First check if there's a license block
+	start, end := lm.checker.FindLicenseBlock(content)
+	if start == -1 || end == -1 {
+		return false
+	}
+
+	// Extract the license text and compare
+	licenseBlock := content[start:end]
+	licenseBlock = uncommentContent(licenseBlock, lm.commentStyle)
+
+	// Create the expected comment for comparison
 	expected := NewComment(
 		lm.commentStyle,
 		lm.style.Header,
@@ -141,178 +118,182 @@ func (lm *LicenseManager) CheckLicense(content string, verbose bool) bool {
 		lm.style.Footer,
 	)
 
-	// Try to parse the actual comment from content
-	actual, found := Parse(content, lm.commentStyle)
-	if !found {
-		return false
-	}
-
-	// Compare the comments
-	return expected.String() == actual.String()
+	// Compare the uncommented text
+	return strings.TrimSpace(licenseBlock) == strings.TrimSpace(expected.String())
 }
 
 // AddLicense adds the license text to the content
 func (lm *LicenseManager) AddLicense(content string) string {
-	// Check if license is already present
+	// If there's already a license, return as is
 	if lm.CheckLicense(content, false) {
 		return content
 	}
 
-	// Special handling for Go files
-	if lm.commentStyle.Language == "go" {
-		lines := strings.Split(content, "\n")
-		directiveEnd := -1
-		
-		// Find the last build directive
-		for i, line := range lines {
-			trimmed := strings.TrimSpace(line)
-			if strings.HasPrefix(trimmed, "// +build") || strings.HasPrefix(trimmed, "//go:") {
-				directiveEnd = i
-				// Skip blank line after directive
-				if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "" {
-					directiveEnd = i + 1
-				}
-			}
-		}
-
-		// Create and format the license comment
-		comment := NewComment(
-			lm.commentStyle,
-			lm.style.Header,
-			lm.licenseText,
-			lm.style.Footer,
-		)
-		licenseComment := comment.String()
-		if !strings.HasSuffix(licenseComment, "\n") {
-			licenseComment += "\n"
-		}
-
-		// Insert license after directives or at start
-		if directiveEnd >= 0 {
-			// Add after directives
-			return strings.Join(lines[:directiveEnd+1], "\n") + "\n" + licenseComment + strings.Join(lines[directiveEnd+1:], "\n")
-		} else {
-			// Add at very start
-			return licenseComment + content
-		}
-	}
-
-	// For non-Go files, preserve any preamble
-	preamble, rest := lm.handler.PreservePreamble(content)
-
-	// Create and format the license comment
+	// Create the comment with license
 	comment := NewComment(
 		lm.commentStyle,
 		lm.style.Header,
 		lm.licenseText,
 		lm.style.Footer,
 	)
-	
-	// Count newlines in original content after preamble
-	preambleNewlines := 0
-	if preamble != "" {
-		// Find where preamble ends in original content
-		preambleEnd := strings.Index(content, preamble) + len(preamble)
-		for i := preambleEnd; i < len(content); i++ {
-			if content[i] != '\n' {
-				break
-			}
-			preambleNewlines++
-		}
-	}
 
-	// Add one newline after license comment
-	licenseComment := comment.String()
-	if !strings.HasSuffix(licenseComment, "\n") {
-		licenseComment += "\n"
+	// Add the comment to the content
+	if lm.commentStyle.PreferMulti && lm.commentStyle.MultiStart != "" {
+		return lm.addMultiLineComment(content, comment)
 	}
-
-	// Build the result with proper newlines
-	var result strings.Builder
-	if preamble != "" {
-		result.WriteString(preamble)
-		result.WriteString(strings.Repeat("\n", preambleNewlines))
-	}
-	result.WriteString(licenseComment)
-	if rest != "" {
-		result.WriteString(rest)
-	}
-
-	return result.String()
+	return lm.addSingleLineComment(content, comment)
 }
 
 // RemoveLicense removes the license text from the content
 func (lm *LicenseManager) RemoveLicense(content string) string {
-	// Preserve any language-specific preamble
-	preamble, rest := lm.handler.PreservePreamble(content)
-
-	// Try to parse the comment
-	comment, found := Parse(rest, lm.commentStyle)
-	if !found {
+	// Find the license block
+	start, end := lm.checker.FindLicenseBlock(content)
+	if start == -1 || end == -1 {
 		return content
 	}
 
-	// Remove the comment and reconstruct the content
-	var result []string
-	if preamble != "" {
-		result = append(result, preamble)
-		result = append(result, "")
-	}
-
-	// Get the content after the comment
-	start := strings.Index(rest, comment.String())
-	if start != -1 {
-		end := start + len(comment.String())
-		result = append(result, rest[:start]+rest[end:])
-	}
-
-	return strings.Join(result, "\n")
+	// Remove the license block
+	return content[:start] + content[end:]
 }
 
-// UpdateLicense updates the existing license text with new content
-func (lm *LicenseManager) UpdateLicense(content string) string {
-	// Try to parse the existing comment
-	comment, found := Parse(content, lm.commentStyle)
-	if !found {
-		return content // No license found to update
-	}
-
-	// Update the comment's body with the new license text
-	comment.SetBody(lm.licenseText)
-
-	// Remove the old comment and add the updated one
+// ReplaceLicense replaces an existing license with a new one
+func (lm *LicenseManager) ReplaceLicense(content string) string {
+	// Remove existing license if present
 	content = lm.RemoveLicense(content)
+
+	// Add the new license
 	return lm.AddLicense(content)
 }
 
-// GetLicenseComparison returns the current and expected license text for comparison
-func (lm *LicenseManager) GetLicenseComparison(content string) (current, expected string) {
-	// Create the expected comment
-	expectedComment := NewComment(
-		lm.commentStyle,
-		lm.style.Header,
-		lm.licenseText,
-		lm.style.Footer,
-	)
+// UpdateLicense updates the existing license text with new content
+func (lm *LicenseManager) UpdateLicense(content, newLicenseText string) string {
+	// Save the current license text
+	oldLicenseText := lm.licenseText
 
-	// Try to parse the actual comment
-	actualComment, found := Parse(content, lm.commentStyle)
-	if !found {
-		return "", expectedComment.String()
-	}
+	// Set the new license text
+	lm.licenseText = newLicenseText
 
-	return actualComment.String(), expectedComment.String()
+	// Replace the license
+	result := lm.ReplaceLicense(content)
+
+	// Restore the original license text
+	lm.licenseText = oldLicenseText
+
+	return result
 }
 
-// CheckLicenseStatus verifies the license status of the content
+// addMultiLineComment adds a multi-line comment to the content
+func (lm *LicenseManager) addMultiLineComment(content string, comment *Comment) string {
+	var result strings.Builder
+
+	// Add comment start
+	result.WriteString(lm.commentStyle.MultiStart)
+	result.WriteString("\n")
+
+	// Add header with prefix
+	if comment.Header != "" {
+		result.WriteString(lm.commentStyle.MultiPrefix)
+		result.WriteString(" ")
+		result.WriteString(addMarkers(comment.Header))
+		result.WriteString("\n")
+	}
+
+	// Add body with prefix for each line
+	lines := strings.Split(comment.Body, "\n")
+	for _, line := range lines {
+		if line != "" {
+			result.WriteString(lm.commentStyle.MultiPrefix)
+			result.WriteString(lm.commentStyle.LinePrefix)
+			result.WriteString(line)
+		}
+		result.WriteString("\n")
+	}
+
+	// Add footer with prefix
+	if comment.Footer != "" {
+		result.WriteString(lm.commentStyle.MultiPrefix)
+		result.WriteString(" ")
+		result.WriteString(addMarkers(comment.Footer))
+		result.WriteString("\n")
+	}
+
+	// Add comment end
+	result.WriteString(lm.commentStyle.MultiEnd)
+	result.WriteString("\n\n")
+
+	// Add the original content
+	result.WriteString(content)
+
+	return result.String()
+}
+
+// addSingleLineComment adds a single-line comment to the content
+func (lm *LicenseManager) addSingleLineComment(content string, comment *Comment) string {
+	var result strings.Builder
+
+	// Add header
+	if comment.Header != "" {
+		result.WriteString(lm.commentStyle.Single)
+		result.WriteString(lm.commentStyle.LinePrefix)
+		result.WriteString(addMarkers(comment.Header))
+		result.WriteString("\n")
+	}
+
+	// Add body
+	lines := strings.Split(comment.Body, "\n")
+	for _, line := range lines {
+		result.WriteString(lm.commentStyle.Single)
+		result.WriteString(lm.commentStyle.LinePrefix)
+		result.WriteString(line)
+		result.WriteString("\n")
+	}
+
+	// Add footer
+	if comment.Footer != "" {
+		result.WriteString(lm.commentStyle.Single)
+		result.WriteString(lm.commentStyle.LinePrefix)
+		result.WriteString(addMarkers(comment.Footer))
+		result.WriteString("\n")
+	}
+
+	// Add a blank line
+	result.WriteString("\n")
+
+	// Add the original content
+	result.WriteString(content)
+
+	return result.String()
+}
+
+// GetLicenseComparison returns the current and expected license text for comparison
+func (lm *LicenseManager) GetLicenseComparison(content string) (string, string) {
+	start, end := lm.checker.FindLicenseBlock(content)
+	if start == -1 || end == -1 {
+		return "", lm.licenseText
+	}
+
+	// Extract the current license text
+	currentLicense := content[start:end]
+	currentLicense = uncommentContent(currentLicense, lm.commentStyle)
+
+	return currentLicense, lm.licenseText
+}
+
+// CheckLicenseStatus returns the status of the license in the content
 func (lm *LicenseManager) CheckLicenseStatus(content string) LicenseStatus {
-	if lm.CheckLicense(content, false) {
+	if !lm.CheckLicense(content, false) {
+		return NoLicense
+	}
+
+	current, expected := lm.GetLicenseComparison(content)
+	if strings.TrimSpace(current) == strings.TrimSpace(expected) {
 		return MatchingLicense
 	}
-	return NoLicense
+
+	return DifferentLicense
 }
 
-// LicenseStatus represents the status of a license check
+// LicenseStatus represents the status of a license in a file
 type LicenseStatus int
 
 const (
@@ -321,71 +302,14 @@ const (
 	MatchingLicense
 )
 
-// debugLicenseCheck performs detailed analysis of license markers in the content
+// debugLicenseCheck prints debug information about license checking
 func (lm *LicenseManager) debugLicenseCheck(content string) {
-	fmt.Printf("\u001b[1;34m=== License Check Debug Information ===\u001b[0m\n")
-
-	// Check for invisible markers
-	fmt.Printf("\u001b[1;36mInvisible Markers Check:\u001b[0m\n")
-	fmt.Printf("  Found Start Marker (%s): %v\n", markerStart, strings.Contains(content, markerStart))
-	fmt.Printf("  Found End Marker (%s): %v\n", markerEnd, strings.Contains(content, markerEnd))
-
-	// Try to parse the comment
-	fmt.Printf("\n\u001b[1;36mAttempting to infer license block:\u001b[0m\n")
-	if comment, found := Parse(content, lm.commentStyle); found {
-		fmt.Printf("  Found license block:\n")
-		fmt.Printf("    Header: %s\n", comment.Header)
-		fmt.Printf("    Footer: %s\n", comment.Footer)
-	} else {
-		fmt.Printf("  No license block found\n")
-	}
-
-	fmt.Printf("\n\u001b[1;34m=== End Debug Information ===\u001b[0m\n")
-}
-
-// extractLicenseText extracts the license text between header and footer
-func (lm *LicenseManager) extractLicenseText(content string) (string, bool) {
-	// First check for the header and footer markers
-	if !hasMarkers(content) {
-		return "", false
-	}
-
-	start, end := findLicenseBlock(content)
+	start, end := lm.checker.FindLicenseBlock(content)
 	if start == -1 || end == -1 {
-		return "", false
+		fmt.Printf("No license block found in content\n")
+		return
 	}
 
-	// Extract the text between the markers
-	licenseBlock := content[start:end]
-	licenseBlock = stripMarkers(licenseBlock)
-
-	// Clean up the extracted text
-	licenseBlock = uncommentContent(licenseBlock, lm.commentStyle)
-	return strings.TrimSpace(licenseBlock), true
-}
-
-// normalizeText removes whitespace and comment markers from text
-func (lm *LicenseManager) normalizeText(text string) string {
-	// Convert to lowercase for case-insensitive comparison
-	text = strings.ToLower(text)
-
-	// Remove all whitespace
-	var result strings.Builder
-	for _, ch := range text {
-		if !unicode.IsSpace(ch) {
-			result.WriteRune(ch)
-		}
-	}
-
-	// Remove comment markers
-	text = result.String()
-	if lm.commentStyle.Single != "" {
-		text = strings.ReplaceAll(text, strings.ToLower(lm.commentStyle.Single), "")
-	}
-	if lm.commentStyle.MultiStart != "" {
-		text = strings.ReplaceAll(text, strings.ToLower(lm.commentStyle.MultiStart), "")
-		text = strings.ReplaceAll(text, strings.ToLower(lm.commentStyle.MultiEnd), "")
-	}
-
-	return text
+	fmt.Printf("Found license block from position %d to %d\n", start, end)
+	fmt.Printf("License block content:\n%s\n", content[start:end])
 }

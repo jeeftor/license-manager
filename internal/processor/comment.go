@@ -3,362 +3,276 @@ package processor
 import (
 	"path/filepath"
 	"strings"
+
+	"license-manager/internal/styles"
 )
 
 const (
-	// Invisible markers for license blocks
-	markerStart = "\u200B" // Zero-Width Space
-	markerEnd   = "\u200C" // Zero-Width Non-Joiner
+	markerStart = "​" // Zero-width space
+	markerEnd   = "‌" // Zero-width non-joiner
 )
 
 // Comment represents a complete comment block with all its components
 type Comment struct {
-	// Style defines how the comment should be formatted
-	Style CommentStyle
-
-	// The actual content components
+	Style  styles.CommentStyle
 	Header string
 	Body   string
 	Footer string
 }
 
-// String returns the complete comment as a formatted string
 func (c *Comment) String() string {
 	var result []string
+	content := []string{}
 
-	// Always add markers to header and footer if they don't have them
-	header := addMarkersIfNeeded(c.Header)
-	footer := addMarkersIfNeeded(c.Footer)
+	// Add header if present
+	if c.Header != "" {
+		content = append(content, c.Header)
+	}
+
+	// Add an empty line after header if we have more content
+	if c.Header != "" && (c.Body != "" || c.Footer != "") {
+		content = append(content, "")
+	}
+
+	// Add body
+	if c.Body != "" {
+		content = append(content, c.Body)
+	}
+
+	// Add an empty line before footer if we have one
+	if c.Footer != "" && (c.Header != "" || c.Body != "") {
+		content = append(content, "")
+	}
+
+	// Add footer if present
+	if c.Footer != "" {
+		content = append(content, c.Footer)
+	}
+
+	// Join all content with newlines
+	text := strings.Join(content, "\n")
 
 	if c.Style.PreferMulti && c.Style.MultiStart != "" {
 		// Multi-line comment style
 		result = append(result, c.Style.MultiStart)
-		if c.Header != "" {
-			result = append(result, c.Style.MultiPrefix+header)
-		}
 
-		// Add body with comment markers
-		for _, line := range strings.Split(c.Body, "\n") {
-			if line == "" {
-				result = append(result, c.Style.MultiPrefix)
+		// Process each line
+		lines := strings.Split(text, "\n")
+		for _, line := range lines {
+			if c.Style.MultiPrefix != "" {
+				result = append(result, c.Style.MultiPrefix+c.Style.LinePrefix+line)
 			} else {
-				result = append(result, c.Style.MultiPrefix+line)
+				result = append(result, line)
 			}
 		}
 
-		if c.Footer != "" {
-			result = append(result, c.Style.MultiPrefix+footer)
-		}
 		result = append(result, c.Style.MultiEnd)
 	} else if c.Style.Single != "" {
 		// Single-line comment style
-		if c.Header != "" {
-			result = append(result, c.Style.Single+c.Style.LinePrefix+header)
-		}
-
-		// Add body with comment markers
-		for _, line := range strings.Split(c.Body, "\n") {
+		lines := strings.Split(text, "\n")
+		for _, line := range lines {
 			if line == "" {
 				result = append(result, c.Style.Single)
 			} else {
 				result = append(result, c.Style.Single+c.Style.LinePrefix+line)
 			}
 		}
-
-		if c.Footer != "" {
-			result = append(result, c.Style.Single+c.Style.LinePrefix+footer)
+	} else if c.Style.MultiStart != "" {
+		// Fallback to multi-line style for languages that only support multi-line comments
+		result = append(result, c.Style.MultiStart)
+		lines := strings.Split(text, "\n")
+		for _, line := range lines {
+			result = append(result, line)
 		}
+		result = append(result, c.Style.MultiEnd)
 	} else {
-		// No comment style (e.g., text files)
-		if c.Header != "" {
-			result = append(result, header)
-		}
-		result = append(result, c.Body)
-		if c.Footer != "" {
-			result = append(result, footer)
-		}
+		// No comment style defined, return raw text
+		return text
 	}
 
 	return strings.Join(result, "\n")
 }
 
-// Parse attempts to parse a comment from the given content
-func Parse(content string, style CommentStyle) (*Comment, bool) {
-	// First uncomment the content
-	content = uncommentContent(content, style)
-
-	// Look for markers
-	start, end := findLicenseBlock(content)
-	if start == -1 || end == -1 {
-		return nil, false
-	}
-
-	// Split the content into lines
-	lines := strings.Split(content[start:end], "\n")
-	if len(lines) < 3 { // Need at least header, body, footer
-		return nil, false
-	}
-
-	// Extract header and footer (keep markers)
-	header := strings.TrimSpace(lines[0])
-	footer := strings.TrimSpace(lines[len(lines)-1])
-
-	// Everything in between is the body
-	body := strings.Join(lines[1:len(lines)-1], "\n")
-
-	// Trim any extra whitespace from the body
-	body = strings.TrimSpace(body)
-
-	return &Comment{
-		Style:  style,
-		Header: header,
-		Body:   body,
-		Footer: footer,
-	}, true
-}
-
 // CommentStyle represents how comments should be formatted for a specific language
 type CommentStyle struct {
 	// Language identifier (e.g., "go", "python", "javascript")
-	// This is also used as the file type identifier
 	Language string
 
-	// Single-line comment prefix (e.g., "//", "#", "--")
+	// Single-line comment prefix (e.g., "//", "#")
 	Single string
 
-	// Multi-line comment markers
-	MultiStart  string // e.g., "/*"
-	MultiEnd    string // e.g., "*/"
-	MultiPrefix string // e.g., " * " for multi-line comment body
-	LinePrefix  string // e.g., " " for single-line comments
+	// Multi-line comment start marker (e.g., "/*", "'''")
+	MultiStart string
+
+	// Multi-line comment end marker (e.g., "*/", "'''")
+	MultiEnd string
+
+	// Multi-line comment line prefix (e.g., " * ")
+	MultiPrefix string
+
+	// Line prefix for content after comment marker (e.g., " ")
+	LinePrefix string
 
 	// Whether to prefer multi-line comments over single-line
 	PreferMulti bool
-}
 
-// Helper function to add markers if they're not already present
-func addMarkersIfNeeded(text string) string {
-	if hasMarkers(text) {
-		return text
-	}
-	return addMarkers(text)
+	// Header and footer for the comment block
+	Header string
+	Footer string
 }
 
 var extensionStyles = map[string]CommentStyle{
 	".rb":    {Language: "ruby", Single: "#", MultiStart: "=begin", MultiEnd: "=end", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".js":    {Language: "javascript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: true},
-	".jsx":   {Language: "javascript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: true},
-	".ts":    {Language: "typescript", Single: "//", MultiStart: "/*", MultiEnd: "*/}", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".tsx":   {Language: "typescript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".java":  {Language: "java", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".c":     {Language: "c", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".cpp":   {Language: "cpp", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".hpp":   {Language: "cpp", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".cs":    {Language: "csharp", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".php":   {Language: "php", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".swift": {Language: "swift", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".rs":    {Language: "rust", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
+	".js":    {Language: "javascript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	".jsx":   {Language: "javascript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	".ts":    {Language: "typescript", Single: "//", MultiStart: "/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".tsx":   {Language: "typescript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".java":  {Language: "java", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".c":     {Language: "c", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".cpp":   {Language: "cpp", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".hpp":   {Language: "cpp", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".cs":    {Language: "csharp", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".php":   {Language: "php", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".swift": {Language: "swift", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
+	".rs":    {Language: "rust", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: false},
 	".sh":    {Language: "shell", Single: "#", MultiStart: ": <<'END'", MultiEnd: "END", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
 	".bash":  {Language: "shell", Single: "#", MultiStart: ": <<'END'", MultiEnd: "END", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
 	".zsh":   {Language: "shell", Single: "#", MultiStart: ": <<'END'", MultiEnd: "END", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
 	".yml":   {Language: "yaml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
 	".yaml":  {Language: "yaml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".pl":    {Language: "perl", Single: "#", MultiStart: "=pod", MultiEnd: "=cut", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".pm":    {Language: "perl", Single: "#", MultiStart: "=pod", MultiEnd: "=cut", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".r":     {Language: "r", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".html":  {Language: "html", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: "", PreferMulti: true},
-	".xml":   {Language: "xml", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: "", PreferMulti: false},
-	".css":   {Language: "css", Single: "", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: "", PreferMulti: true},
-	".scss":  {Language: "scss", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".sass":  {Language: "sass", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " * ", LinePrefix: " ", PreferMulti: false},
-	".lua":   {Language: "lua", Single: "--", MultiStart: "--[[", MultiEnd: "--]]", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".py":    {Language: "python", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".go":    {Language: "go", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	".html":  {Language: "html", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
+	".css":   {Language: "css", Single: "", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	".md":    {Language: "markdown", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
 }
 
-func getCommentStyle(filename string) CommentStyle {
-	ext := filepath.Ext(filename)
-	switch ext {
-	case ".go":
-		return CommentStyle{
-			Language:    "go",
-			Single:      "//",
-			MultiStart:  "/*",
-			MultiEnd:    "*/",
-			MultiPrefix: " * ",
-			LinePrefix:  " ",
-			PreferMulti: true,
-		}
-	case ".py":
-		return CommentStyle{
-			Language:    "python",
-			Single:      "#",
-			MultiStart:  "",
-			MultiEnd:    "",
-			MultiPrefix: "",
-			LinePrefix:  " ",
-			PreferMulti: false,
-		}
-	default:
-		if style, ok := extensionStyles[ext]; ok {
-			return style
-		}
-		// Default to C-style comments if unknown
-		return CommentStyle{
-			Language:    "unknown",
-			Single:      "//",
-			MultiStart:  "/*",
-			MultiEnd:    "*/",
-			MultiPrefix: " * ",
-			LinePrefix:  " ",
-			PreferMulti: false,
-		}
+func getCommentStyle(filename string) styles.CommentStyle {
+	ext := strings.ToLower(filepath.Ext(filename))
+	if style, ok := extensionStyles[ext]; ok {
+		return style
+	}
+
+	// Default to no comments for unknown file types
+	return styles.CommentStyle{
+		Language: "text",
 	}
 }
 
-func uncommentContent(content string, style CommentStyle) string {
-	// Remove single-line comments
-	if style.Single != "" {
-		lines := strings.Split(content, "\n")
-		for i, line := range lines {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, style.Single) {
-				// Remove the comment prefix and any extra space
-				line = strings.TrimSpace(strings.TrimPrefix(line, style.Single))
-				
-				// Preserve any unicode markers
-				if hasMarkers(line) {
-					start := strings.Index(line, markerStart)
-					end := strings.Index(line, markerEnd) + len(markerEnd)
-					markers := line[start:end]
-					if start > 0 {
-						// Extract the part before markers and the part after markers separately
-						beforeMarkers := line[:start]
-						afterMarkers := ""
-						if end < len(line) {
-							afterMarkers = line[end:]
-						}
-						line = beforeMarkers + markers + afterMarkers
-					} else {
-						// If markers are at the start, just append the rest of the line
-						if end < len(line) {
-							line = markers + line[end:]
-						} else {
-							line = markers
-						}
-					}
-				}
-				lines[i] = line
-			}
-		}
-		content = strings.Join(lines, "\n")
-	}
-
-	// Remove multi-line comments
-	if style.MultiStart != "" && style.MultiEnd != "" {
-		// First handle special cases
-		if style.Language == "javascript" && strings.HasPrefix(style.MultiStart, "{") {
-			// JSX-style comments
-			content = strings.TrimSpace(strings.TrimPrefix(content, style.MultiStart))
-			content = strings.TrimSpace(strings.TrimSuffix(content, style.MultiEnd))
-		} else {
-			// Standard multi-line comments
-			content = strings.TrimSpace(strings.TrimPrefix(content, style.MultiStart))
-			content = strings.TrimSpace(strings.TrimSuffix(content, style.MultiEnd))
-		}
-
-		// Remove line prefixes while preserving markers
-		if style.MultiPrefix != "" {
-			lines := strings.Split(content, "\n")
-			for i, line := range lines {
-				line = strings.TrimSpace(line)
-				if strings.HasPrefix(line, style.MultiPrefix) || strings.HasPrefix(line, "*") {
-					// Remove the prefix and any extra space
-					if strings.HasPrefix(line, style.MultiPrefix) {
-						line = strings.TrimSpace(strings.TrimPrefix(line, style.MultiPrefix))
-					} else {
-						line = strings.TrimSpace(strings.TrimPrefix(line, "*"))
-					}
-					
-					// Preserve any unicode markers
-					if hasMarkers(line) {
-						start := strings.Index(line, markerStart)
-						end := strings.Index(line, markerEnd) + len(markerEnd)
-						markers := line[start:end]
-						if start > 0 {
-							// Extract the part before markers and the part after markers separately
-							beforeMarkers := line[:start]
-							afterMarkers := ""
-							if end < len(line) {
-								afterMarkers = line[end:]
-							}
-							line = beforeMarkers + markers + afterMarkers
-						} else {
-							// If markers are at the start, just append the rest of the line
-							if end < len(line) {
-								line = markers + line[end:]
-							} else {
-								line = markers
-							}
-						}
-					}
-					lines[i] = line
-				}
-			}
-			content = strings.Join(lines, "\n")
-		}
-	}
-
-	return strings.TrimSpace(content)
-}
-
-func findLicenseBlock(content string) (start, end int) {
+func uncommentContent(content string, style styles.CommentStyle) string {
+	// Split into lines for processing
 	lines := strings.Split(content, "\n")
-	startLine := -1
-	endLine := -1
+	processedLines := make([]string, 0, len(lines))
 
-	// Find the first line with markers (header)
+	// Process each line
 	for i, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// Skip comment start/end markers
+		if !hasMarkers(line) {
+			if strings.HasPrefix(line, style.MultiStart) {
+				line = strings.TrimSpace(strings.TrimPrefix(line, style.MultiStart))
+			}
+			if strings.HasSuffix(line, style.MultiEnd) {
+				line = strings.TrimSpace(strings.TrimSuffix(line, style.MultiEnd))
+			}
+			if line == "" {
+				continue
+			}
+		}
+
+		// Handle line prefixes while preserving markers
 		if hasMarkers(line) {
-			startLine = i
-			break
+			start := strings.Index(line, markerStart)
+			end := strings.Index(line, markerEnd) + len(markerEnd)
+			markers := line[start:end]
+
+			// Keep the line as is if it only contains markers
+			if start == 0 && end == len(line) {
+				processedLines = append(processedLines, markers)
+				continue
+			}
 		}
-	}
 
-	// Find the last line with markers (footer)
-	for i := len(lines) - 1; i >= 0; i-- {
-		if hasMarkers(lines[i]) {
-			endLine = i
-			break
+		// Remove comment prefixes
+		if style.Single != "" && strings.HasPrefix(line, style.Single) {
+			line = strings.TrimSpace(strings.TrimPrefix(line, style.Single))
 		}
-	}
-
-	if startLine == -1 || endLine == -1 || startLine >= endLine {
-		return -1, -1
-	}
-
-	// Convert line numbers to character positions
-	start = 0
-	for i := 0; i < startLine; i++ {
-		start += len(lines[i])
-		if i < len(lines)-1 { // Only add newline if not the last line
-			start++ // +1 for newline
+		if style.MultiPrefix != "" {
+			// Handle both MultiPrefix with and without LinePrefix
+			fullPrefix := style.MultiPrefix + style.LinePrefix
+			if strings.HasPrefix(line, fullPrefix) {
+				line = strings.TrimSpace(strings.TrimPrefix(line, fullPrefix))
+			} else if strings.HasPrefix(line, style.MultiPrefix) {
+				line = strings.TrimSpace(strings.TrimPrefix(line, style.MultiPrefix))
+			}
 		}
-	}
 
-	end = 0
-	for i := 0; i <= endLine; i++ {
-		end += len(lines[i])
-		if i < len(lines)-1 { // Only add newline if not the last line
-			end++ // +1 for newline
+		// Handle empty lines specially - if they were originally commented, keep them
+		if line == "" && i > 0 && i < len(lines)-1 {
+			processedLines = append(processedLines, "")
+			continue
 		}
+
+		// Skip empty lines at the start or end
+		if (i == 0 || i == len(lines)-1) && line == "" {
+			continue
+		}
+
+		processedLines = append(processedLines, line)
 	}
 
-	return start, end
+	return strings.TrimSpace(strings.Join(processedLines, "\n"))
 }
 
+// ParseLicenseComponents extracts the header, body, and footer from a license block.
+// Returns the extracted components and a success flag.
+func ParseLicenseComponents(content string) (header, body, footer string, success bool) {
+	lines := strings.Split(content, "\n")
+	if len(lines) < 3 {
+		return "", "", "", false
+	}
+
+	// Find the first non-empty line after comment start
+	startIdx := 0
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "/*") && !strings.HasPrefix(line, "<!--") {
+			startIdx = i
+			break
+		}
+	}
+
+	// Find the last non-empty line before comment end
+	endIdx := len(lines) - 1
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line != "" && !strings.HasSuffix(line, "*/") && !strings.HasSuffix(line, "-->") {
+			endIdx = i
+			break
+		}
+	}
+
+	if startIdx >= endIdx {
+		return "", "", "", false
+	}
+
+	// Extract header, body, and footer
+	header = strings.TrimSpace(lines[startIdx])
+	footer = strings.TrimSpace(lines[endIdx])
+
+	// Extract body (everything between header and footer)
+	bodyLines := lines[startIdx+1 : endIdx]
+	body = strings.TrimSpace(strings.Join(bodyLines, "\n"))
+
+	return header, body, footer, true
+}
+
+// Helper functions for working with markers
 func stripMarkers(line string) string {
 	line = strings.ReplaceAll(line, markerStart, "")
 	line = strings.ReplaceAll(line, markerEnd, "")
-	return strings.TrimSpace(line)
+	return line
 }
 
 func hasMarkers(text string) bool {
@@ -366,10 +280,13 @@ func hasMarkers(text string) bool {
 }
 
 func addMarkers(text string) string {
+	if hasMarkers(text) {
+		return text
+	}
 	return markerStart + text + markerEnd
 }
 
-func NewComment(style CommentStyle, header, body, footer string) *Comment {
+func NewComment(style styles.CommentStyle, header, body, footer string) *Comment {
 	return &Comment{
 		Style:  style,
 		Header: header,
@@ -391,14 +308,12 @@ func (c *Comment) SetBody(body string) {
 	c.Body = body
 }
 
-func (c *Comment) SetHeader(header string) {
-	c.Header = header
-}
-
-func (c *Comment) SetFooter(footer string) {
-	c.Footer = footer
-}
-
-func (c *Comment) SetStyle(style CommentStyle) {
+func (c *Comment) SetStyle(style styles.CommentStyle) {
 	c.Style = style
+}
+
+func (c *Comment) SetHeaderAndFooterStyle(styleName string) {
+	style := styles.Get(styleName)
+	c.Header = style.Header
+	c.Footer = style.Footer
 }

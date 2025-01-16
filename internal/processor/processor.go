@@ -4,19 +4,21 @@ package processor
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fatih/color"
+	"license-manager/internal/styles"
 )
 
 type FileProcessor struct {
-	config Config
-	style  HeaderFooterStyle
+	license string
+	style  styles.HeaderFooterStyle
 	stats  struct {
 		Added     int
 		Skipped   int
-		Errors    int
-		Existing  int
+		Failed    int
+		Unchanged int
 	}
 }
 
@@ -28,34 +30,21 @@ var (
 	infoColor    = color.New(color.FgCyan).SprintFunc()
 )
 
-func NewFileProcessor(config Config) *FileProcessor {
-	// Read license text from file if provided
-	if config.LicenseText != "" {
-		content, err := os.ReadFile(config.LicenseText)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %v\n", errorColor("Error reading license file"), err)
-			os.Exit(1)
-		}
-		config.LicenseText = string(content)
-	}
-
-	// Get the preset style - the markers are already included in preset styles
-	style := GetPresetStyle(config.PresetStyle)
-
+func NewFileProcessor(license string, style styles.HeaderFooterStyle) *FileProcessor {
 	return &FileProcessor{
-		config: config,
+		license: license,
 		style:  style,
 	}
 }
 
 func (fp *FileProcessor) logVerbose(format string, args ...interface{}) {
-	if fp.config.Verbose {
+	if true { // fp.config.Verbose {
 		fmt.Printf(format+"\n", args...)
 	}
 }
 
 func (fp *FileProcessor) logVerboseWithLineNumbers(text string, startLine int, prefix string) {
-	if fp.config.Verbose {
+	if true { // fp.config.Verbose {
 		if prefix != "" {
 			fmt.Printf("%s\n", prefix)
 		}
@@ -66,15 +55,15 @@ func (fp *FileProcessor) logVerboseWithLineNumbers(text string, startLine int, p
 func (fp *FileProcessor) resetStats() {
 	fp.stats.Added = 0
 	fp.stats.Skipped = 0
-	fp.stats.Errors = 0
-	fp.stats.Existing = 0
+	fp.stats.Failed = 0
+	fp.stats.Unchanged = 0
 }
 
 func (fp *FileProcessor) Add() error {
 	fp.resetStats()
 	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
-		if license.CheckLicense(content, fp.config.Verbose) {
-			fp.stats.Existing++
+		if license.CheckLicense(content, true) { // fp.config.Verbose {
+			fp.stats.Unchanged++
 			return NewCheckError(fmt.Sprintf("license already exists in file: %s (use 'update' command to modify existing licenses)", filename))
 		}
 		newContent := license.AddLicense(content)
@@ -107,23 +96,32 @@ func (fp *FileProcessor) Remove() error {
 
 func (fp *FileProcessor) Update() error {
 	fp.resetStats()
-	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
+	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		status := license.CheckLicenseStatus(content)
 		if status == NoLicense {
 			fp.stats.Skipped++
 			return NewCheckError(fmt.Sprintf("no license found to update in file: %s", filename))
 		}
 		
-		newContent := license.UpdateLicense(content)
-		if status == DifferentLicense {
-			fp.logVerbose("%s %s", warningColor("⚠️ Updating different license in:"), filename)
-			fp.stats.Added++
-		} else {
-			fp.logVerbose("%s %s", successColor("✅ Updating matching license in:"), filename)
-			fp.stats.Existing++
+		licenseText, err := fp.readLicenseText()
+		if err != nil {
+			return err
 		}
-		return os.WriteFile(filename, []byte(newContent), 0644)
+		newContent := license.UpdateLicense(string(content), licenseText)
+		if newContent != content {
+			if status == DifferentLicense {
+				fp.logVerbose("%s %s", warningColor("⚠️ Updating different license in:"), filename)
+				fp.stats.Added++
+			} else {
+				fp.logVerbose("%s %s", successColor("✅ Updating matching license in:"), filename)
+				fp.stats.Unchanged++
+			}
+			return os.WriteFile(filename, []byte(newContent), 0644)
+		}
+		return nil
 	})
+
+	return err
 }
 
 func (fp *FileProcessor) Check() error {
@@ -138,9 +136,9 @@ func (fp *FileProcessor) Check() error {
 			fmt.Printf("%s %s\n", errorColor("❌ No license found in file:"), filename)
 		case DifferentLicense:
 			hasFailures = true
-			fp.stats.Errors++
+			fp.stats.Failed++
 			fmt.Printf("%s %s\n", warningColor("⚠️ License doesn't match in file:"), filename)
-			if fp.config.Verbose {
+			if true { // fp.config.Verbose {
 				current, expected := license.GetLicenseComparison(content)
 				fmt.Printf("\nCurrent license in %s:\n%s\n", filename, infoColor(current))
 				fmt.Printf("\nExpected license:\n%s\n", successColor(expected))
@@ -169,7 +167,7 @@ func (fp *FileProcessor) Check() error {
 				fmt.Println()
 			}
 		case MatchingLicense:
-			fp.stats.Existing++
+			fp.stats.Unchanged++
 			fp.logVerbose("%s %s", successColor("✅ License matches in:"), filename)
 		}
 		return nil
@@ -184,6 +182,15 @@ func (fp *FileProcessor) Check() error {
 	}
 
 	return nil
+}
+
+// readLicenseText reads the license text from the license file
+func (fp *FileProcessor) readLicenseText() (string, error) {
+	// content, err := os.ReadFile(fp.licenseFile)
+	// if err != nil {
+	// 	return "", fmt.Errorf("error reading license file: %v", err)
+	// }
+	return fp.license, nil
 }
 
 // formatWithLineNumbers adds line numbers to a block of text

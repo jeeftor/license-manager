@@ -101,10 +101,11 @@ func (fp *FileProcessor) processFile(filename string, action func(string, string
 		return NewCheckError(fmt.Sprintf("%s: %v", errorColor("Error reading file "+filename), err))
 	}
 
+	// Get comment style for file extension
 	commentStyle := getCommentStyle(filename)
-	fp.logVerbose("%s %s: %s", infoColor("Using comment style for"), filename, commentStyle.Language)
+	commentStyle.PreferMulti = fp.config.PreferMulti
 
-	// Create LicenseManager with the HeaderFooterStyle
+	// Create license manager for this file
 	license := NewLicenseManager(fp.style, fp.config.LicenseText, commentStyle)
 
 	return action(filename, string(content), license)

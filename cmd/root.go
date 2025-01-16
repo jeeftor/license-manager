@@ -13,6 +13,7 @@ var (
 	cfgDryRun      bool
 	cfgVerbose     bool   // Add verbose flag
 	cfgPresetStyle string // header/footer style
+	cfgPreferMulti bool   // prefer multi-line comments where supported
 )
 
 var rootCmd = &cobra.Command{
@@ -29,6 +30,7 @@ func Execute() error {
 func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgPresetStyle, "style", "simple", "Preset style for header/footer (e.g., simple, modern, elegant)")
+	rootCmd.PersistentFlags().BoolVar(&cfgPreferMulti, "multi", true, "Prefer multi-line comments where supported")
 
 	rootCmd.PersistentFlags().StringVar(&cfgLicense, "license", "", "Path to license text file")
 	rootCmd.PersistentFlags().StringVar(&cfgInput, "input", "", "Input file patterns (comma-separated)")

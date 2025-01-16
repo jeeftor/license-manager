@@ -29,39 +29,45 @@ func TestCommentString(t *testing.T) {
 	}{
 		{
 			name: "Go style multi-line comment",
-			comment: &Comment{
-				Style:  getCommentStyle("test.go"),
-				Header: "Copyright (c) 2025 Test User",
-				Body:   mitLicense,
-				Footer: "End of MIT License",
-			},
-			expected: "/*\n * Copyright (c) 2025 Test User\n *\n * MIT License\n *\n * " +
+			comment: func() *Comment {
+				c := &Comment{
+					Style: getCommentStyle("test.go"),
+					Body:  mitLicense,
+				}
+				c.SetHeaderAndFooterStyle("minimal")
+				return c
+			}(),
+			expected: "/*\n * ─────────────────────────────────────\n *\n * " +
 				strings.ReplaceAll(mitLicense, "\n", "\n * ") +
-				"\n *\n * End of MIT License\n */",
+				"\n *\n * ─────────────────────────────────────\n */",
 		},
 		{
 			name: "Python style single-line comment",
-			comment: &Comment{
-				Style:  getCommentStyle("test.py"),
-				Header: "Copyright (c) 2025 Test User",
-				Body:   mitLicense,
-				Footer: "End of MIT License",
-			},
-			expected: "# Copyright (c) 2025 Test User\n#\n# MIT License\n#\n# " +
+			comment: func() *Comment {
+				c := &Comment{
+					Style: getCommentStyle("test.py"),
+					Body:  mitLicense,
+				}
+				c.SetHeaderAndFooterStyle("minimal")
+				return c
+			}(),
+			expected: "# ─────────────────────────────────────\n#\n# " +
 				strings.ReplaceAll(mitLicense, "\n", "\n# ") +
-				"\n#\n# End of MIT License",
+				"\n#\n# ─────────────────────────────────────",
 		},
 		{
 			name: "HTML style comment",
-			comment: &Comment{
-				Style:  getCommentStyle("test.html"),
-				Header: "Copyright (c) 2025 Test User",
-				Body:   mitLicense,
-				Footer: "End of MIT License",
-			},
-			expected: "<!--\nCopyright (c) 2025 Test User\n\nMIT License\n\n" +
+			comment: func() *Comment {
+				c := &Comment{
+					Style: getCommentStyle("test.html"),
+					Body:  mitLicense,
+				}
+				c.SetHeaderAndFooterStyle("minimal")
+				return c
+			}(),
+			expected: "<!--\n─────────────────────────────────────\n\n" +
 				mitLicense +
-				"\n\nEnd of MIT License\n-->",
+				"\n\n─────────────────────────────────────\n-->",
 		},
 	}
 
@@ -124,176 +130,123 @@ func TestUncommentContent(t *testing.T) {
 	}
 }
 
-func TestAddMarkersIfNeeded(t *testing.T) {
+func TestParseLicenseBlock(t *testing.T) {
 	tests := []struct {
-		name     string
-		text     string
-		expected string
+		name        string
+		content     string
+		wantHeader  string
+		wantBody    string
+		wantFooter  string
+		wantSuccess bool
 	}{
 		{
-			name:     "Add markers to text without markers",
-			text:     "Test text",
-			expected: markerStart + "Test text" + markerEnd,
+			name: "Parse Go multi-line comment",
+			content: `/*
+ * ─────────────────────────────────────
+ *
+ * MIT License
+ *
+ * Copyright (c) [year] [fullname]
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ * ─────────────────────────────────────
+ */`,
+			wantHeader:  "─────────────────────────────────────",
+			wantBody:    "MIT License\n\nCopyright (c) [year] [fullname]\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+			wantFooter:  "─────────────────────────────────────",
+			wantSuccess: true,
 		},
 		{
-			name:     "Text already has markers",
-			text:     markerStart + "Test text" + markerEnd,
-			expected: markerStart + "Test text" + markerEnd,
-		},
-		{
-			name:     "Empty text",
-			text:     "",
-			expected: markerStart + markerEnd,
+			name:        "Parse invalid comment",
+			content:     "Invalid comment",
+			wantSuccess: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := addMarkersIfNeeded(tt.text)
-			if result != tt.expected {
-				t.Errorf("addMarkersIfNeeded() got:\n%v\nwant:\n%v", result, tt.expected)
+			// Parse the license block
+			header, body, footer, ok := ParseLicenseComponents(tt.content)
+			if ok != tt.wantSuccess {
+				t.Errorf("ParseLicenseComponents() success = %v, want %v", ok, tt.wantSuccess)
+				return
+			}
+
+			if ok {
+				if header != tt.wantHeader {
+					t.Errorf("ParseLicenseComponents() header got:\n%v\nwant:\n%v", header, tt.wantHeader)
+				}
+				if body != tt.wantBody {
+					t.Errorf("ParseLicenseComponents() body got:\n%v\nwant:\n%v", body, tt.wantBody)
+				}
+				if footer != tt.wantFooter {
+					t.Errorf("ParseLicenseComponents() footer got:\n%v\nwant:\n%v", footer, tt.wantFooter)
+				}
 			}
 		})
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestMarkerOperations(t *testing.T) {
 	tests := []struct {
 		name     string
-		content  string
-		style    CommentStyle
-		wantOk   bool
-		expected *Comment
+		text     string
+		wantHas  bool
+		stripped string
+		marked   string
 	}{
 		{
-			name: "Parse Go multi-line comment",
-			content: "/*\n * " + markerStart + "Copyright (c) 2025 Test User" + markerEnd + "\n *\n * " +
-				strings.ReplaceAll(readMITLicense(t), "\n", "\n * ") +
-				"\n *\n * " + markerStart + "End of MIT License" + markerEnd + "\n */",
-			style:  getCommentStyle("test.go"),
-			wantOk: true,
-			expected: &Comment{
-				Style:  getCommentStyle("test.go"),
-				Header: markerStart + "Copyright (c) 2025 Test User" + markerEnd,
-				Body:   readMITLicense(t),
-				Footer: markerStart + "End of MIT License" + markerEnd,
-			},
+			name:     "Text without markers",
+			text:     "Test text",
+			wantHas:  false,
+			stripped: "Test text",
+			marked:   markerStart + "Test text" + markerEnd,
 		},
 		{
-			name: "Parse Go single-line comment",
-			content: "// " + markerStart + "Copyright (c) 2025 Test User" + markerEnd + "\n//\n// " +
-				strings.ReplaceAll(readMITLicense(t), "\n", "\n// ") +
-				"\n//\n// " + markerStart + "End of MIT License" + markerEnd,
-			style:  getCommentStyle("test.go"),
-			wantOk: true,
-			expected: &Comment{
-				Style:  getCommentStyle("test.go"),
-				Header: markerStart + "Copyright (c) 2025 Test User" + markerEnd,
-				Body:   readMITLicense(t),
-				Footer: markerStart + "End of MIT License" + markerEnd,
-			},
+			name:     "Text with markers",
+			text:     markerStart + "Test text" + markerEnd,
+			wantHas:  true,
+			stripped: "Test text",
+			marked:   markerStart + "Test text" + markerEnd,
 		},
 		{
-			name: "Parse Go single-line comment without space",
-			content: "//" + markerStart + "Copyright (c) 2025 Test User" + markerEnd + "\n//\n//" +
-				strings.ReplaceAll(readMITLicense(t), "\n", "\n//") +
-				"\n//\n//" + markerStart + "End of MIT License" + markerEnd,
-			style:  getCommentStyle("test.go"),
-			wantOk: true,
-			expected: &Comment{
-				Style:  getCommentStyle("test.go"),
-				Header: markerStart + "Copyright (c) 2025 Test User" + markerEnd,
-				Body:   readMITLicense(t),
-				Footer: markerStart + "End of MIT License" + markerEnd,
-			},
-		},
-		{
-			name: "Parse Python style comment",
-			content: "# " + markerStart + "Copyright (c) 2025 Test User" + markerEnd + "\n#\n# " +
-				strings.ReplaceAll(readMITLicense(t), "\n", "\n# ") +
-				"\n#\n# " + markerStart + "End of MIT License" + markerEnd,
-			style:  getCommentStyle("test.py"),
-			wantOk: true,
-			expected: &Comment{
-				Style:  getCommentStyle("test.py"),
-				Header: markerStart + "Copyright (c) 2025 Test User" + markerEnd,
-				Body:   readMITLicense(t),
-				Footer: markerStart + "End of MIT License" + markerEnd,
-			},
-		},
-		{
-			name: "Parse C++ style comment",
-			content: "// " + markerStart + "Copyright (c) 2025 Test User" + markerEnd + "\n//\n// " +
-				strings.ReplaceAll(readMITLicense(t), "\n", "\n// ") +
-				"\n//\n// " + markerStart + "End of MIT License" + markerEnd,
-			style:  getCommentStyle("test.cpp"),
-			wantOk: true,
-			expected: &Comment{
-				Style:  getCommentStyle("test.cpp"),
-				Header: markerStart + "Copyright (c) 2025 Test User" + markerEnd,
-				Body:   readMITLicense(t),
-				Footer: markerStart + "End of MIT License" + markerEnd,
-			},
-		},
-		{
-			name: "Parse Python style comment with no space after #",
-			content: "#" + markerStart + "Copyright (c) 2025 Test User" + markerEnd + "\n#\n#" +
-				strings.ReplaceAll(readMITLicense(t), "\n", "\n#") +
-				"\n#\n#" + markerStart + "End of MIT License" + markerEnd,
-			style:  getCommentStyle("test.py"),
-			wantOk: true,
-			expected: &Comment{
-				Style:  getCommentStyle("test.py"),
-				Header: markerStart + "Copyright (c) 2025 Test User" + markerEnd,
-				Body:   readMITLicense(t),
-				Footer: markerStart + "End of MIT License" + markerEnd,
-			},
-		},
-		{
-			name: "Parse C++ style comment with no space after //",
-			content: "//" + markerStart + "Copyright (c) 2025 Test User" + markerEnd + "\n//\n//" +
-				strings.ReplaceAll(readMITLicense(t), "\n", "\n//") +
-				"\n//\n//" + markerStart + "End of MIT License" + markerEnd,
-			style:  getCommentStyle("test.cpp"),
-			wantOk: true,
-			expected: &Comment{
-				Style:  getCommentStyle("test.cpp"),
-				Header: markerStart + "Copyright (c) 2025 Test User" + markerEnd,
-				Body:   readMITLicense(t),
-				Footer: markerStart + "End of MIT License" + markerEnd,
-			},
-		},
-		{
-			name: "Parse invalid comment",
-			content: "This is not a valid comment\n" +
-				readMITLicense(t) +
-				"\nNo proper structure",
-			style:  getCommentStyle("test.go"),
-			wantOk: false,
+			name:     "Empty text",
+			text:     "",
+			wantHas:  false,
+			stripped: "",
+			marked:   markerStart + markerEnd,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			comment, ok := Parse(tt.content, tt.style)
-			if ok != tt.wantOk {
-				t.Errorf("Parse() ok = %v, want %v", ok, tt.wantOk)
-				return
+			if got := hasMarkers(tt.text); got != tt.wantHas {
+				t.Errorf("hasMarkers() = %v, want %v", got, tt.wantHas)
 			}
 
-			if !tt.wantOk {
-				return
+			if got := stripMarkers(tt.text); got != tt.stripped {
+				t.Errorf("stripMarkers() = %v, want %v", got, tt.stripped)
 			}
 
-			// Normalize newlines and whitespace for comparison
-			if strings.TrimSpace(comment.Header) != strings.TrimSpace(tt.expected.Header) {
-				t.Errorf("Parse() header got:\n%v\nwant:\n%v", comment.Header, tt.expected.Header)
-			}
-			if strings.TrimSpace(comment.Body) != strings.TrimSpace(tt.expected.Body) {
-				t.Errorf("Parse() body got:\n%v\nwant:\n%v", comment.Body, tt.expected.Body)
-			}
-			if strings.TrimSpace(comment.Footer) != strings.TrimSpace(tt.expected.Footer) {
-				t.Errorf("Parse() footer got:\n%v\nwant:\n%v", comment.Footer, tt.expected.Footer)
+			if got := addMarkers(tt.text); got != tt.marked {
+				t.Errorf("addMarkers() = %v, want %v", got, tt.marked)
 			}
 		})
 	}

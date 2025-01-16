@@ -1,5 +1,6 @@
 package processor
 
+// Config holds the configuration for the file processor
 type Config struct {
 	LicenseText string
 	Input       string
@@ -9,5 +10,5 @@ type Config struct {
 	Verbose     bool
 	IgnoreFail  bool   // If true will return 0 on a fail
 	PresetStyle string // Header/Footer style
-
+	PreferMulti bool
 }
