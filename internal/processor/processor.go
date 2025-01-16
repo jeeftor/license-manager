@@ -73,7 +73,7 @@ func (fp *FileProcessor) resetStats() {
 func (fp *FileProcessor) Add() error {
 	fp.resetStats()
 	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
-		if license.CheckLicense(content) {
+		if license.CheckLicense(content, fp.config.Verbose) {
 			fp.stats.Existing++
 			return NewCheckError(fmt.Sprintf("license already exists in file: %s (use 'update' command to modify existing licenses)", filename))
 		}
