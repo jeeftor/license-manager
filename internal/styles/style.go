@@ -2,8 +2,8 @@ package styles
 
 import "strings"
 
-// Style represents a header/footer style for license comments
-type Style struct {
+// HeaderFooterStyle represents a header/footer style for license comments
+type HeaderFooterStyle struct {
 	Name        string
 	Description string
 	Header      string
@@ -12,13 +12,13 @@ type Style struct {
 
 // Match represents a matched style with confidence score
 type Match struct {
-	Style    Style
+	Style    HeaderFooterStyle
 	Score    float64
 	IsHeader bool // true if matched against header
 	IsFooter bool // true if matched against footer
 }
 
-var presetStyles = map[string]Style{
+var presetStyles = map[string]HeaderFooterStyle{
 	"simple": {
 		Name:        "Simple",
 		Description: "Simple lines before and after",
@@ -69,8 +69,8 @@ var presetStyles = map[string]Style{
 	},
 }
 
-// Get returns a Style by name, or a default if not found
-func Get(name string) Style {
+// Get returns a HeaderFooterStyle by name, or a default if not found
+func Get(name string) HeaderFooterStyle {
 	if style, ok := presetStyles[name]; ok {
 		return style
 	}

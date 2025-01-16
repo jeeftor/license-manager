@@ -1,6 +1,7 @@
-package processor
+package license
 
 import (
+	"license-manager/internal/comment"
 	"strings"
 
 	"license-manager/internal/styles"
@@ -8,7 +9,7 @@ import (
 
 // LicenseChecker handles the detection and verification of license blocks
 type LicenseChecker struct {
-	style        styles.CommentStyle
+	style        styles.CommentLanguage
 	headerFooter styles.HeaderFooterStyle
 }
 
@@ -21,7 +22,7 @@ type SearchPattern struct {
 }
 
 // NewLicenseChecker creates a new LicenseChecker instance
-func NewLicenseChecker(style styles.CommentStyle, headerFooter styles.HeaderFooterStyle) *LicenseChecker {
+func NewLicenseChecker(style styles.CommentLanguage, headerFooter styles.HeaderFooterStyle) *LicenseChecker {
 	return &LicenseChecker{
 		style:        style,
 		headerFooter: headerFooter,
@@ -48,14 +49,14 @@ func (lc *LicenseChecker) generatePatterns() []SearchPattern {
 	if lc.style.MultiStart != "" {
 		// Multi-line with unicode markers
 		addPattern(
-			lc.style.MultiStart+"\n"+lc.style.MultiPrefix+markerStart+lc.headerFooter.Header+markerEnd,
-			lc.style.MultiPrefix+markerStart+lc.headerFooter.Footer+markerEnd+"\n"+lc.style.MultiEnd,
+			lc.style.MultiStart+"\n"+lc.style.MultiPrefix+comment.MarkerStart+lc.headerFooter.Header+comment.MarkerEnd,
+			lc.style.MultiPrefix+comment.MarkerStart+lc.headerFooter.Footer+comment.MarkerEnd+"\n"+lc.style.MultiEnd,
 			true,
 		)
 		// Multi-line with unicode markers and space
 		addPattern(
-			lc.style.MultiStart+"\n"+lc.style.MultiPrefix+" "+markerStart+lc.headerFooter.Header+markerEnd,
-			lc.style.MultiPrefix+" "+markerStart+lc.headerFooter.Footer+markerEnd+"\n"+lc.style.MultiEnd,
+			lc.style.MultiStart+"\n"+lc.style.MultiPrefix+" "+comment.MarkerStart+lc.headerFooter.Header+comment.MarkerEnd,
+			lc.style.MultiPrefix+" "+comment.MarkerStart+lc.headerFooter.Footer+comment.MarkerEnd+"\n"+lc.style.MultiEnd,
 			true,
 		)
 	}
@@ -63,14 +64,14 @@ func (lc *LicenseChecker) generatePatterns() []SearchPattern {
 	if lc.style.Single != "" {
 		// Single-line with unicode markers
 		addPattern(
-			lc.style.Single+" "+markerStart+lc.headerFooter.Header+markerEnd,
-			lc.style.Single+" "+markerStart+lc.headerFooter.Footer+markerEnd,
+			lc.style.Single+" "+comment.MarkerStart+lc.headerFooter.Header+comment.MarkerEnd,
+			lc.style.Single+" "+comment.MarkerStart+lc.headerFooter.Footer+comment.MarkerEnd,
 			true,
 		)
 		// Single-line with unicode markers, no space
 		addPattern(
-			lc.style.Single+markerStart+lc.headerFooter.Header+markerEnd,
-			lc.style.Single+markerStart+lc.headerFooter.Footer+markerEnd,
+			lc.style.Single+comment.MarkerStart+lc.headerFooter.Header+comment.MarkerEnd,
+			lc.style.Single+comment.MarkerStart+lc.headerFooter.Footer+comment.MarkerEnd,
 			true,
 		)
 	}
@@ -163,62 +164,52 @@ func (lc *LicenseChecker) FindLicenseBlock(content string) (start, end int) {
 }
 
 // ParseLicenseBlock attempts to parse a license block from content
-func ParseLicenseBlock(content string, style styles.CommentStyle) (*LicenseBlock, bool) {
-	// Create a checker instance with empty style since we're just parsing
-	checker := NewLicenseChecker(style, styles.HeaderFooterStyle{})
+func ParseLicenseBlock(content string, style styles.CommentLanguage) (*LicenseBlock, bool) {
+	var bodyLines []string
+	var header, footer string
 
-	// Find the license block boundaries
-	start, end := checker.FindLicenseBlock(content)
-	if start == -1 || end == -1 {
+	lines := strings.Split(content, "\n")
+	if len(lines) < 3 {
 		return nil, false
 	}
 
-	// Extract the content between the boundaries
-	blockContent := content[start:end]
-
-	// Uncomment the content
-	uncommented := uncommentContent(blockContent, style)
-
-	// Split into lines
-	lines := strings.Split(uncommented, "\n")
-	if len(lines) < 3 { // Need at least header, body, footer
-		return nil, false
-	}
-
-	// First non-empty line should be header with markers
-	var header string
-	for _, line := range lines {
-		if strings.TrimSpace(line) != "" {
-			header = stripMarkers(line)
+	// Find the first non-empty line after comment start
+	startIdx := 0
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "/*") && !strings.HasPrefix(line, "<!--") {
+			startIdx = i
 			break
 		}
 	}
 
-	// Last non-empty line should be footer with markers
-	var footer string
+	// Find the last non-empty line before comment end
+	endIdx := len(lines) - 1
 	for i := len(lines) - 1; i >= 0; i-- {
-		if strings.TrimSpace(lines[i]) != "" {
-			footer = stripMarkers(lines[i])
+		line := strings.TrimSpace(lines[i])
+		if line != "" && !strings.HasSuffix(line, "*/") && !strings.HasSuffix(line, "-->") {
+			endIdx = i
 			break
 		}
 	}
 
-	// Everything in between is the body
-	bodyLines := lines[1 : len(lines)-1]
-	// Trim any empty lines at start and end of body
-	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[0]) == "" {
-		bodyLines = bodyLines[1:]
+	if startIdx >= endIdx {
+		return nil, false
 	}
-	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[len(bodyLines)-1]) == "" {
-		bodyLines = bodyLines[:len(bodyLines)-1]
-	}
+
+	// Extract header, body, and footer
+	header = strings.TrimSpace(lines[startIdx])
+	footer = strings.TrimSpace(lines[endIdx])
+
+	// Extract body (everything between header and footer)
+	bodyLines = lines[startIdx+1 : endIdx]
 	body := strings.Join(bodyLines, "\n")
 
 	return &LicenseBlock{
-		CommentStyle: style,
-		Header:       header,
-		Body:         body,
-		Footer:       footer,
+		Style:  style,
+		Header: header,
+		Body:   body,
+		Footer: footer,
 	}, true
 }
 
@@ -226,4 +217,11 @@ func ParseLicenseBlock(content string, style styles.CommentStyle) (*LicenseBlock
 func (lc *LicenseChecker) CheckLicense(content string) bool {
 	start, end := lc.FindLicenseBlock(content)
 	return start != -1 && end != -1
+}
+
+type LicenseBlock struct {
+	Style  styles.CommentLanguage
+	Header string
+	Body   string
+	Footer string
 }

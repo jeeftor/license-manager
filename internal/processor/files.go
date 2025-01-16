@@ -1,9 +1,9 @@
-// internal/processor/files.go
 package processor
 
 import (
 	"bufio"
 	"fmt"
+	"license-manager/internal/license"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +11,7 @@ import (
 	"github.com/bmatcuk/doublestar/v2"
 )
 
-func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManager) error) error {
+func (fp *FileProcessor) processFiles(action func(string, string, *license.LicenseManager) error) error {
 	patterns := strings.Split(fp.config.Input, ",")
 	var lastErr error
 
@@ -59,7 +59,7 @@ func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManage
 	return lastErr
 }
 
-func (fp *FileProcessor) processFile(filename string, action func(string, string, *LicenseManager) error) error {
+func (fp *FileProcessor) processFile(filename string, action func(string, string, *license.LicenseManager) error) error {
 	// Check if path is a directory first
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
@@ -106,7 +106,7 @@ func (fp *FileProcessor) processFile(filename string, action func(string, string
 	commentStyle.PreferMulti = fp.config.PreferMulti
 
 	// Create license manager for this file
-	license := NewLicenseManager(fp.style, fp.config.LicenseText, commentStyle)
+	license := license.NewLicenseManager(fp.style, fp.config.LicenseText, commentStyle)
 
 	return action(filename, string(content), license)
 }

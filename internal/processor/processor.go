@@ -3,23 +3,29 @@ package processor
 
 import (
 	"fmt"
+	"license-manager/internal/license"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
 	"license-manager/internal/styles"
+
+	"github.com/fatih/color"
 )
 
 type FileProcessor struct {
+	config  *Config
 	license string
-	style  styles.HeaderFooterStyle
-	stats  struct {
+	style   styles.HeaderFooterStyle
+	stats   struct {
 		Added     int
+		Existing  int
 		Skipped   int
 		Failed    int
 		Unchanged int
+		Errors    int
 	}
+	verbose bool
 }
 
 // Colored output helpers
@@ -30,21 +36,22 @@ var (
 	infoColor    = color.New(color.FgCyan).SprintFunc()
 )
 
-func NewFileProcessor(license string, style styles.HeaderFooterStyle) *FileProcessor {
+func NewFileProcessor(config *Config, license string, style styles.HeaderFooterStyle) *FileProcessor {
 	return &FileProcessor{
+		config:  config,
 		license: license,
-		style:  style,
+		style:   style,
 	}
 }
 
 func (fp *FileProcessor) logVerbose(format string, args ...interface{}) {
-	if true { // fp.config.Verbose {
+	if fp.verbose {
 		fmt.Printf(format+"\n", args...)
 	}
 }
 
 func (fp *FileProcessor) logVerboseWithLineNumbers(text string, startLine int, prefix string) {
-	if true { // fp.config.Verbose {
+	if fp.verbose {
 		if prefix != "" {
 			fmt.Printf("%s\n", prefix)
 		}
@@ -54,15 +61,17 @@ func (fp *FileProcessor) logVerboseWithLineNumbers(text string, startLine int, p
 
 func (fp *FileProcessor) resetStats() {
 	fp.stats.Added = 0
+	fp.stats.Existing = 0
 	fp.stats.Skipped = 0
 	fp.stats.Failed = 0
 	fp.stats.Unchanged = 0
+	fp.stats.Errors = 0
 }
 
 func (fp *FileProcessor) Add() error {
 	fp.resetStats()
-	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
-		if license.CheckLicense(content, true) { // fp.config.Verbose {
+	err := fp.processFiles(func(filename, content string, license *license.LicenseManager) error {
+		if license.CheckLicense(content, true) {
 			fp.stats.Unchanged++
 			return NewCheckError(fmt.Sprintf("license already exists in file: %s (use 'update' command to modify existing licenses)", filename))
 		}
@@ -81,7 +90,7 @@ func (fp *FileProcessor) Add() error {
 
 func (fp *FileProcessor) Remove() error {
 	fp.resetStats()
-	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
+	return fp.processFiles(func(filename, content string, license *license.LicenseManager) error {
 		newContent := license.RemoveLicense(content)
 		if newContent != content {
 			fp.logVerbose("%s %s", successColor("✅ Removing license from:"), filename)
@@ -96,20 +105,20 @@ func (fp *FileProcessor) Remove() error {
 
 func (fp *FileProcessor) Update() error {
 	fp.resetStats()
-	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
+	err := fp.processFiles(func(filename, content string, license *license.LicenseManager) error {
 		status := license.CheckLicenseStatus(content)
-		if status == NoLicense {
+		if status == license.NoLicense {
 			fp.stats.Skipped++
 			return NewCheckError(fmt.Sprintf("no license found to update in file: %s", filename))
 		}
-		
+
 		licenseText, err := fp.readLicenseText()
 		if err != nil {
 			return err
 		}
 		newContent := license.UpdateLicense(string(content), licenseText)
 		if newContent != content {
-			if status == DifferentLicense {
+			if status == license.DifferentLicense {
 				fp.logVerbose("%s %s", warningColor("⚠️ Updating different license in:"), filename)
 				fp.stats.Added++
 			} else {
@@ -127,18 +136,18 @@ func (fp *FileProcessor) Update() error {
 func (fp *FileProcessor) Check() error {
 	fp.resetStats()
 	var hasFailures bool
-	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
+	err := fp.processFiles(func(filename, content string, license *license.LicenseManager) error {
 		status := license.CheckLicenseStatus(content)
 		switch status {
-		case NoLicense:
+		case license.NoLicense:
 			hasFailures = true
 			fp.stats.Skipped++
 			fmt.Printf("%s %s\n", errorColor("❌ No license found in file:"), filename)
-		case DifferentLicense:
+		case license.DifferentLicense:
 			hasFailures = true
 			fp.stats.Failed++
 			fmt.Printf("%s %s\n", warningColor("⚠️ License doesn't match in file:"), filename)
-			if true { // fp.config.Verbose {
+			if fp.verbose {
 				current, expected := license.GetLicenseComparison(content)
 				fmt.Printf("\nCurrent license in %s:\n%s\n", filename, infoColor(current))
 				fmt.Printf("\nExpected license:\n%s\n", successColor(expected))
@@ -166,7 +175,7 @@ func (fp *FileProcessor) Check() error {
 				}
 				fmt.Println()
 			}
-		case MatchingLicense:
+		case license.MatchingLicense:
 			fp.stats.Unchanged++
 			fp.logVerbose("%s %s", successColor("✅ License matches in:"), filename)
 		}
@@ -197,15 +206,55 @@ func (fp *FileProcessor) readLicenseText() (string, error) {
 func formatWithLineNumbers(text string, startLine int) string {
 	lines := strings.Split(text, "\n")
 	var result []string
-	
+
 	// Find the width needed for line numbers
 	width := len(fmt.Sprintf("%d", startLine+len(lines)))
-	
+
 	// Format each line with its number
 	for i, line := range lines {
 		lineNum := fmt.Sprintf("%*d", width, startLine+i)
 		result = append(result, fmt.Sprintf("%s: %s", lineNum, line))
 	}
-	
+
 	return strings.Join(result, "\n")
+}
+
+func getCommentStyle(filename string) styles.CommentLanguage {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".go":
+		return styles.CommentLanguage{
+			Language:    "go",
+			Single:      "//",
+			MultiStart:  "/*",
+			MultiEnd:    "*/",
+			LinePrefix:  " ",
+			PreferMulti: true,
+		}
+	case ".py":
+		return styles.CommentLanguage{
+			Language:   "python",
+			Single:     "#",
+			LinePrefix: " ",
+		}
+	case ".js", ".ts", ".jsx", ".tsx":
+		return styles.CommentLanguage{
+			Language:   "javascript",
+			Single:     "//",
+			MultiStart: "/*",
+			MultiEnd:   "*/",
+			LinePrefix: " ",
+		}
+	case ".html", ".htm":
+		return styles.CommentLanguage{
+			Language:   "html",
+			MultiStart: "<!--",
+			MultiEnd:   "-->",
+			LinePrefix: " ",
+		}
+	default:
+		return styles.CommentLanguage{
+			Language: "text",
+		}
+	}
 }

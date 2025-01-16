@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"fmt"
 	"strings"
 
 	"license-manager/internal/styles"
@@ -10,7 +9,7 @@ import (
 // LanguageHandler defines the interface for language-specific license formatting
 type LanguageHandler interface {
 	// FormatLicense formats the license text according to language conventions
-	FormatLicense(license string, commentStyle styles.CommentStyle, style styles.HeaderFooterStyle) string
+	FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) string
 	// PreservePreamble extracts and preserves any language-specific preamble (e.g., shebang, package declaration)
 	PreservePreamble(content string) (preamble, rest string)
 }
@@ -24,12 +23,12 @@ func NewGenericHandler(style styles.HeaderFooterStyle) *GenericHandler {
 	return &GenericHandler{style: style}
 }
 
-func (h *GenericHandler) FormatLicense(license string, commentStyle styles.CommentStyle, style styles.HeaderFooterStyle) string {
+func (h *GenericHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) string {
 	header := strings.TrimSpace(style.Header)
 	footer := strings.TrimSpace(style.Footer)
 
 	var result []string
-	
+
 	// Add the header marker
 	if commentStyle.PreferMulti && commentStyle.MultiStart != "" {
 		result = append(result, commentStyle.MultiStart)
@@ -58,7 +57,7 @@ func (h *GenericHandler) FormatLicense(license string, commentStyle styles.Comme
 		result = append(result, license)
 		result = append(result, footer)
 	}
-	
+
 	return strings.Join(result, "\n")
 }
 
@@ -81,7 +80,7 @@ func (h *GoHandler) PreservePreamble(content string) (string, string) {
 	var rest []string
 	var foundPackage bool
 	var inImports bool
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		// Preserve build tags
@@ -117,7 +116,7 @@ func (h *GoHandler) PreservePreamble(content string) (string, string) {
 			rest = append(rest, line)
 		}
 	}
-	
+
 	if len(preamble) > 0 {
 		return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 	}
@@ -177,7 +176,7 @@ func (h *YAMLHandler) PreservePreamble(content string) (string, string) {
 	lines := strings.Split(content, "\n")
 	var directives []string
 	var i int
-	
+
 	for i = 0; i < len(lines); i++ {
 		trimmed := strings.TrimSpace(lines[i])
 		if strings.HasPrefix(trimmed, "%") || trimmed == "---" {
@@ -186,7 +185,7 @@ func (h *YAMLHandler) PreservePreamble(content string) (string, string) {
 			break
 		}
 	}
-	
+
 	if len(directives) > 0 {
 		return strings.Join(directives, "\n"), strings.Join(lines[i:], "\n")
 	}

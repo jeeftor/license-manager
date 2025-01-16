@@ -1,7 +1,8 @@
-package processor
+package license
 
 import (
 	"bytes"
+	"license-manager/internal/processor"
 	"os"
 	"path/filepath"
 	"strings"
@@ -70,7 +71,7 @@ func TestCommentStylePreference(t *testing.T) {
 
 			// Create license manager with comment style preference
 			style := GetPresetStyle("simple")
-			commentStyle := getCommentStyle(tt.filename)
+			commentStyle := processor.getCommentStyle(tt.filename)
 			commentStyle.PreferMulti = tt.preferMulti
 			lm := NewLicenseManager(style, string(licenseText), commentStyle)
 
@@ -177,7 +178,7 @@ func TestCommentStyleUpdate(t *testing.T) {
 
 			// Create initial license manager
 			style := GetPresetStyle("simple")
-			commentStyle := getCommentStyle(tt.filename)
+			commentStyle := processor.getCommentStyle(tt.filename)
 			commentStyle.PreferMulti = tt.initialMulti
 			lm := NewLicenseManager(style, string(licenseText), commentStyle)
 

@@ -1,7 +1,9 @@
 package styles
 
-// CommentStyle represents how comments should be formatted for a specific language
-type CommentStyle struct {
+import "strings"
+
+// CommentLanguage represents how comments should be formatted for a specific language
+type CommentLanguage struct {
 	Language    string
 	Single      string
 	MultiStart  string
@@ -12,7 +14,7 @@ type CommentStyle struct {
 }
 
 // Common comment styles for different file extensions
-var extensionStyles = map[string]CommentStyle{
+var extensionStyles = map[string]CommentLanguage{
 	".rb":    {Language: "ruby", Single: "#", MultiStart: "=begin", MultiEnd: "=end", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
 	".js":    {Language: "javascript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
 	".jsx":   {Language: "javascript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
@@ -45,14 +47,42 @@ var extensionStyles = map[string]CommentStyle{
 	".md":    {Language: "markdown", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
 }
 
-// GetCommentStyle returns the appropriate comment style for a given file extension
-func GetCommentStyle(extension string) CommentStyle {
+// StripCommentMarkers removes comment markers from a line of text based on the language style
+func (c *CommentLanguage) StripCommentMarkers(line string) string {
+	if line == "" {
+		return line
+	}
+
+	// Handle multi-line style markers
+	if c.MultiStart != "" {
+		line = strings.TrimPrefix(line, c.MultiStart)
+		line = strings.TrimSuffix(line, c.MultiEnd)
+	}
+
+	// Handle single-line style markers
+	if c.Single != "" {
+		line = strings.TrimPrefix(line, c.Single)
+	}
+
+	// Handle line prefix
+	if c.MultiPrefix != "" {
+		line = strings.TrimPrefix(line, c.MultiPrefix)
+	}
+	if c.LinePrefix != "" {
+		line = strings.TrimPrefix(line, c.LinePrefix)
+	}
+
+	return strings.TrimSpace(line)
+}
+
+// GetLanguageCommentStyle returns the appropriate comment style for a given file extension
+func GetLanguageCommentStyle(extension string) CommentLanguage {
 	if style, ok := extensionStyles[extension]; ok {
 		return style
 	}
 
 	// Default to no comments for unknown file types
-	return CommentStyle{
+	return CommentLanguage{
 		Language: "text",
 	}
 }
