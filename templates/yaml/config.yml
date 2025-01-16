@@ -1,0 +1,4 @@
+greeting:
+  message: "Hello, World!"
+  language: "English"
+  timestamp: "2025-01-16T08:48:35-07:00"

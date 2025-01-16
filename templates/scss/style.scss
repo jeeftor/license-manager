@@ -1,0 +1,11 @@
+$primary-color: blue;
+$font-size-large: 24px;
+
+.greeting {
+    color: $primary-color;
+    font-size: $font-size-large;
+    
+    &:hover {
+        color: darken($primary-color, 10%);
+    }
+}
