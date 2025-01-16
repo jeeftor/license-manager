@@ -102,7 +102,7 @@ func (fp *FileProcessor) processFile(filename string, action func(string, string
 	}
 
 	commentStyle := getCommentStyle(filename)
-	fp.logVerbose("%s %s: %s", infoColor("Using comment style for"), filename, commentStyle.FileType)
+	fp.logVerbose("%s %s: %s", infoColor("Using comment style for"), filename, commentStyle.Language)
 
 	// Create LicenseManager with the HeaderFooterStyle
 	license := NewLicenseManager(fp.style, fp.config.LicenseText, commentStyle)

@@ -72,21 +72,49 @@ func NewGoHandler(style HeaderFooterStyle) *GoHandler {
 
 func (h *GoHandler) PreservePreamble(content string) (string, string) {
 	lines := strings.Split(content, "\n")
-	var buildTags []string
+	var preamble []string
 	var rest []string
+	var foundPackage bool
+	var inImports bool
 	
-	// Collect build tags
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
+		// Preserve build tags
 		if strings.HasPrefix(trimmed, "//go:build") || strings.HasPrefix(trimmed, "// +build") {
-			buildTags = append(buildTags, line)
+			preamble = append(preamble, line)
+			continue
+		}
+		// Preserve package declaration
+		if strings.HasPrefix(trimmed, "package ") {
+			preamble = append(preamble, line)
+			foundPackage = true
+			continue
+		}
+		// Preserve imports
+		if foundPackage {
+			if strings.HasPrefix(trimmed, "import ") || strings.HasPrefix(trimmed, "import(") {
+				preamble = append(preamble, line)
+				if strings.Contains(line, "(") {
+					inImports = true
+				}
+				continue
+			}
+			if inImports {
+				preamble = append(preamble, line)
+				if strings.Contains(line, ")") {
+					inImports = false
+				}
+				continue
+			}
+			// After package and imports, everything else goes to rest
+			rest = append(rest, line)
 		} else {
 			rest = append(rest, line)
 		}
 	}
 	
-	if len(buildTags) > 0 {
-		return strings.Join(buildTags, "\n"), strings.Join(rest, "\n")
+	if len(preamble) > 0 {
+		return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 	}
 	return "", content
 }

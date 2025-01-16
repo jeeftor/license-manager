@@ -1,13 +1,5 @@
 package processor
 
-import "strings"
-
-const (
-	// Invisible markers for license blocks
-	markerStart = "\u200B" // Zero-Width Space
-	markerEnd   = "\u200C" // Zero-Width Non-Joiner
-)
-
 type HeaderFooterStyle struct {
 	Name        string
 	Description string
@@ -15,165 +7,127 @@ type HeaderFooterStyle struct {
 	Footer      string
 }
 
-func addMarkers(text string) string {
-	return markerStart + text + markerEnd
-}
-
 var PresetStyles = map[string]HeaderFooterStyle{
 	"simple": {
 		Name:        "Simple",
 		Description: "Simple lines before and after",
-		Header:      addMarkers("----------------------------------------"),
-		Footer:      addMarkers("----------------------------------------"),
+		Header:      "----------------------------------------",
+		Footer:      "----------------------------------------",
 	},
 	"hash": {
 		Name:        "Hash",
 		Description: "Hash symbol borders",
-		Header:      addMarkers("######################################"),
-		Footer:      addMarkers("######################################"),
+		Header:      "######################################",
+		Footer:      "######################################",
 	},
 	"box": {
 		Name:        "Box",
 		Description: "Box style with corners",
-		Header:      addMarkers("+------------------------------------+"),
-		Footer:      addMarkers("+------------------------------------+"),
+		Header:      "+------------------------------------+",
+		Footer:      "+------------------------------------+",
 	},
 	"brackets": {
 		Name:        "Brackets",
 		Description: "Square bracket style",
-		Header:      addMarkers("[ License Start ]----------------------"),
-		Footer:      addMarkers("[ License End ]------------------------"),
+		Header:      "[ License Start ]----------------------",
+		Footer:      "[ License End ]------------------------",
 	},
 	"stars": {
 		Name:        "Stars",
 		Description: "Star border style",
-		Header:      addMarkers("****************************************"),
-		Footer:      addMarkers("****************************************"),
+		Header:      "****************************************",
+		Footer:      "****************************************",
 	},
 	"modern": {
 		Name:        "Modern",
 		Description: "Modern style with unicode blocks",
-		Header:      addMarkers("■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■"),
-		Footer:      addMarkers("■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■"),
+		Header:      "■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■",
+		Footer:      "■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■",
 	},
 	"arrows": {
 		Name:        "Arrows",
 		Description: "Arrow style borders",
-		Header:      addMarkers(">>>>>>> LICENSE HEADER >>>>>>>>>>>>>>>>>>"),
-		Footer:      addMarkers("<<<<<<<<<<<<<<<<<<<< LICENSE END <<<<<<<"),
+		Header:      ">>>>>>> LICENSE HEADER >>>>>>>>>>>>>>>>>>",
+		Footer:      "<<<<<<<<<<<<<<<<<<<< LICENSE END <<<<<<<",
 	},
 	"elegant": {
 		Name:        "Elegant",
 		Description: "Elegant style with dashes and brackets",
-		Header:      addMarkers("---[ Begin License ]-------------------"),
-		Footer:      addMarkers("---[ End License ]---------------------"),
+		Header:      "---[ Begin License ]-------------------",
+		Footer:      "---[ End License ]---------------------",
 	},
 	"wave": {
 		Name:        "Wave",
 		Description: "Wavy style border",
-		Header:      addMarkers("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
-		Footer:      addMarkers("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"),
+		Header:      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+		Footer:      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
 	},
 	"dots": {
 		Name:        "Dots",
 		Description: "Dotted border style",
-		Header:      addMarkers("......................................"),
-		Footer:      addMarkers("......................................"),
+		Header:      "......................................",
+		Footer:      "......................................",
 	},
 	"equals": {
 		Name:        "Equals",
 		Description: "Equal signs border",
-		Header:      addMarkers("======================================"),
-		Footer:      addMarkers("======================================"),
+		Header:      "======================================",
+		Footer:      "======================================",
 	},
 	"decorative": {
 		Name:        "Decorative",
 		Description: "Decorative style with unicode symbols",
-		Header:      addMarkers("♦═══════════[ LICENSE ]══════════════♦"),
-		Footer:      addMarkers("♦══════════[ END LICENSE ]═══════════♦"),
+		Header:      "♦═══════════[ LICENSE ]══════════════♦",
+		Footer:      "♦══════════[ END LICENSE ]═══════════♦",
 	},
 	"minimal": {
 		Name:        "Minimal",
 		Description: "Minimal style with thin lines",
-		Header:      addMarkers("─────────────────────────────────────"),
-		Footer:      addMarkers("─────────────────────────────────────"),
+		Header:      "─────────────────────────────────────",
+		Footer:      "─────────────────────────────────────",
 	},
 	"classic": {
 		Name:        "Classic",
 		Description: "Classic style with asterisks and title",
-		Header:      addMarkers("**** BEGIN LICENSE BLOCK ****"),
-		Footer:      addMarkers("**** END LICENSE BLOCK ****"),
+		Header:      "**** BEGIN LICENSE BLOCK ****",
+		Footer:      "**** END LICENSE BLOCK ****",
 	},
 	"angular": {
 		Name:        "Angular",
 		Description: "Angular style with forward slashes",
-		Header:      addMarkers("//////////// LICENSE START ////////////"),
-		Footer:      addMarkers("//////////// LICENSE END //////////////"),
+		Header:      "//////////// LICENSE START ////////////",
+		Footer:      "//////////// LICENSE END //////////////",
 	},
 	"banner": {
 		Name:        "Banner",
 		Description: "Banner style with pipe borders",
-		Header:      addMarkers("|====================================|"),
-		Footer:      addMarkers("|====================================|"),
+		Header:      "|====================================|",
+		Footer:      "|====================================|",
 	},
 	"retro": {
 		Name:        "Retro",
 		Description: "Retro style with plus signs",
-		Header:      addMarkers("++++++++++++++++++++++++++++++++++++"),
-		Footer:      addMarkers("++++++++++++++++++++++++++++++++++++"),
+		Header:      "++++++++++++++++++++++++++++++++++++",
+		Footer:      "++++++++++++++++++++++++++++++++++++",
 	},
 	"clean": {
 		Name:        "Clean",
 		Description: "Clean style with triple dashes",
-		Header:      addMarkers("-----------------------------------"),
-		Footer:      addMarkers("-----------------------------------"),
+		Header:      "-----------------------------------",
+		Footer:      "-----------------------------------",
 	},
 	"double": {
 		Name:        "Double",
 		Description: "Double line border",
-		Header:      addMarkers("══════════════════════════════════"),
-		Footer:      addMarkers("══════════════════════════════════"),
+		Header:      "══════════════════════════════════",
+		Footer:      "══════════════════════════════════",
 	},
 	"branded": {
 		Name:        "Branded",
 		Description: "Corporate style with copyright symbol",
-		Header:      addMarkers("© ─────────[ LICENSE ]──────────── ©"),
-		Footer:      addMarkers("© ────────[ END LICENSE ]────────── ©"),
+		Header:      "© ─────────[ LICENSE ]──────────── ©",
+		Footer:      "© ────────[ END LICENSE ]────────── ©",
 	},
-}
-
-// Helper functions to detect markers
-func hasMarkers(text string) bool {
-	return strings.Contains(text, markerStart) && strings.Contains(text, markerEnd)
-}
-
-func stripMarkers(text string) string {
-	text = strings.ReplaceAll(text, markerStart, "")
-	text = strings.ReplaceAll(text, markerEnd, "")
-	return text
-}
-
-func findLicenseBlock(content string) (start, end int) {
-	start = strings.Index(content, markerStart)
-	if start == -1 {
-		return -1, -1
-	}
-
-	// Look for the end marker after the second marker start
-	secondStart := strings.Index(content[start+1:], markerStart)
-	if secondStart == -1 {
-		return -1, -1
-	}
-	secondStart += start + 1
-
-	// Find the end marker after the second start marker
-	end = strings.Index(content[secondStart:], markerEnd)
-	if end == -1 {
-		return -1, -1
-	}
-	end += secondStart + len(markerEnd)
-
-	return start, end
 }
 
 // GetPresetStyle returns a HeaderFooterStyle by name, or a default if not found
@@ -181,7 +135,6 @@ func GetPresetStyle(name string) HeaderFooterStyle {
 	if style, ok := PresetStyles[name]; ok {
 		return style
 	}
-	// Return simple style as default
 	return PresetStyles["simple"]
 }
 

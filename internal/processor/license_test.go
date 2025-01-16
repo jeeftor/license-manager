@@ -9,6 +9,11 @@ import (
 	"testing"
 )
 
+// normalizeNewlines replaces all newlines with \n for consistent comparison
+func normalizeNewlines(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n")
+}
+
 // Define shared test data
 type testFile struct {
 	name         string
@@ -20,64 +25,69 @@ var testFiles = []testFile{
 	{
 		name:         "Go - Multi-line Comments",
 		templatePath: "../../templates/go/hello.go",
-		commentStyle: CommentStyle{Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: true, FileType: "go"},
+		commentStyle: getCommentStyle("test.go"),
+	},
+	{
+		name:         "Go - With Build Directive",
+		templatePath: "../../templates/go/hello_with_directive.go",
+		commentStyle: getCommentStyle("test.go"),
 	},
 	{
 		name:         "Python - Single-line Comments",
 		templatePath: "../../templates/python/hello.py",
-		commentStyle: CommentStyle{Single: "#", MultiStart: "", MultiEnd: "", PreferMulti: false, FileType: "python"},
+		commentStyle: getCommentStyle("test.py"),
 	},
 	{
 		name:         "JavaScript - Multi-line Comments",
 		templatePath: "../../templates/javascript/hello.js",
-		commentStyle: CommentStyle{Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: true, FileType: "javascript"},
+		commentStyle: extensionStyles[".js"],
 	},
 	{
 		name:         "JSX - Multi-line Comments",
 		templatePath: "../../templates/javascript/component.jsx",
-		commentStyle: CommentStyle{Single: "//", MultiStart: "{/*", MultiEnd: "*/}", PreferMulti: true, FileType: "javascript"},
+		commentStyle: extensionStyles[".jsx"],
 	},
 	{
 		name:         "HTML - Multi-line Comments",
 		templatePath: "../../templates/html/index.html",
-		commentStyle: CommentStyle{Single: "", MultiStart: "<!--", MultiEnd: "-->", PreferMulti: true, FileType: "html"},
+		commentStyle: extensionStyles[".html"],
 	},
 	{
 		name:         "CSS - Multi-line Comments",
 		templatePath: "../../templates/css/style.css",
-		commentStyle: CommentStyle{Single: "", MultiStart: "/*", MultiEnd: "*/", PreferMulti: true, FileType: "css"},
+		commentStyle: extensionStyles[".css"],
 	},
 	/* Temporarily disabled Ruby and Shell support
 	{
 		name:         "Ruby - Single-line Comments",
 		templatePath: "../../templates/ruby/hello.rb",
-		commentStyle: CommentStyle{Single: "#", MultiStart: "", MultiEnd: "", PreferMulti: false, FileType: "ruby"},
+		commentStyle: extensionStyles[".rb"],
 	},
 	{
 		name:         "Shell - Single-line Comments",
 		templatePath: "../../templates/shell/hello.sh",
-		commentStyle: CommentStyle{Single: "#", MultiStart: "", MultiEnd: "", PreferMulti: false, FileType: "shell"},
+		commentStyle: extensionStyles[".sh"],
 	},
 	*/
 	{
 		name:         "C++ - Multi-line Comments",
 		templatePath: "../../templates/cpp/hello.cpp",
-		commentStyle: CommentStyle{Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: true, FileType: "cpp"},
+		commentStyle: extensionStyles[".cpp"],
 	},
 	{
 		name:         "Java - Multi-line Comments",
 		templatePath: "../../templates/java/HelloWorld.java",
-		commentStyle: CommentStyle{Single: "//", MultiStart: "/*", MultiEnd: "*/", PreferMulti: true, FileType: "java"},
+		commentStyle: extensionStyles[".java"],
 	},
 	{
 		name:         "YAML - Single-line Comments",
-		templatePath: "../../templates/yaml/config.yaml",
-		commentStyle: CommentStyle{Single: "#", MultiStart: "", MultiEnd: "", PreferMulti: false, FileType: "yaml"},
+		templatePath: "../../templates/yaml/config.yml",
+		commentStyle: extensionStyles[".yml"],
 	},
 	{
 		name:         "Lua - Both Comment Styles",
 		templatePath: "../../templates/lua/hello.lua",
-		commentStyle: CommentStyle{Single: "--", MultiStart: "--[[", MultiEnd: "]]", PreferMulti: true, FileType: "lua"},
+		commentStyle: extensionStyles[".lua"],
 	},
 }
 
@@ -160,10 +170,10 @@ func TestAddLicenseOnce(t *testing.T) {
 // TestAddLicenseTwice tests that adding a license twice doesn't create duplicates
 func TestAddLicenseTwice(t *testing.T) {
 	tests := []struct {
-		name        string
-		content     string
-		licenseText string
-		style       HeaderFooterStyle
+		name         string
+		content      string
+		licenseText  string
+		style        HeaderFooterStyle
 		commentStyle CommentStyle
 	}{
 		{
@@ -182,8 +192,10 @@ func main() {
 				Single:      "//",
 				MultiStart:  "/*",
 				MultiEnd:    "*/",
+				MultiPrefix: " * ",
+				LinePrefix:  " ",
 				PreferMulti: true,
-				FileType:    "go",
+				Language:    "go",
 			},
 		},
 	}
@@ -373,6 +385,255 @@ func TestRemoveLicenseMultipleStyles(t *testing.T) {
 			if contentAfterRemoval != originalContentStr {
 				t.Errorf("Content after license removal does not match original content.\nExpected:\n%s\nGot:\n%s\nExpected bytes: %v\nGot bytes: %v",
 					originalContentStr, contentAfterRemoval, []byte(originalContentStr), []byte(contentAfterRemoval))
+			}
+		})
+	}
+}
+
+func TestLicenseManager_CheckLicense(t *testing.T) {
+	tests := []struct {
+		name         string
+		style        HeaderFooterStyle
+		licenseText  string
+		content      string
+		commentStyle CommentStyle
+		want         bool
+	}{
+		{
+			name: "Go style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "/*\n * [START]----------------------------------------[END]\n * MIT License\n * \n * Copyright (c) 2024 Test\n * \n * [START]----------------------------------------[END]\n */\n\npackage main",
+			commentStyle: CommentStyle{
+				Single:      "//",
+				MultiStart:  "/*",
+				MultiEnd:    "*/",
+				MultiPrefix: " * ",
+				LinePrefix:  " ",
+				PreferMulti: true,
+				Language:    "go",
+			},
+			want: false,
+		},
+		{
+			name: "Python style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "# [START]----------------------------------------[END]\n# MIT License\n#\n# Copyright (c) 2024 Test\n#\n# [START]----------------------------------------[END]\n\ndef main():",
+			commentStyle: CommentStyle{
+				Single:      "#",
+				MultiStart:  "",
+				MultiEnd:    "",
+				MultiPrefix: "",
+				LinePrefix:  "",
+				PreferMulti: false,
+				Language:    "python",
+			},
+			want: true,
+		},
+		{
+			name: "JavaScript style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "/*\n * [START]----------------------------------------[END]\n * MIT License\n * \n * Copyright (c) 2024 Test\n * \n * [START]----------------------------------------[END]\n */\n\nfunction main() {}",
+			commentStyle: CommentStyle{
+				Single:      "//",
+				MultiStart:  "/*",
+				MultiEnd:    "*/",
+				MultiPrefix: " * ",
+				LinePrefix:  " ",
+				PreferMulti: true,
+				Language:    "javascript",
+			},
+			want: true,
+		},
+		{
+			name: "JSX style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "{/*\n * [START]----------------------------------------[END]\n * MIT License\n * \n * Copyright (c) 2024 Test\n * \n * [START]----------------------------------------[END]\n */}\n\nfunction App() { return <div>Hello</div>; }",
+			commentStyle: CommentStyle{
+				Single:      "//",
+				MultiStart:  "/*",
+				MultiEnd:    "*/",
+				MultiPrefix: " * ",
+				LinePrefix:  " ",
+				PreferMulti: true,
+				Language:    "jsx",
+			},
+			want: true,
+		},
+		{
+			name: "HTML style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "<!--\n[START]----------------------------------------[END]\nMIT License\n\nCopyright (c) 2024 Test\n\n[START]----------------------------------------[END]\n-->\n<!DOCTYPE html>",
+			commentStyle: CommentStyle{
+				Single:      "",
+				MultiStart:  "<!--",
+				MultiEnd:    "-->",
+				MultiPrefix: "",
+				LinePrefix:  "",
+				PreferMulti: true,
+				Language:    "html",
+			},
+			want: true,
+		},
+		{
+			name: "CSS style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "/*\n * [START]----------------------------------------[END]\n * MIT License\n * \n * Copyright (c) 2024 Test\n * \n * [START]----------------------------------------[END]\n */\n\nbody { margin: 0; }",
+			commentStyle: CommentStyle{
+				Single:      "",
+				MultiStart:  "/*",
+				MultiEnd:    "*/",
+				MultiPrefix: " * ",
+				LinePrefix:  " ",
+				PreferMulti: true,
+				Language:    "css",
+			},
+			want: true,
+		},
+		{
+			name: "Ruby style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "# [START]----------------------------------------[END]\n# MIT License\n#\n# Copyright (c) 2024 Test\n#\n# [START]----------------------------------------[END]\n\ndef main; end",
+			commentStyle: CommentStyle{
+				Single:      "#",
+				MultiStart:  "=begin",
+				MultiEnd:    "=end",
+				MultiPrefix: "",
+				LinePrefix:  "",
+				PreferMulti: false,
+				Language:    "ruby",
+			},
+			want: true,
+		},
+		{
+			name: "Shell style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "# [START]----------------------------------------[END]\n# MIT License\n#\n# Copyright (c) 2024 Test\n#\n# [START]----------------------------------------[END]\n\necho 'Hello'",
+			commentStyle: CommentStyle{
+				Single:      "#",
+				MultiStart:  "",
+				MultiEnd:    "",
+				MultiPrefix: "",
+				LinePrefix:  "",
+				PreferMulti: false,
+				Language:    "shell",
+			},
+			want: true,
+		},
+		{
+			name: "C++ style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "/*\n * [START]----------------------------------------[END]\n * MIT License\n * \n * Copyright (c) 2024 Test\n * \n * [START]----------------------------------------[END]\n */\n\nint main() { return 0; }",
+			commentStyle: CommentStyle{
+				Single:      "//",
+				MultiStart:  "/*",
+				MultiEnd:    "*/",
+				MultiPrefix: " * ",
+				LinePrefix:  " ",
+				PreferMulti: true,
+				Language:    "c++",
+			},
+			want: true,
+		},
+		{
+			name: "Java style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "/*\n * [START]----------------------------------------[END]\n * MIT License\n * \n * Copyright (c) 2024 Test\n * \n * [START]----------------------------------------[END]\n */\n\npublic class Main { }",
+			commentStyle: CommentStyle{
+				Single:      "//",
+				MultiStart:  "/*",
+				MultiEnd:    "*/",
+				MultiPrefix: " * ",
+				LinePrefix:  " ",
+				PreferMulti: true,
+				Language:    "java",
+			},
+			want: true,
+		},
+		{
+			name: "YAML style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "# [START]----------------------------------------[END]\n# MIT License\n#\n# Copyright (c) 2024 Test\n#\n# [START]----------------------------------------[END]\n\nkey: value",
+			commentStyle: CommentStyle{
+				Single:      "#",
+				MultiStart:  "",
+				MultiEnd:    "",
+				MultiPrefix: "",
+				LinePrefix:  "",
+				PreferMulti: false,
+				Language:    "yaml",
+			},
+			want: true,
+		},
+		{
+			name: "Lua style comments",
+			style: HeaderFooterStyle{
+				Header: "----------------------------------------",
+				Footer: "----------------------------------------",
+			},
+			licenseText: "MIT License\n\nCopyright (c) 2024 Test",
+			content:     "--[[\n[START]----------------------------------------[END]\nMIT License\n\nCopyright (c) 2024 Test\n\n[START]----------------------------------------[END]\n]]\n\nfunction main() end",
+			commentStyle: CommentStyle{
+				Single:      "--",
+				MultiStart:  "--[[",
+				MultiEnd:    "]]",
+				MultiPrefix: "",
+				LinePrefix:  "",
+				PreferMulti: true,
+				Language:    "lua",
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lm := NewLicenseManager(tt.style, tt.licenseText, tt.commentStyle)
+			if got := lm.CheckLicense(tt.content, false); got != tt.want {
+				t.Errorf("CheckLicense() = %v, want %v", got, tt.want)
 			}
 		})
 	}

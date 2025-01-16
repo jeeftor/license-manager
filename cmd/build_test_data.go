@@ -39,6 +39,7 @@ func getTestFiles() []TestFile {
 		{"templates/typescript/component.tsx", "test_data/typescript/component.tsx"},
 		{"templates/java/HelloWorld.java", "test_data/java/HelloWorld.java"},
 		{"templates/go/hello.go", "test_data/go/hello.go"},
+		{"templates/go/hello_with_directive.go", "test_data/go/hello_with_directive.go"},
 		{"templates/c/hello.c", "test_data/c/hello.c"},
 		{"templates/c/hello.h", "test_data/c/hello.h"},
 		{"templates/cpp/hello.cpp", "test_data/cpp/hello.cpp"},
