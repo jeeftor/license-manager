@@ -12,6 +12,12 @@ import (
 type FileProcessor struct {
 	config Config
 	style  HeaderFooterStyle
+	stats  struct {
+		Added     int
+		Skipped   int
+		Errors    int
+		Existing  int
+	}
 }
 
 // Colored output helpers
@@ -57,56 +63,82 @@ func (fp *FileProcessor) logVerboseWithLineNumbers(text string, startLine int, p
 	}
 }
 
+func (fp *FileProcessor) resetStats() {
+	fp.stats.Added = 0
+	fp.stats.Skipped = 0
+	fp.stats.Errors = 0
+	fp.stats.Existing = 0
+}
+
 func (fp *FileProcessor) Add() error {
-	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
+	fp.resetStats()
+	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		if license.CheckLicense(content) {
+			fp.stats.Existing++
 			return NewCheckError(fmt.Sprintf("license already exists in file: %s (use 'update' command to modify existing licenses)", filename))
 		}
 		newContent := license.AddLicense(content)
 		fp.logVerbose("%s %s", successColor("✅ Adding license to:"), filename)
+		fp.stats.Added++
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
+
+	// If the only errors were CheckErrors (existing licenses), return nil
+	if _, ok := err.(*CheckError); ok {
+		return nil
+	}
+	return err
 }
 
 func (fp *FileProcessor) Remove() error {
+	fp.resetStats()
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		newContent := license.RemoveLicense(content)
 		if newContent != content {
 			fp.logVerbose("%s %s", successColor("✅ Removing license from:"), filename)
+			fp.stats.Added++
 		} else {
 			fp.logVerbose("%s %s", infoColor("ℹ️ No license found in:"), filename)
+			fp.stats.Skipped++
 		}
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
 }
 
 func (fp *FileProcessor) Update() error {
+	fp.resetStats()
 	return fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		status := license.CheckLicenseStatus(content)
 		if status == NoLicense {
+			fp.stats.Skipped++
 			return NewCheckError(fmt.Sprintf("no license found to update in file: %s", filename))
 		}
 		
 		newContent := license.UpdateLicense(content)
 		if status == DifferentLicense {
 			fp.logVerbose("%s %s", warningColor("⚠️ Updating different license in:"), filename)
+			fp.stats.Added++
 		} else {
 			fp.logVerbose("%s %s", successColor("✅ Updating matching license in:"), filename)
+			fp.stats.Existing++
 		}
 		return os.WriteFile(filename, []byte(newContent), 0644)
 	})
 }
 
 func (fp *FileProcessor) Check() error {
-	hasFailures := false
+	fp.resetStats()
+	var hasFailures bool
 	err := fp.processFiles(func(filename, content string, license *LicenseManager) error {
 		status := license.CheckLicenseStatus(content)
 		switch status {
 		case NoLicense:
 			hasFailures = true
+			fp.stats.Skipped++
 			fmt.Printf("%s %s\n", errorColor("❌ No license found in file:"), filename)
 		case DifferentLicense:
 			hasFailures = true
+			fp.stats.Errors++
 			fmt.Printf("%s %s\n", warningColor("⚠️ License doesn't match in file:"), filename)
 			if fp.config.Verbose {
 				current, expected := license.GetLicenseComparison(content)
@@ -137,6 +169,7 @@ func (fp *FileProcessor) Check() error {
 				fmt.Println()
 			}
 		case MatchingLicense:
+			fp.stats.Existing++
 			fp.logVerbose("%s %s", successColor("✅ License matches in:"), filename)
 		}
 		return nil

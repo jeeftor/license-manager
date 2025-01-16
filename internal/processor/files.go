@@ -13,6 +13,7 @@ import (
 
 func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManager) error) error {
 	patterns := strings.Split(fp.config.Input, ",")
+	var lastErr error
 
 	for _, basePattern := range patterns {
 		if basePattern == "" {
@@ -26,11 +27,36 @@ func (fp *FileProcessor) processFiles(action func(string, string, *LicenseManage
 		for _, match := range matches {
 			fp.logVerbose("%s %s", successColor("Processing file:"), match)
 			if err := fp.processFile(match, action); err != nil {
+				if _, ok := err.(*CheckError); ok {
+					// For CheckErrors (like existing license), continue processing
+					fp.logVerbose("%s %s", warningColor("⚠️"), err)
+					lastErr = err
+					continue
+				}
+				// For other errors (like file system errors), stop processing
 				return err
 			}
 		}
 	}
-	return nil
+
+	// Print summary
+	if fp.stats.Added > 0 || fp.stats.Existing > 0 {
+		fmt.Println("\nSummary:")
+		if fp.stats.Added > 0 {
+			fmt.Printf("%s %d files\n", successColor("✅ Added license to:"), fp.stats.Added)
+		}
+		if fp.stats.Existing > 0 {
+			fmt.Printf("%s %d files (use 'update' command to modify)\n", warningColor("⚠️ License already exists in:"), fp.stats.Existing)
+		}
+		if fp.stats.Skipped > 0 {
+			fmt.Printf("%s %d files\n", infoColor("ℹ️ Skipped:"), fp.stats.Skipped)
+		}
+		if fp.stats.Errors > 0 {
+			fmt.Printf("%s %d files\n", errorColor("❌ Errors in:"), fp.stats.Errors)
+		}
+	}
+
+	return lastErr
 }
 
 func (fp *FileProcessor) processFile(filename string, action func(string, string, *LicenseManager) error) error {
