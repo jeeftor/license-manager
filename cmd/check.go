@@ -12,9 +12,16 @@ var checkCmd = &cobra.Command{
 	Short: "Check for license headers in files",
 	Long:  `Check if files have the specified license headers`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// CLI validation errors should show usage
 		if cfgLicense == "" {
 			return fmt.Errorf("license file (--license) is required for check command")
 		}
+		if cfgInput == "" {
+			return fmt.Errorf("input pattern (--input) is required for check command")
+		}
+
+		// After validation passes, silence usage since any further errors are execution errors
+		cmd.SilenceUsage = true
 
 		appCfg := config.AppConfig{
 			// File paths
@@ -32,7 +39,7 @@ var checkCmd = &cobra.Command{
 			Interactive: cfgPrompt,
 			DryRun:      cfgDryRun,
 			Force:       false,
-			IgnoreFail:  checkIgnoreFail, // Special flag for check command
+			IgnoreFail:  checkIgnoreFail,
 		}
 
 		procCfg, err := appCfg.ToProcessorConfig()
@@ -41,13 +48,7 @@ var checkCmd = &cobra.Command{
 		}
 
 		p := processor.NewFileProcessor(procCfg)
-		err = p.Check()
-
-		// If it's a CheckError, don't show usage
-		if _, isCheckError := err.(*processor.CheckError); isCheckError {
-			cmd.SilenceUsage = true
-		}
-		return err
+		return p.Check()
 	},
 }
 

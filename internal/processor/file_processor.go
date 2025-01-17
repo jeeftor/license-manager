@@ -2,7 +2,6 @@ package processor
 
 import (
 	"fmt"
-	"license-manager/internal/errors"
 	"license-manager/internal/language"
 	"license-manager/internal/license"
 	"license-manager/internal/logger"
@@ -30,6 +29,31 @@ func NewFileProcessor(cfg *Config) *FileProcessor {
 	}
 }
 
+// createManager creates and configures a license manager for a given file
+func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, styles.CommentLanguage) {
+	style := styles.Get(fp.config.PresetStyle)
+
+	// Get comment style for file type
+	ext := filepath.Ext(file)
+	commentStyle := styles.GetLanguageCommentStyle(ext)
+	commentStyle.PreferMulti = fp.config.PreferMulti
+
+	if fp.config.Verbose {
+		fp.logger.LogInfo("Processing file: %s", file)
+		fp.logger.LogInfo("  Language: %s", commentStyle.Language)
+		fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+	}
+
+	// Create and configure manager
+	manager := license.NewLicenseManager(fp.config.LicenseText, style)
+	manager.SetCommentStyle(commentStyle)
+	if fp.config.Verbose {
+		manager.SetVerbose(true, fp.logger)
+	}
+
+	return manager, commentStyle
+}
+
 // resetStats resets the operation statistics
 func (fp *FileProcessor) resetStats() {
 	fp.stats = map[string]int{
@@ -51,7 +75,6 @@ func (fp *FileProcessor) Add() error {
 	}
 
 	style := styles.Get(fp.config.PresetStyle)
-
 	if fp.config.Verbose {
 		fp.logger.LogInfo("Using style: %s", style.Name)
 		if fp.config.PreferMulti {
@@ -60,22 +83,14 @@ func (fp *FileProcessor) Add() error {
 	}
 
 	for _, file := range files {
-		ext := filepath.Ext(file)
-		commentStyle := styles.GetLanguageCommentStyle(ext)
-		commentStyle.PreferMulti = fp.config.PreferMulti
-
-		if fp.config.Verbose {
-			fp.logger.LogInfo("Processing file: %s", file)
-			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
-			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
-		}
-
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
 			fp.stats["failed"]++
 			fp.logger.LogError("Failed to read file %s: %v", file, err)
 			continue
 		}
+
+		manager, commentStyle := fp.createManager(file)
 
 		// Get the appropriate language handler and check for preamble
 		handler := language.GetLanguageHandler(commentStyle.Language, style)
@@ -92,12 +107,6 @@ func (fp *FileProcessor) Add() error {
 			} else {
 				fp.logger.LogInfo("  No preamble found")
 			}
-		}
-
-		manager := license.NewLicenseManager(fp.config.LicenseText, style)
-		manager.SetCommentStyle(commentStyle)
-		if fp.config.Verbose {
-			manager.SetVerbose(true, fp.logger)
 		}
 
 		if manager.HasLicense(content) {
@@ -162,19 +171,11 @@ func (fp *FileProcessor) Remove() error {
 		return err
 	}
 
-	style := styles.Get(fp.config.PresetStyle)
+	if fp.config.Verbose {
+		fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
+	}
 
 	for _, file := range files {
-		ext := filepath.Ext(file)
-		commentStyle := styles.GetLanguageCommentStyle(ext)
-		commentStyle.PreferMulti = fp.config.PreferMulti
-
-		if fp.config.Verbose {
-			fp.logger.LogInfo("Processing file: %s", file)
-			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
-			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
-		}
-
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
 			fp.stats["failed"]++
@@ -182,12 +183,7 @@ func (fp *FileProcessor) Remove() error {
 			continue
 		}
 
-		manager := license.NewLicenseManager(fp.config.LicenseText, style)
-		manager.SetCommentStyle(commentStyle)
-		if fp.config.Verbose {
-			manager.SetVerbose(true, fp.logger)
-		}
-
+		manager, _ := fp.createManager(file)
 		newContent, err := manager.RemoveLicense(content)
 		if err != nil {
 			fp.stats["failed"]++
@@ -235,19 +231,11 @@ func (fp *FileProcessor) Update() error {
 		return err
 	}
 
-	style := styles.Get(fp.config.PresetStyle)
+	if fp.config.Verbose {
+		fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
+	}
 
 	for _, file := range files {
-		ext := filepath.Ext(file)
-		commentStyle := styles.GetLanguageCommentStyle(ext)
-		commentStyle.PreferMulti = fp.config.PreferMulti
-
-		if fp.config.Verbose {
-			fp.logger.LogInfo("Processing file: %s", file)
-			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
-			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
-		}
-
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
 			fp.stats["failed"]++
@@ -255,11 +243,7 @@ func (fp *FileProcessor) Update() error {
 			continue
 		}
 
-		manager := license.NewLicenseManager(fp.config.LicenseText, style)
-		manager.SetCommentStyle(commentStyle)
-		if fp.config.Verbose {
-			manager.SetVerbose(true, fp.logger)
-		}
+		manager, _ := fp.createManager(file)
 		status := manager.CheckLicenseStatus(content)
 
 		if status == license.NoLicense {
@@ -315,62 +299,68 @@ func (fp *FileProcessor) Check() error {
 		return err
 	}
 
-	style := styles.Get(fp.config.PresetStyle)
 	hasFailures := false
-
 	for _, file := range files {
-		ext := filepath.Ext(file)
-		commentStyle := styles.GetLanguageCommentStyle(ext)
-		commentStyle.PreferMulti = fp.config.PreferMulti
+		// Get relative path for cleaner output
+		relPath, err := filepath.Rel(".", file)
+		if err != nil {
+			relPath = file // Fallback to full path
+		}
 
+		manager, _ := fp.createManager(file)
+
+		// Print file path first for better log readability
 		if fp.config.Verbose {
-			fp.logger.LogInfo("Processing file: %s", file)
-			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
-			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+			fp.logger.LogInfo("Checking %s...", relPath)
 		}
 
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
 			fp.stats["failed"]++
-			fp.logger.LogError("Failed to read file %s: %v", file, err)
+			fp.logger.LogError("Failed to read %s: %v", relPath, err)
 			hasFailures = true
 			continue
 		}
 
-		manager := license.NewLicenseManager(fp.config.LicenseText, style)
-		manager.SetCommentStyle(commentStyle)
-		if fp.config.Verbose {
-			manager.SetVerbose(true, fp.logger)
-		}
 		status := manager.CheckLicenseStatus(content)
 
+		// Clear status indication for each file
 		switch status {
 		case license.NoLicense:
 			fp.stats["skipped"]++
-			fp.logger.LogError("No license found in %s", file)
+			fp.logger.LogError("%s: No license found", relPath)
 			hasFailures = true
 
 		case license.DifferentLicense:
 			fp.stats["failed"]++
-			fp.logger.LogError("License doesn't match in %s", file)
+			fp.logger.LogError("%s: License text differs from expected", relPath)
 			hasFailures = true
 
 			if fp.config.Verbose {
+				// In verbose mode, show actual differences
 				current, expected := manager.GetLicenseComparison(content)
-				fp.logger.LogInfo("Current license in %s:\n%s", file, current)
-				fp.logger.LogInfo("Expected license:\n%s", expected)
+				fp.logger.LogInfo("Current license in %s:", relPath)
+				fp.logger.LogInfo("%s", current)
+				fp.logger.LogInfo("Expected:")
+				fp.logger.LogInfo("%s", expected)
 			}
 
 		case license.MatchingLicense:
 			fp.stats["unchanged"]++
-			fp.logger.LogSuccess("License matches in %s", file)
+			fp.logger.LogSuccess("%s: License OK", relPath)
 		}
 	}
-
-	fp.logger.PrintStats(fp.stats)
-	if hasFailures && !fp.config.IgnoreFail {
-		return errors.NewLicenseError("one or more files have missing or incorrect licenses", "")
+	if hasFailures {
+		if !fp.config.IgnoreFail {
+			return fmt.Errorf("license check failed: some files have missing or incorrect licenses")
+		}
 	}
+	//if hasFailures {
+	//	if !fp.config.IgnoreFail {
+	//		// Print a final summary without all the cobra usage info
+	//		return NewCheckError("license check failed: some files have missing or incorrect licenses")
+	//	}
+	//}
 
 	return nil
 }
