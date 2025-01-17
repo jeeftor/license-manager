@@ -92,10 +92,24 @@ func GetLanguageHandler(fileType string, style styles.HeaderFooterStyle) Languag
 		return NewGoHandler(style)
 	case "html":
 		return NewHTMLHandler(style)
-	case "javascript":
+	case "js", "jsx":
 		return NewJavaScriptHandler(style)
+	case "ts", "tsx":
+		return NewTypeScriptHandler(style)
 	case "yaml":
 		return NewYAMLHandler(style)
+	case "python", "py":
+		return NewPythonHandler(style)
+	case "cpp", "c", "h", "hpp":
+		return NewCppHandler(style)
+	case "php":
+		return NewPHPHandler(style)
+	case "rb", "ruby":
+		return NewRubyHandler(style)
+	case "lua":
+		return NewLuaHandler(style)
+	case "rs":
+		return NewRustHandler(style)
 	default:
 		return NewGenericHandler(style)
 	}
