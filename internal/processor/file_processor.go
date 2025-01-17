@@ -96,6 +96,9 @@ func (fp *FileProcessor) Add() error {
 
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
 		manager.SetCommentStyle(commentStyle)
+		if fp.config.Verbose {
+			manager.SetVerbose(true, fp.logger)
+		}
 
 		if manager.HasLicense(content) {
 			fp.stats["existing"]++
@@ -181,6 +184,9 @@ func (fp *FileProcessor) Remove() error {
 
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
 		manager.SetCommentStyle(commentStyle)
+		if fp.config.Verbose {
+			manager.SetVerbose(true, fp.logger)
+		}
 
 		newContent, err := manager.RemoveLicense(content)
 		if err != nil {
@@ -251,6 +257,9 @@ func (fp *FileProcessor) Update() error {
 
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
 		manager.SetCommentStyle(commentStyle)
+		if fp.config.Verbose {
+			manager.SetVerbose(true, fp.logger)
+		}
 		status := manager.CheckLicenseStatus(content)
 
 		if status == license.NoLicense {
@@ -330,6 +339,9 @@ func (fp *FileProcessor) Check() error {
 
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
 		manager.SetCommentStyle(commentStyle)
+		if fp.config.Verbose {
+			manager.SetVerbose(true, fp.logger)
+		}
 		status := manager.CheckLicenseStatus(content)
 
 		switch status {

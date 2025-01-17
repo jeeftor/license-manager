@@ -309,9 +309,11 @@ func FormatComment(text string, commentStyle styles.CommentLanguage, headerStyle
 	// Add header
 	if commentStyle.MultiStart != "" {
 		result = append(result, commentStyle.MultiStart)
-		result = append(result, commentStyle.MultiPrefix+headerStyle.Header)
+		// Add marker to header
+		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Header+MarkerEnd)
 	} else {
-		result = append(result, commentStyle.Single+headerStyle.Header)
+		// Add marker to header
+		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Header+MarkerEnd)
 	}
 
 	// Add body with proper comment prefixes
@@ -333,10 +335,12 @@ func FormatComment(text string, commentStyle styles.CommentLanguage, headerStyle
 
 	// Add footer
 	if commentStyle.MultiStart != "" {
-		result = append(result, commentStyle.MultiPrefix+headerStyle.Footer)
+		// Add marker to footer
+		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Footer+MarkerEnd)
 		result = append(result, commentStyle.MultiEnd)
 	} else {
-		result = append(result, commentStyle.Single+headerStyle.Footer)
+		// Add marker to footer
+		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Footer+MarkerEnd)
 	}
 
 	return strings.Join(result, "\n")
@@ -379,9 +383,9 @@ func (c *Comment) SetBody(body string) {
 	c.body = body
 }
 
-func (c *Comment) SetStyle(style styles.CommentLanguage) {
-	c.style = style
-}
+//func (c *Comment) SetStyle(style styles.CommentLanguage) {
+//	c.style = style
+//}
 
 func (c *Comment) SetHeaderFooterStyle(hfStyle styles.HeaderFooterStyle) {
 	c.hfStyle = hfStyle
@@ -389,18 +393,18 @@ func (c *Comment) SetHeaderFooterStyle(hfStyle styles.HeaderFooterStyle) {
 	c.footer = hfStyle.Footer
 }
 
-func (c *Comment) GetStyle() styles.CommentLanguage {
-	return c.style
-}
-
-func (c *Comment) GetHeader() string {
-	return c.header
-}
-
-func (c *Comment) GetFooter() string {
-	return c.footer
-}
-
-func (c *Comment) GetBody() string {
-	return c.body
-}
+//func (c *Comment) GetStyle() styles.CommentLanguage {
+//	return c.style
+//}
+//
+//func (c *Comment) GetHeader() string {
+//	return c.header
+//}
+//
+//func (c *Comment) GetFooter() string {
+//	return c.footer
+//}
+//
+//func (c *Comment) GetBody() string {
+//	return c.body
+//}

@@ -3,6 +3,8 @@ package license
 import (
 	"license-manager/internal/comment"
 	"license-manager/internal/errors"
+	"license-manager/internal/language"
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -21,12 +23,16 @@ type LicenseManager struct {
 	template     string
 	commentStyle styles.CommentLanguage
 	headerStyle  styles.HeaderFooterStyle
+	verbose      bool
+	logger       *logger.Logger
 }
 
+// NewLicenseManager creates a new manager
 func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle, commentStyle ...styles.CommentLanguage) *LicenseManager {
 	manager := &LicenseManager{
 		template:    template,
 		headerStyle: headerStyle,
+		verbose:     false,
 	}
 	if len(commentStyle) > 0 {
 		manager.commentStyle = commentStyle[0]
@@ -34,59 +40,151 @@ func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle, co
 	return manager
 }
 
-// FormatLicenseForFile formats the license text with the current comment style
-// This is useful for debugging and preview purposes
-func (m *LicenseManager) FormatLicenseForFile(text string) string {
-	if m.commentStyle.Language == "" {
-		return "No comment style set - cannot format license"
-	}
-	return m.formatLicenseBlock(text)
+// SetVerbose enables verbose logging
+func (m *LicenseManager) SetVerbose(verbose bool, logger *logger.Logger) {
+	m.verbose = verbose
+	m.logger = logger
 }
 
-// GetCurrentStyle returns the current comment style
-// Useful for debugging and logging
-func (m *LicenseManager) GetCurrentStyle() styles.CommentLanguage {
-	return m.commentStyle
-}
-
-// SetCommentStyle sets the comment style for the manager
+// SetCommentStyle sets the comment style
 func (m *LicenseManager) SetCommentStyle(style styles.CommentLanguage) {
 	m.commentStyle = style
 }
 
 // HasLicense checks if content contains any license block
 func (m *LicenseManager) HasLicense(content string) bool {
-	_, _, _, success := comment.ExtractComponents(content)
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Checking for existing license block...")
+		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
+	}
+
+	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	preamble, rest := handler.PreservePreamble(content)
+
+	if m.verbose && m.logger != nil {
+		if preamble != "" {
+			m.logger.LogInfo("  Found preamble (%d lines)", len(strings.Split(preamble, "\n")))
+			m.logger.LogInfo("  Processing remaining content after preamble...")
+		} else {
+			m.logger.LogInfo("  No preamble found, processing entire content")
+		}
+	}
+
+	_, body, _, success := comment.ExtractComponents(rest)
+	if m.verbose && m.logger != nil {
+		if success {
+			m.logger.LogInfo("  Found existing license block (%d lines)", len(strings.Split(body, "\n")))
+			m.logger.LogInfo("  License content preview: %s...", truncateString(body, 50))
+		} else {
+			m.logger.LogInfo("  No license block detected in content")
+		}
+	}
 	return success
 }
 
 // AddLicense adds a license block to the content
 func (m *LicenseManager) AddLicense(content string) (string, error) {
-	if m.HasLicense(content) {
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Preparing to add license...")
+		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
+	}
+
+	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	preamble, rest := handler.PreservePreamble(content)
+
+	if m.verbose && m.logger != nil {
+		if preamble != "" {
+			m.logger.LogInfo("  Found preamble:")
+			for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
+				if line != "" {
+					m.logger.LogInfo("    %s", line)
+				}
+			}
+			m.logger.LogInfo("  Content after preamble: %d lines", len(strings.Split(rest, "\n")))
+		} else {
+			m.logger.LogInfo("  No preamble found")
+		}
+	}
+
+	if m.HasLicense(rest) {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  Cannot add license: content already has a license block")
+		}
 		return "", errors.NewLicenseError("content already has a license", "")
 	}
 
 	// Format the license block
 	licenseBlock := comment.FormatComment(m.template, m.commentStyle, m.headerStyle)
 
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Formatted license block (%d lines)", len(strings.Split(licenseBlock, "\n")))
+	}
+
 	// If content is empty or only whitespace, just return the license
-	if strings.TrimSpace(content) == "" {
+	if strings.TrimSpace(rest) == "" {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  Content is empty, returning license block only")
+		}
+		if preamble != "" {
+			if m.verbose && m.logger != nil {
+				m.logger.LogInfo("  Adding license after preamble")
+			}
+			return preamble + "\n" + licenseBlock, nil
+		}
 		return licenseBlock, nil
 	}
 
 	// Add a newline between license and content
-	return licenseBlock + "\n\n" + content, nil
+	if preamble != "" {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  Constructing final content: preamble + license + content")
+			m.logger.LogInfo("  Final structure:")
+			m.logger.LogInfo("    - Preamble: %d lines", len(strings.Split(preamble, "\n")))
+			m.logger.LogInfo("    - License: %d lines", len(strings.Split(licenseBlock, "\n")))
+			m.logger.LogInfo("    - Content: %d lines", len(strings.Split(rest, "\n")))
+		}
+		return preamble + "\n" + licenseBlock + "\n\n" + rest, nil
+	}
+
+	return licenseBlock + "\n\n" + rest, nil
 }
 
 // RemoveLicense removes the license block from the content
 func (m *LicenseManager) RemoveLicense(content string) (string, error) {
-	header, _, footer, success := comment.ExtractComponents(content)
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Attempting to remove license block...")
+		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
+	}
+
+	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	preamble, rest := handler.PreservePreamble(content)
+
+	if m.verbose && m.logger != nil {
+		if preamble != "" {
+			m.logger.LogInfo("  Found preamble (%d lines)", len(strings.Split(preamble, "\n")))
+			m.logger.LogInfo("  Processing remaining content...")
+		} else {
+			m.logger.LogInfo("  No preamble found")
+		}
+	}
+
+	header, body, footer, success := comment.ExtractComponents(rest)
 	if !success {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  No license block found to remove")
+		}
 		return content, nil
 	}
 
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Found license block:")
+		m.logger.LogInfo("    Header: %s", truncateString(header, 50))
+		m.logger.LogInfo("    Body length: %d lines", len(strings.Split(body, "\n")))
+		m.logger.LogInfo("    Footer: %s", truncateString(footer, 50))
+	}
+
 	// Find the start and end of the license block
-	lines := strings.Split(content, "\n")
+	lines := strings.Split(rest, "\n")
 	var startLine, endLine int
 	for i, line := range lines {
 		if strings.TrimSpace(line) == strings.TrimSpace(header) {
@@ -101,17 +199,46 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 		}
 	}
 
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  License block found at lines %d-%d", startLine, endLine)
+	}
+
 	// Remove the license block and any surrounding empty lines
 	result := append(lines[:startLine], lines[endLine+1:]...)
 	for len(result) > 0 && strings.TrimSpace(result[0]) == "" {
 		result = result[1:]
 	}
-	return strings.Join(result, "\n"), nil
+
+	newContent := strings.Join(result, "\n")
+	if preamble != "" {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  Reconstructing content with preamble")
+		}
+		return preamble + "\n" + newContent, nil
+	}
+	return newContent, nil
+}
+
+// helper function to truncate strings for logging
+func truncateString(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
 
 // UpdateLicense updates the license block in the content
 func (m *LicenseManager) UpdateLicense(content string) (string, error) {
-	if !m.HasLicense(content) {
+	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	preamble, rest := handler.PreservePreamble(content)
+
+	if m.verbose && m.logger != nil {
+		if preamble != "" {
+			m.logger.LogInfo("  Found preamble when updating license")
+		}
+	}
+
+	if !m.HasLicense(rest) {
 		return "", errors.NewLicenseError("content has no license to update", "")
 	}
 
@@ -127,24 +254,68 @@ func (m *LicenseManager) UpdateLicense(content string) (string, error) {
 
 // CheckLicenseStatus checks the status of the license in the content
 func (m *LicenseManager) CheckLicenseStatus(content string) Status {
-	if !m.HasLicense(content) {
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Checking license status...")
+		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
+	}
+
+	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	preamble, rest := handler.PreservePreamble(content)
+
+	if m.verbose && m.logger != nil {
+		if preamble != "" {
+			m.logger.LogInfo("  Found preamble (%d lines)", len(strings.Split(preamble, "\n")))
+			m.logger.LogInfo("  Analyzing content after preamble...")
+		} else {
+			m.logger.LogInfo("  No preamble found, analyzing full content")
+		}
+	}
+
+	if !m.HasLicense(rest) {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  Result: No license block found")
+		}
 		return NoLicense
 	}
 
-	_, body, _, _ := comment.ExtractComponents(content, true)
+	_, body, _, _ := comment.ExtractComponents(rest, true)
 	_, expectedBody, _, _ := comment.ExtractComponents(m.formatLicenseBlock(m.template), true)
 
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Found license block (%d lines)", len(strings.Split(body, "\n")))
+		m.logger.LogInfo("  Expected license (%d lines)", len(strings.Split(expectedBody, "\n")))
+		m.logger.LogInfo("  Comparing license content...")
+	}
+
 	if strings.TrimSpace(body) == strings.TrimSpace(expectedBody) {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  Result: License matches expected content exactly")
+		}
 		return MatchingLicense
+	}
+
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Result: License differs from expected content")
 	}
 	return DifferentLicense
 }
 
 // GetLicenseComparison returns the current and expected license text for comparison
 func (m *LicenseManager) GetLicenseComparison(content string) (current, expected string) {
-	_, currentBody, _, _ := comment.ExtractComponents(content, true)
+	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	_, rest := handler.PreservePreamble(content)
+
+	_, currentBody, _, _ := comment.ExtractComponents(rest, true)
 	_, expectedBody, _, _ := comment.ExtractComponents(m.formatLicenseBlock(m.template), true)
 	return currentBody, expectedBody
+}
+
+// FormatLicenseForFile formats the license text with the current comment style
+func (m *LicenseManager) FormatLicenseForFile(text string) string {
+	if m.commentStyle.Language == "" {
+		return "No comment style set - cannot format license"
+	}
+	return m.formatLicenseBlock(text)
 }
 
 // formatLicenseBlock formats the license text with the appropriate comment style
