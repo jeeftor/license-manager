@@ -1,10 +1,14 @@
 package processor
 
 import (
+	"fmt"
 	"license-manager/internal/errors"
+	"license-manager/internal/language"
 	"license-manager/internal/license"
 	"license-manager/internal/logger"
 	"license-manager/internal/styles"
+	"path/filepath"
+	"strings"
 )
 
 // FileProcessor handles license operations on files
@@ -48,8 +52,23 @@ func (fp *FileProcessor) Add() error {
 
 	style := styles.Get(fp.config.PresetStyle)
 
+	if fp.config.Verbose {
+		fp.logger.LogInfo("Using style: %s", style.Name)
+		if fp.config.PreferMulti {
+			fp.logger.LogInfo("Preferring multi-line comments where supported")
+		}
+	}
+
 	for _, file := range files {
-		fp.logger.LogVerbose("Processing file: %s", file)
+		ext := filepath.Ext(file)
+		commentStyle := styles.GetLanguageCommentStyle(ext)
+		commentStyle.PreferMulti = fp.config.PreferMulti
+
+		if fp.config.Verbose {
+			fp.logger.LogInfo("Processing file: %s", file)
+			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
+			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+		}
 
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
@@ -58,18 +77,52 @@ func (fp *FileProcessor) Add() error {
 			continue
 		}
 
+		// Get the appropriate language handler and check for preamble
+		handler := language.GetLanguageHandler(commentStyle.Language, style)
+		preamble, rest := handler.PreservePreamble(content)
+
+		if fp.config.Verbose {
+			if preamble != "" {
+				fp.logger.LogInfo("  Found preamble:")
+				for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
+					if line != "" {
+						fp.logger.LogInfo("    %s", line)
+					}
+				}
+			} else {
+				fp.logger.LogInfo("  No preamble found")
+			}
+		}
+
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
+		manager.SetCommentStyle(commentStyle)
+
 		if manager.HasLicense(content) {
 			fp.stats["existing"]++
 			fp.logger.LogWarning("License already exists in %s", file)
 			continue
 		}
 
-		newContent, err := manager.AddLicense(content)
+		// Use rest instead of content to add license after preamble
+		newContent, err := manager.AddLicense(rest)
 		if err != nil {
 			fp.stats["failed"]++
 			fp.logger.LogError("Failed to add license to %s: %v", file, err)
 			continue
+		}
+
+		// Recombine preamble with the licensed content
+		if preamble != "" {
+			newContent = preamble + "\n\n" + newContent
+		}
+
+		// Debug the actual comment being added in verbose mode
+		if fp.config.Verbose {
+			fp.logger.LogInfo("  License will be added as:")
+			formattedLicense := manager.FormatLicenseForFile(fp.config.LicenseText)
+			for _, line := range strings.Split(formattedLicense, "\n") {
+				fp.logger.LogInfo("    %s", line)
+			}
 		}
 
 		if fp.config.DryRun {
@@ -109,7 +162,15 @@ func (fp *FileProcessor) Remove() error {
 	style := styles.Get(fp.config.PresetStyle)
 
 	for _, file := range files {
-		fp.logger.LogVerbose("Processing file: %s", file)
+		ext := filepath.Ext(file)
+		commentStyle := styles.GetLanguageCommentStyle(ext)
+		commentStyle.PreferMulti = fp.config.PreferMulti
+
+		if fp.config.Verbose {
+			fp.logger.LogInfo("Processing file: %s", file)
+			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
+			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+		}
 
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
@@ -119,6 +180,8 @@ func (fp *FileProcessor) Remove() error {
 		}
 
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
+		manager.SetCommentStyle(commentStyle)
+
 		newContent, err := manager.RemoveLicense(content)
 		if err != nil {
 			fp.stats["failed"]++
@@ -169,7 +232,15 @@ func (fp *FileProcessor) Update() error {
 	style := styles.Get(fp.config.PresetStyle)
 
 	for _, file := range files {
-		fp.logger.LogVerbose("Processing file: %s", file)
+		ext := filepath.Ext(file)
+		commentStyle := styles.GetLanguageCommentStyle(ext)
+		commentStyle.PreferMulti = fp.config.PreferMulti
+
+		if fp.config.Verbose {
+			fp.logger.LogInfo("Processing file: %s", file)
+			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
+			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+		}
 
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
@@ -179,6 +250,7 @@ func (fp *FileProcessor) Update() error {
 		}
 
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
+		manager.SetCommentStyle(commentStyle)
 		status := manager.CheckLicenseStatus(content)
 
 		if status == license.NoLicense {
@@ -238,7 +310,15 @@ func (fp *FileProcessor) Check() error {
 	hasFailures := false
 
 	for _, file := range files {
-		fp.logger.LogVerbose("Processing file: %s", file)
+		ext := filepath.Ext(file)
+		commentStyle := styles.GetLanguageCommentStyle(ext)
+		commentStyle.PreferMulti = fp.config.PreferMulti
+
+		if fp.config.Verbose {
+			fp.logger.LogInfo("Processing file: %s", file)
+			fp.logger.LogInfo("  Language: %s", commentStyle.Language)
+			fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+		}
 
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
@@ -249,6 +329,7 @@ func (fp *FileProcessor) Check() error {
 		}
 
 		manager := license.NewLicenseManager(fp.config.LicenseText, style)
+		manager.SetCommentStyle(commentStyle)
 		status := manager.CheckLicenseStatus(content)
 
 		switch status {
@@ -280,4 +361,22 @@ func (fp *FileProcessor) Check() error {
 	}
 
 	return nil
+}
+
+// describeCommentStyle returns a human-readable description of the comment style
+func describeCommentStyle(cs styles.CommentLanguage) string {
+	var parts []string
+	if cs.MultiStart != "" {
+		parts = append(parts, fmt.Sprintf("multi-line (%s...%s)", cs.MultiStart, cs.MultiEnd))
+	}
+	if cs.Single != "" {
+		parts = append(parts, fmt.Sprintf("single-line (%s)", cs.Single))
+	}
+	if cs.MultiPrefix != "" {
+		parts = append(parts, fmt.Sprintf("prefix: %q", cs.MultiPrefix))
+	}
+	if len(parts) == 0 {
+		return "unknown"
+	}
+	return strings.Join(parts, ", ")
 }

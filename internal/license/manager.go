@@ -23,12 +23,30 @@ type LicenseManager struct {
 	headerStyle  styles.HeaderFooterStyle
 }
 
-// NewLicenseManager creates a new license manager
-func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle) *LicenseManager {
-	return &LicenseManager{
+func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle, commentStyle ...styles.CommentLanguage) *LicenseManager {
+	manager := &LicenseManager{
 		template:    template,
 		headerStyle: headerStyle,
 	}
+	if len(commentStyle) > 0 {
+		manager.commentStyle = commentStyle[0]
+	}
+	return manager
+}
+
+// FormatLicenseForFile formats the license text with the current comment style
+// This is useful for debugging and preview purposes
+func (m *LicenseManager) FormatLicenseForFile(text string) string {
+	if m.commentStyle.Language == "" {
+		return "No comment style set - cannot format license"
+	}
+	return m.formatLicenseBlock(text)
+}
+
+// GetCurrentStyle returns the current comment style
+// Useful for debugging and logging
+func (m *LicenseManager) GetCurrentStyle() styles.CommentLanguage {
+	return m.commentStyle
 }
 
 // SetCommentStyle sets the comment style for the manager
