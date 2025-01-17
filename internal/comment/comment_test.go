@@ -4,8 +4,24 @@ import (
 	"strings"
 	"testing"
 
+	"license-manager/internal/language"
 	"license-manager/internal/styles"
 )
+
+// MockLanguageHandler implements language.LanguageHandler for testing
+type MockLanguageHandler struct {
+	*language.GenericHandler
+}
+
+func NewMockLanguageHandler() *MockLanguageHandler {
+	return &MockLanguageHandler{
+		GenericHandler: language.NewGenericHandler(styles.HeaderFooterStyle{}),
+	}
+}
+
+func (h *MockLanguageHandler) ScanBuildDirectives(content string) ([]string, int) {
+	return nil, 0
+}
 
 func TestExtractComponents(t *testing.T) {
 	tests := []struct {
@@ -217,9 +233,10 @@ End Notice
 		},
 	}
 
+	mockHandler := NewMockLanguageHandler()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComment(tt.style, tt.hfStyle, tt.body)
+			c := NewComment(tt.style, tt.hfStyle, tt.body, mockHandler)
 			got := c.String()
 			// Normalize line endings for comparison
 			got = strings.ReplaceAll(got, "\r\n", "\n")
@@ -233,16 +250,17 @@ End Notice
 }
 
 func TestComment_Clone(t *testing.T) {
+	mockHandler := NewMockLanguageHandler()
 	original := NewComment(
 		styles.CommentLanguage{
-			Single:     "//",
-			LinePrefix: " ",
+			Single: "//",
 		},
 		styles.HeaderFooterStyle{
-			Header: "Original Header",
-			Footer: "Original Footer",
+			Header: "Header",
+			Footer: "Footer",
 		},
-		"Original Body",
+		"Body",
+		mockHandler,
 	)
 
 	clone := original.Clone()

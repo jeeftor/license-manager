@@ -3,6 +3,7 @@ package language
 import (
 	"strings"
 
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 )
 
@@ -12,15 +13,23 @@ type LanguageHandler interface {
 	FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) string
 	// PreservePreamble extracts and preserves any language-specific preamble (e.g., shebang, package declaration)
 	PreservePreamble(content string) (preamble, rest string)
+	// ScanBuildDirectives scans the content and returns the build directives and where they end
+	ScanBuildDirectives(content string) (directives []string, endIndex int)
+	// SetLogger sets the logger for verbose output
+	SetLogger(logger *logger.Logger)
 }
 
 // GenericHandler provides default license formatting
 type GenericHandler struct {
-	style styles.HeaderFooterStyle
+	style  styles.HeaderFooterStyle
+	logger *logger.Logger
 }
 
 func NewGenericHandler(style styles.HeaderFooterStyle) *GenericHandler {
-	return &GenericHandler{style: style}
+	return &GenericHandler{
+		style:  style,
+		logger: nil,
+	}
 }
 
 func (h *GenericHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) string {
@@ -63,6 +72,17 @@ func (h *GenericHandler) FormatLicense(license string, commentStyle styles.Comme
 
 func (h *GenericHandler) PreservePreamble(content string) (string, string) {
 	return "", content
+}
+
+func (h *GenericHandler) ScanBuildDirectives(content string) ([]string, int) {
+	if h.logger != nil {
+		h.logger.LogVerbose("Generic handler: No build directives to scan")
+	}
+	return nil, 0
+}
+
+func (h *GenericHandler) SetLogger(logger *logger.Logger) {
+	h.logger = logger
 }
 
 // GetLanguageHandler returns the appropriate handler for a given file type

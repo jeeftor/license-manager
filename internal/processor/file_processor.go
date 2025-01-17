@@ -116,7 +116,7 @@ func (fp *FileProcessor) Add() error {
 		}
 
 		// Use rest instead of content to add license after preamble
-		newContent, err := manager.AddLicense(rest)
+		newContent, err := manager.AddLicense(rest, commentStyle.Language)
 		if err != nil {
 			fp.stats["failed"]++
 			fp.logger.LogError("Failed to add license to %s: %v", file, err)

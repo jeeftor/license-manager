@@ -3,6 +3,7 @@ package comment
 import (
 	"strings"
 
+	"license-manager/internal/language"
 	"license-manager/internal/styles"
 )
 
@@ -13,11 +14,13 @@ const (
 
 // Comment represents a complete comment block with all its components
 type Comment struct {
-	style   styles.CommentLanguage
-	header  string
-	body    string
-	footer  string
-	hfStyle styles.HeaderFooterStyle
+	style           styles.CommentLanguage
+	header          string
+	body            string
+	footer          string
+	hfStyle         styles.HeaderFooterStyle
+	CommentLanguage styles.CommentLanguage
+	langHandler     language.LanguageHandler
 }
 
 func (c *Comment) String() string {
@@ -346,6 +349,51 @@ func FormatComment(text string, commentStyle styles.CommentLanguage, headerStyle
 	return strings.Join(result, "\n")
 }
 
+// BuildDirective represents a Go build directive
+type BuildDirective struct {
+	Type    string // "go" or "plus" for //go: or // + style
+	Content string // The actual directive content
+}
+
+// ExtractBuildDirectives extracts all build directives from the given content.
+// It handles both //go: style directives and // + build style directives.
+func ExtractBuildDirectives(content string, langHandler language.LanguageHandler) []BuildDirective {
+	var directives []BuildDirective
+	
+	// Use language handler to get build directives
+	directiveLines, _ := langHandler.ScanBuildDirectives(content)
+	
+	for _, line := range directiveLines {
+		line = strings.TrimSpace(line)
+
+		// Skip empty lines
+		if line == "" {
+			continue
+		}
+
+		// Check for //go: directives
+		if strings.HasPrefix(line, "//go:") {
+			directive := strings.TrimPrefix(line, "//go:")
+			directives = append(directives, BuildDirective{
+				Type:    "go",
+				Content: strings.TrimSpace(directive),
+			})
+			continue
+		}
+
+		// Check for // +build directives
+		if strings.HasPrefix(line, "// +") || strings.HasPrefix(line, "//+") {
+			directive := strings.TrimPrefix(strings.TrimPrefix(line, "// +"), "//+")
+			directives = append(directives, BuildDirective{
+				Type:    "plus",
+				Content: strings.TrimSpace(directive),
+			})
+		}
+	}
+
+	return directives
+}
+
 // Internal helper functions for working with zero-width space markers
 func hasMarkers(text string) bool {
 	return strings.Contains(text, MarkerStart) && strings.Contains(text, MarkerEnd)
@@ -358,24 +406,26 @@ func addMarkers(text string) string {
 	return MarkerStart + text + MarkerEnd
 }
 
-func NewComment(style styles.CommentLanguage, hfStyle styles.HeaderFooterStyle, body string) *Comment {
+func NewComment(style styles.CommentLanguage, hfStyle styles.HeaderFooterStyle, body string, langHandler language.LanguageHandler) *Comment {
 	return &Comment{
-		style:   style,
-		body:    body,
-		hfStyle: hfStyle,
-		header:  hfStyle.Header,
-		footer:  hfStyle.Footer,
+		style:       style,
+		body:        body,
+		hfStyle:     hfStyle,
+		header:      hfStyle.Header,
+		footer:      hfStyle.Footer,
+		langHandler: langHandler,
 	}
 }
 
 func (c *Comment) Clone() *Comment {
 
 	return &Comment{
-		style:   c.style,
-		header:  c.header,
-		body:    c.body,
-		footer:  c.footer,
-		hfStyle: c.hfStyle,
+		style:       c.style,
+		header:      c.header,
+		body:        c.body,
+		footer:      c.footer,
+		hfStyle:     c.hfStyle,
+		langHandler: c.langHandler,
 	}
 }
 

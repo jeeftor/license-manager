@@ -51,6 +51,15 @@ func (m *LicenseManager) SetCommentStyle(style styles.CommentLanguage) {
 	m.commentStyle = style
 }
 
+// getLanguageHandler returns a configured language handler
+func (m *LicenseManager) getLanguageHandler(fileType string) language.LanguageHandler {
+	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	if m.verbose && m.logger != nil {
+		handler.SetLogger(m.logger)
+	}
+	return handler
+}
+
 // HasLicense checks if content contains any license block
 func (m *LicenseManager) HasLicense(content string) bool {
 	if m.verbose && m.logger != nil {
@@ -58,7 +67,7 @@ func (m *LicenseManager) HasLicense(content string) bool {
 		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
 	}
 
-	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	handler := m.getLanguageHandler(m.commentStyle.Language)
 	preamble, rest := handler.PreservePreamble(content)
 
 	if m.verbose && m.logger != nil {
@@ -83,13 +92,15 @@ func (m *LicenseManager) HasLicense(content string) bool {
 }
 
 // AddLicense adds a license block to the content
-func (m *LicenseManager) AddLicense(content string) (string, error) {
+func (m *LicenseManager) AddLicense(content string, fileType string) (string, error) {
 	if m.verbose && m.logger != nil {
-		m.logger.LogInfo("  Preparing to add license...")
-		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
+		m.logger.LogVerbose("Adding license to content...")
 	}
 
-	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	// Get language handler
+	handler := m.getLanguageHandler(fileType)
+
+	// Extract preamble (e.g., build tags, package declaration)
 	preamble, rest := handler.PreservePreamble(content)
 
 	if m.verbose && m.logger != nil {
@@ -156,7 +167,7 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
 	}
 
-	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	handler := m.getLanguageHandler(m.commentStyle.Language)
 	preamble, rest := handler.PreservePreamble(content)
 
 	if m.verbose && m.logger != nil {
@@ -219,17 +230,9 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 	return newContent, nil
 }
 
-// helper function to truncate strings for logging
-func truncateString(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "..."
-}
-
 // UpdateLicense updates the license block in the content
 func (m *LicenseManager) UpdateLicense(content string) (string, error) {
-	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	handler := m.getLanguageHandler(m.commentStyle.Language)
 	preamble, rest := handler.PreservePreamble(content)
 
 	if m.verbose && m.logger != nil {
@@ -249,7 +252,7 @@ func (m *LicenseManager) UpdateLicense(content string) (string, error) {
 	}
 
 	// Add the new license
-	return m.AddLicense(contentWithoutLicense)
+	return m.AddLicense(contentWithoutLicense, m.commentStyle.Language)
 }
 
 // CheckLicenseStatus checks the status of the license in the content
@@ -259,7 +262,7 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
 	}
 
-	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	handler := m.getLanguageHandler(m.commentStyle.Language)
 	preamble, rest := handler.PreservePreamble(content)
 
 	if m.verbose && m.logger != nil {
@@ -302,7 +305,7 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 
 // GetLicenseComparison returns the current and expected license text for comparison
 func (m *LicenseManager) GetLicenseComparison(content string) (current, expected string) {
-	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
+	handler := m.getLanguageHandler(m.commentStyle.Language)
 	_, rest := handler.PreservePreamble(content)
 
 	_, currentBody, _, _ := comment.ExtractComponents(rest, true)
@@ -321,4 +324,12 @@ func (m *LicenseManager) FormatLicenseForFile(text string) string {
 // formatLicenseBlock formats the license text with the appropriate comment style
 func (m *LicenseManager) formatLicenseBlock(text string) string {
 	return comment.FormatComment(text, m.commentStyle, m.headerStyle)
+}
+
+// helper function to truncate strings for logging
+func truncateString(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
