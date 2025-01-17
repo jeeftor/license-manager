@@ -32,6 +32,7 @@ type TestFile struct {
 func getTestFiles() []TestFile {
 	return []TestFile{
 		{"templates/python/hello.py", "test_data/python/hello.py"},
+		{"templates/python/hello_utf8.py", "test_data/python/hello_utf8.py"},
 		{"templates/ruby/hello.rb", "test_data/ruby/hello.rb"},
 		{"templates/javascript/hello.js", "test_data/javascript/hello.js"},
 		{"templates/javascript/component.jsx", "test_data/javascript/component.jsx"},
