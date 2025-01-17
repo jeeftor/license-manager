@@ -246,7 +246,7 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 			if line == "" {
 				continue
 			}
-			
+
 			match := styles.Infer(line)
 			if match.Score > 0 && match.IsFooter {
 				if !foundKnownStyle {
@@ -399,4 +399,8 @@ func (c *Comment) GetHeader() string {
 
 func (c *Comment) GetFooter() string {
 	return c.footer
+}
+
+func (c *Comment) GetBody() string {
+	return c.body
 }
