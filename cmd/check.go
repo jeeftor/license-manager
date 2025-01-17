@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"license-manager/internal/processor"
+	"license-manager/internal/styles"
 )
 
 var checkIgnoreFail bool
@@ -12,18 +13,21 @@ var checkCmd = &cobra.Command{
 	Short: "Check for license headers in files",
 	Long:  `Check if files have the specified license headers`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config := processor.Config{
+		if cfgLicense == "" {
+			return fmt.Errorf("%s", "license file (--license) is required for check command")
+		}
 
-			LicenseText: cfgLicense,
+		config := &processor.Config{
 			Input:       cfgInput,
 			Skip:        cfgSkip,
 			Prompt:      cfgPrompt,
 			DryRun:      cfgDryRun,
 			Verbose:     cfgVerbose,
-			IgnoreFail:  checkIgnoreFail,
+			PreferMulti: cfgPreferMulti,
 		}
 
-		p := processor.NewFileProcessor(config)
+		style := styles.GetPresetStyle(cfgPresetStyle)
+		p := processor.NewFileProcessor(config, cfgLicense, style)
 		err := p.Check()
 
 		// If it's a CheckError, we don't want to show usage

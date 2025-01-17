@@ -7,7 +7,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"license-manager/internal/processor"
+	"license-manager/internal/styles"
 )
 
 var debugCmd = &cobra.Command{
@@ -21,21 +21,27 @@ var debugCmd = &cobra.Command{
 		}
 
 		// Get the current style to check its header/footer
-		style := processor.GetPresetStyle(cfgPresetStyle)
-		
+		var style Style
+		if cfgPresetStyle != "" {
+			style = styles.GetPresetStyle(cfgPresetStyle)
+			fmt.Printf("Preset Style: %+v\n", style)
+		}
+
 		fmt.Println("File contents with markers made visible:")
 		fmt.Println("---------------------------------------")
-		
+
 		// Show the raw header/footer with markers visible
-		fmt.Printf("Header should be: %s\n", strings.ReplaceAll(strings.ReplaceAll(
-			style.Header, "\u200B", color.New(color.FgRed).Sprint("[START]")), 
-			"\u200C", color.New(color.FgRed).Sprint("[END]")))
-		fmt.Printf("Footer should be: %s\n", strings.ReplaceAll(strings.ReplaceAll(
-			style.Footer, "\u200B", color.New(color.FgRed).Sprint("[START]")), 
-			"\u200C", color.New(color.FgRed).Sprint("[END]")))
+		if style.Header != "" && style.Footer != "" {
+			fmt.Printf("Header should be: %s\n", strings.ReplaceAll(strings.ReplaceAll(
+				style.Header, "\u200B", color.New(color.FgRed).Sprint("[START]")),
+				"\u200C", color.New(color.FgRed).Sprint("[END]")))
+			fmt.Printf("Footer should be: %s\n", strings.ReplaceAll(strings.ReplaceAll(
+				style.Footer, "\u200B", color.New(color.FgRed).Sprint("[START]")),
+				"\u200C", color.New(color.FgRed).Sprint("[END]")))
+		}
 		fmt.Println("\nActual file contents:")
 		fmt.Println("--------------------")
-		
+
 		// Show the file contents with markers visible
 		debugContent := strings.ReplaceAll(string(content), "\u200B", color.New(color.FgRed).Sprint("[START]"))
 		debugContent = strings.ReplaceAll(debugContent, "\u200C", color.New(color.FgRed).Sprint("[END]"))

@@ -301,6 +301,47 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 	return header, body, footer, true
 }
 
+// FormatComment formats text with the given comment style and header/footer style
+func FormatComment(text string, commentStyle styles.CommentLanguage, headerStyle styles.HeaderFooterStyle) string {
+	lines := strings.Split(text, "\n")
+	var result []string
+
+	// Add header
+	if commentStyle.MultiStart != "" {
+		result = append(result, commentStyle.MultiStart)
+		result = append(result, commentStyle.MultiPrefix+headerStyle.Header)
+	} else {
+		result = append(result, commentStyle.Single+headerStyle.Header)
+	}
+
+	// Add body with proper comment prefixes
+	for _, line := range lines {
+		if commentStyle.MultiStart != "" {
+			if line == "" {
+				result = append(result, commentStyle.MultiPrefix)
+			} else {
+				result = append(result, commentStyle.MultiPrefix+commentStyle.LinePrefix+line)
+			}
+		} else {
+			if line == "" {
+				result = append(result, commentStyle.Single)
+			} else {
+				result = append(result, commentStyle.Single+commentStyle.LinePrefix+line)
+			}
+		}
+	}
+
+	// Add footer
+	if commentStyle.MultiStart != "" {
+		result = append(result, commentStyle.MultiPrefix+headerStyle.Footer)
+		result = append(result, commentStyle.MultiEnd)
+	} else {
+		result = append(result, commentStyle.Single+headerStyle.Footer)
+	}
+
+	return strings.Join(result, "\n")
+}
+
 // Internal helper functions for working with zero-width space markers
 func hasMarkers(text string) bool {
 	return strings.Contains(text, MarkerStart) && strings.Contains(text, MarkerEnd)
@@ -346,4 +387,16 @@ func (c *Comment) SetHeaderFooterStyle(hfStyle styles.HeaderFooterStyle) {
 	c.hfStyle = hfStyle
 	c.header = hfStyle.Header
 	c.footer = hfStyle.Footer
+}
+
+func (c *Comment) GetStyle() styles.CommentLanguage {
+	return c.style
+}
+
+func (c *Comment) GetHeader() string {
+	return c.header
+}
+
+func (c *Comment) GetFooter() string {
+	return c.footer
 }

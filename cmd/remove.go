@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"license-manager/internal/processor"
+	"license-manager/internal/styles"
 )
 
 var removeCmd = &cobra.Command{
@@ -10,17 +11,21 @@ var removeCmd = &cobra.Command{
 	Short: "Remove license headers from files",
 	Long:  `Remove license headers from files that have them`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config := processor.Config{
+		if cfgLicense == "" {
+			return fmt.Errorf("%s", "license file (--license) is required for remove command")
+		}
 
-			LicenseText: cfgLicense,
+		config := &processor.Config{
 			Input:       cfgInput,
 			Skip:        cfgSkip,
 			Prompt:      cfgPrompt,
 			DryRun:      cfgDryRun,
 			Verbose:     cfgVerbose,
+			PreferMulti: cfgPreferMulti,
 		}
 
-		p := processor.NewFileProcessor(config)
+		style := styles.GetPresetStyle(cfgPresetStyle)
+		p := processor.NewFileProcessor(config, cfgLicense, style)
 		return p.Remove()
 	},
 }

@@ -1,9 +1,9 @@
 package license
 
 import (
-	"strings"
-
+	"license-manager/internal/comment"
 	"license-manager/internal/styles"
+	"strings"
 )
 
 const (
@@ -13,62 +13,77 @@ const (
 
 // LicenseBlock represents a complete license block with style information
 type LicenseBlock struct {
-	Style  styles.CommentLanguage
-	Header string
-	Body   string
-	Footer string
+	comment *comment.Comment
+}
+
+// NewLicenseBlock creates a new license block with the given style and content
+func NewLicenseBlock(style styles.CommentLanguage, header, body, footer string) *LicenseBlock {
+	c := comment.NewComment(style, styles.HeaderFooterStyle{
+		Header: header,
+		Footer: footer,
+	}, body)
+
+	return &LicenseBlock{
+		comment: c,
+	}
 }
 
 // String returns the complete license block as a string
 func (lb *LicenseBlock) String() string {
-	var result []string
+	return lb.comment.String()
+}
 
-	// Helper function to add markers if needed
-	addMarkersIfNeeded := func(text string) string {
-		if hasMarkers(text) {
-			return text
-		}
-		return addMarkers(text)
+// Clone creates a deep copy of the license block
+func (lb *LicenseBlock) Clone() *LicenseBlock {
+	return &LicenseBlock{
+		comment: lb.comment.Clone(),
 	}
+}
 
-	if lb.Style.PreferMulti && lb.Style.MultiStart != "" {
-		// Multi-line comment style
-		result = append(result, lb.Style.MultiStart)
-		result = append(result, " * "+addMarkersIfNeeded(lb.Header))
+// GetStyle returns the current comment style
+func (lb *LicenseBlock) GetStyle() styles.CommentLanguage {
+	return lb.comment.GetStyle()
+}
 
-		// Add body with comment markers
-		for _, line := range strings.Split(lb.Body, "\n") {
-			if line == "" {
-				result = append(result, " *")
-			} else {
-				result = append(result, " * "+line)
-			}
-		}
+// SetStyle updates the comment style
+func (lb *LicenseBlock) SetStyle(style styles.CommentLanguage) {
+	lb.comment.SetStyle(style)
+}
 
-		result = append(result, " * "+addMarkersIfNeeded(lb.Footer))
-		result = append(result, " "+lb.Style.MultiEnd)
-	} else if lb.Style.Single != "" {
-		// Single-line comment style
-		result = append(result, lb.Style.Single+" "+addMarkersIfNeeded(lb.Header))
+// GetBody returns the license body content
+func (lb *LicenseBlock) GetBody() string {
+	return lb.comment.GetBody()
+}
 
-		// Add body with comment markers
-		for _, line := range strings.Split(lb.Body, "\n") {
-			if line == "" {
-				result = append(result, lb.Style.Single)
-			} else {
-				result = append(result, lb.Style.Single+" "+line)
-			}
-		}
+// SetBody updates the license body content
+func (lb *LicenseBlock) SetBody(body string) {
+	lb.comment.SetBody(body)
+}
 
-		result = append(result, lb.Style.Single+" "+addMarkersIfNeeded(lb.Footer))
-	} else {
-		// No comment style (e.g., for text files)
-		result = append(result, addMarkersIfNeeded(lb.Header))
-		result = append(result, lb.Body)
-		result = append(result, addMarkersIfNeeded(lb.Footer))
-	}
+// GetHeader returns the license header content
+func (lb *LicenseBlock) GetHeader() string {
+	return lb.comment.GetHeader()
+}
 
-	return strings.Join(result, "\n")
+// SetHeader updates the license header content
+func (lb *LicenseBlock) SetHeader(header string) {
+	lb.comment.SetHeaderFooterStyle(styles.HeaderFooterStyle{
+		Header: header,
+		Footer: lb.comment.GetFooter(),
+	})
+}
+
+// GetFooter returns the license footer content
+func (lb *LicenseBlock) GetFooter() string {
+	return lb.comment.GetFooter()
+}
+
+// SetFooter updates the license footer content
+func (lb *LicenseBlock) SetFooter(footer string) {
+	lb.comment.SetHeaderFooterStyle(styles.HeaderFooterStyle{
+		Header: lb.comment.GetHeader(),
+		Footer: footer,
+	})
 }
 
 // Helper functions for working with markers

@@ -15,20 +15,19 @@ var addCmd = &cobra.Command{
 			return fmt.Errorf("%s", "license file (--license) is required for add command")
 		}
 
-		config := processor.Config{
-			LicenseText: cfgLicense,
+		config := &processor.Config{
 			Input:       cfgInput,
 			Skip:        cfgSkip,
 			Prompt:      cfgPrompt,
 			DryRun:      cfgDryRun,
 			Verbose:     cfgVerbose,
-			PresetStyle: cfgPresetStyle,
 			PreferMulti: cfgPreferMulti,
 		}
 
-		p := processor.NewFileProcessor(config)
+		style := processor.GetPresetStyle(cfgPresetStyle)
+		p := processor.NewFileProcessor(config, cfgLicense, style)
 		err := p.Add()
-		
+
 		// Don't show usage for any error from Add()
 		cmd.SilenceUsage = true
 		return err
