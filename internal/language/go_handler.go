@@ -34,9 +34,10 @@ func (h *GoHandler) PreservePreamble(content string) (string, string) {
 	}
 
 	if len(buildTags) > 0 {
-		return strings.Join(buildTags, "\n"), strings.Join(rest, "\n")
+		// Only return non-empty build tags plus one blank line
+		return strings.TrimSpace(strings.Join(buildTags, "\n")), strings.TrimSpace(strings.Join(rest, "\n"))
 	}
 
 	// If no build tags found, return empty preamble
-	return "", content
+	return "", strings.TrimSpace(content)
 }

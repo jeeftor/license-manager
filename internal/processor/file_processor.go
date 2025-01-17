@@ -113,7 +113,7 @@ func (fp *FileProcessor) Add() error {
 
 		// Recombine preamble with the licensed content
 		if preamble != "" {
-			newContent = preamble + "\n\n" + newContent
+			newContent = preamble + "\n" + newContent
 		}
 
 		// Debug the actual comment being added in verbose mode
