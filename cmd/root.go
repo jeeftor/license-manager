@@ -6,14 +6,16 @@ import (
 )
 
 var (
-	cfgLicense     string
-	cfgInput       string
-	cfgSkip        string
-	cfgPrompt      bool
-	cfgDryRun      bool
-	cfgVerbose     bool   // Add verbose flag
-	cfgPresetStyle string // header/footer style
-	cfgPreferMulti bool   // prefer multi-line comments where supported
+	cfgLicense      string
+	cfgInput        string
+	cfgSkip         string
+	cfgPrompt       bool
+	cfgDryRun       bool
+	cfgVerbose      bool   // Add verbose flag
+	cfgPresetStyle  string // header/footer style
+	cfgPreferMulti  bool   // prefer multi-line comments where supported
+	checkIgnoreFail bool   // Added for check command
+
 )
 
 var rootCmd = &cobra.Command{

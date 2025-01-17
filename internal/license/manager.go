@@ -16,34 +16,34 @@ const (
 	DifferentLicense
 )
 
-// Manager handles license operations
-type Manager struct {
+// LicenseManager handles license operations
+type LicenseManager struct {
 	template     string
 	commentStyle styles.CommentLanguage
 	headerStyle  styles.HeaderFooterStyle
 }
 
-// NewManager creates a new license manager
-func NewManager(template string, headerStyle styles.HeaderFooterStyle) *Manager {
-	return &Manager{
+// NewLicenseManager creates a new license manager
+func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle) *LicenseManager {
+	return &LicenseManager{
 		template:    template,
 		headerStyle: headerStyle,
 	}
 }
 
 // SetCommentStyle sets the comment style for the manager
-func (m *Manager) SetCommentStyle(style styles.CommentLanguage) {
+func (m *LicenseManager) SetCommentStyle(style styles.CommentLanguage) {
 	m.commentStyle = style
 }
 
 // HasLicense checks if content contains any license block
-func (m *Manager) HasLicense(content string) bool {
+func (m *LicenseManager) HasLicense(content string) bool {
 	_, _, _, success := comment.ExtractComponents(content)
 	return success
 }
 
 // AddLicense adds a license block to the content
-func (m *Manager) AddLicense(content string) (string, error) {
+func (m *LicenseManager) AddLicense(content string) (string, error) {
 	if m.HasLicense(content) {
 		return "", errors.NewLicenseError("content already has a license", "")
 	}
@@ -61,7 +61,7 @@ func (m *Manager) AddLicense(content string) (string, error) {
 }
 
 // RemoveLicense removes the license block from the content
-func (m *Manager) RemoveLicense(content string) (string, error) {
+func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 	header, _, footer, success := comment.ExtractComponents(content)
 	if !success {
 		return content, nil
@@ -92,7 +92,7 @@ func (m *Manager) RemoveLicense(content string) (string, error) {
 }
 
 // UpdateLicense updates the license block in the content
-func (m *Manager) UpdateLicense(content string) (string, error) {
+func (m *LicenseManager) UpdateLicense(content string) (string, error) {
 	if !m.HasLicense(content) {
 		return "", errors.NewLicenseError("content has no license to update", "")
 	}
@@ -108,7 +108,7 @@ func (m *Manager) UpdateLicense(content string) (string, error) {
 }
 
 // CheckLicenseStatus checks the status of the license in the content
-func (m *Manager) CheckLicenseStatus(content string) Status {
+func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	if !m.HasLicense(content) {
 		return NoLicense
 	}
@@ -123,13 +123,13 @@ func (m *Manager) CheckLicenseStatus(content string) Status {
 }
 
 // GetLicenseComparison returns the current and expected license text for comparison
-func (m *Manager) GetLicenseComparison(content string) (current, expected string) {
+func (m *LicenseManager) GetLicenseComparison(content string) (current, expected string) {
 	_, currentBody, _, _ := comment.ExtractComponents(content, true)
 	_, expectedBody, _, _ := comment.ExtractComponents(m.formatLicenseBlock(m.template), true)
 	return currentBody, expectedBody
 }
 
 // formatLicenseBlock formats the license text with the appropriate comment style
-func (m *Manager) formatLicenseBlock(text string) string {
+func (m *LicenseManager) formatLicenseBlock(text string) string {
 	return comment.FormatComment(text, m.commentStyle, m.headerStyle)
 }

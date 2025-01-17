@@ -48,6 +48,11 @@ func (l *Logger) LogInfo(format string, args ...interface{}) {
 	fmt.Printf("%s %s\n", l.colors["info"].Sprint("INFO:"), fmt.Sprintf(format, args...))
 }
 
+// LogQuestion formats a question message and returns it
+func (l *Logger) LogQuestion(format string, args ...interface{}) string {
+	return fmt.Sprintf("%s %s", l.colors["question"].Sprint("?"), fmt.Sprintf(format, args...))
+}
+
 // LogVerbose logs a message only in verbose mode
 func (l *Logger) LogVerbose(format string, args ...interface{}) {
 	if l.verbose {
@@ -59,12 +64,12 @@ func (l *Logger) LogVerbose(format string, args ...interface{}) {
 func (l *Logger) Prompt(message string) bool {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("%s [y/N]: ", message)
-	
+
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		return false
 	}
-	
+
 	response = strings.ToLower(strings.TrimSpace(response))
 	return response == "y" || response == "yes"
 }

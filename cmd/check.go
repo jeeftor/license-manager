@@ -1,12 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
+	"license-manager/internal/config"
 	"license-manager/internal/processor"
-	"license-manager/internal/styles"
 )
-
-var checkIgnoreFail bool
 
 var checkCmd = &cobra.Command{
 	Use:   "check",
@@ -14,27 +13,40 @@ var checkCmd = &cobra.Command{
 	Long:  `Check if files have the specified license headers`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if cfgLicense == "" {
-			return fmt.Errorf("%s", "license file (--license) is required for check command")
+			return fmt.Errorf("license file (--license) is required for check command")
 		}
 
-		config := &processor.Config{
+		appCfg := config.AppConfig{
+			// File paths
+			LicenseFile: cfgLicense,
 			Input:       cfgInput,
 			Skip:        cfgSkip,
-			Prompt:      cfgPrompt,
-			DryRun:      cfgDryRun,
+
+			// Style settings
+			HeaderStyle:  cfgPresetStyle,
+			CommentStyle: "go", // default
+			PreferMulti:  cfgPreferMulti,
+
+			// Behavior flags
 			Verbose:     cfgVerbose,
-			PreferMulti: cfgPreferMulti,
+			Interactive: cfgPrompt,
+			DryRun:      cfgDryRun,
+			Force:       false,
+			IgnoreFail:  checkIgnoreFail, // Special flag for check command
 		}
 
-		style := styles.GetPresetStyle(cfgPresetStyle)
-		p := processor.NewFileProcessor(config, cfgLicense, style)
-		err := p.Check()
+		procCfg, err := appCfg.ToProcessorConfig()
+		if err != nil {
+			return err
+		}
 
-		// If it's a CheckError, we don't want to show usage
+		p := processor.NewFileProcessor(procCfg)
+		err = p.Check()
+
+		// If it's a CheckError, don't show usage
 		if _, isCheckError := err.(*processor.CheckError); isCheckError {
 			cmd.SilenceUsage = true
 		}
-
 		return err
 	},
 }

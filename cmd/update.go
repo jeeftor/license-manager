@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
+	"license-manager/internal/config"
 	"license-manager/internal/processor"
-	"license-manager/internal/styles"
 )
 
 var updateCmd = &cobra.Command{
@@ -12,21 +13,38 @@ var updateCmd = &cobra.Command{
 	Long:  `Update existing license headers in files with new content`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if cfgLicense == "" {
-			return fmt.Errorf("%s", "license file (--license) is required for update command")
+			return fmt.Errorf("license file (--license) is required for update command")
 		}
 
-		config := &processor.Config{
+		appCfg := config.AppConfig{
+			// File paths
+			LicenseFile: cfgLicense,
 			Input:       cfgInput,
 			Skip:        cfgSkip,
-			Prompt:      cfgPrompt,
-			DryRun:      cfgDryRun,
+
+			// Style settings
+			HeaderStyle:  cfgPresetStyle,
+			CommentStyle: "go", // default
+			PreferMulti:  cfgPreferMulti,
+
+			// Behavior flags
 			Verbose:     cfgVerbose,
-			PreferMulti: cfgPreferMulti,
+			Interactive: cfgPrompt,
+			DryRun:      cfgDryRun,
+			Force:       false,
+			IgnoreFail:  false,
 		}
 
-		style := styles.GetPresetStyle(cfgPresetStyle)
-		p := processor.NewFileProcessor(config, cfgLicense, style)
-		return p.Update()
+		procCfg, err := appCfg.ToProcessorConfig()
+		if err != nil {
+			return err
+		}
+
+		p := processor.NewFileProcessor(procCfg)
+		err = p.Update()
+
+		cmd.SilenceUsage = true
+		return err
 	},
 }
 
