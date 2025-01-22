@@ -5,9 +5,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"license-manager/internal/config"
 	"license-manager/internal/processor"
+
+	"github.com/spf13/cobra"
 )
 
 var preCommitCmd = &cobra.Command{
@@ -27,7 +28,7 @@ var preCommitCmd = &cobra.Command{
 
 		// If no staged Go files, exit successfully
 		if len(stagedFiles) == 0 {
-			fmt.Println("No staged Go files to check")
+			fmt.Println("No staged files to check")
 			return nil
 		}
 
