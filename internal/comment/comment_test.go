@@ -241,7 +241,7 @@ End Notice
 			// Normalize line endings for comparison
 			got = strings.ReplaceAll(got, "\r\n", "\n")
 			tt.expected = strings.ReplaceAll(tt.expected, "\r\n", "\n")
-			
+
 			if got != tt.expected {
 				t.Errorf("Comment.String() = %q, want %q", got, tt.expected)
 			}

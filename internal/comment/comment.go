@@ -359,10 +359,10 @@ type BuildDirective struct {
 // It handles both //go: style directives and // + build style directives.
 func ExtractBuildDirectives(content string, langHandler language.LanguageHandler) []BuildDirective {
 	var directives []BuildDirective
-	
+
 	// Use language handler to get build directives
 	directiveLines, _ := langHandler.ScanBuildDirectives(content)
-	
+
 	for _, line := range directiveLines {
 		line = strings.TrimSpace(line)
 

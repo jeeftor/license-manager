@@ -116,7 +116,7 @@ func (h *GoHandler) PreservePreamble(content string) (string, string) {
 	}
 
 	lines := strings.Split(content, "\n")
-	
+
 	// Ensure there's a blank line after directives
 	if !strings.HasSuffix(strings.Join(directives, "\n"), "\n\n") {
 		directives = append(directives, "")
