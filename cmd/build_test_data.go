@@ -6,8 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"license-manager/internal/logger"
+
 	"github.com/spf13/cobra"
 )
+
+var log = logger.NewLogger(false)
 
 var buildTestDataCmd = &cobra.Command{
 	Use:   "build-test-data",
@@ -28,42 +32,50 @@ type TestFile struct {
 	TargetPath string // Path where the file should be created in test_data
 }
 
-// getTestFiles returns a list of test files to create
+// getTestFiles returns a list of test files to create by scanning the templates directory
 func getTestFiles() []TestFile {
-	return []TestFile{
-		{"templates/python/hello.py", "test_data/python/hello.py"},
-		{"templates/python/hello_utf8.py", "test_data/python/hello_utf8.py"},
-		{"templates/ruby/hello.rb", "test_data/ruby/hello.rb"},
-		{"templates/javascript/hello.js", "test_data/javascript/hello.js"},
-		{"templates/javascript/component.jsx", "test_data/javascript/component.jsx"},
-		{"templates/typescript/hello.ts", "test_data/typescript/hello.ts"},
-		{"templates/typescript/component.tsx", "test_data/typescript/component.tsx"},
-		{"templates/java/HelloWorld.java", "test_data/java/HelloWorld.java"},
-		{"templates/go/hello.go", "test_data/go/hello.go"},
-		{"templates/go/hello_with_directive.go", "test_data/go/hello_with_directive.go"},
-		{"templates/c/hello.c", "test_data/c/hello.c"},
-		{"templates/c/hello.h", "test_data/c/hello.h"},
-		{"templates/cpp/hello.cpp", "test_data/cpp/hello.cpp"},
-		{"templates/cpp/hello.hpp", "test_data/cpp/hello.hpp"},
-		{"templates/csharp/Hello.cs", "test_data/csharp/Hello.cs"},
-		{"templates/php/hello.php", "test_data/php/hello.php"},
-		{"templates/swift/hello.swift", "test_data/swift/hello.swift"},
-		{"templates/rust/hello.rs", "test_data/rust/hello.rs"},
-		{"templates/shell/hello.sh", "test_data/shell/hello.sh"},
-		{"templates/shell/hello.bash", "test_data/shell/hello.bash"},
-		{"templates/yaml/config.yml", "test_data/yaml/config.yml"},
-		{"templates/yaml/config.yaml", "test_data/yaml/config.yaml"},
-		{"templates/perl/hello.pl", "test_data/perl/hello.pl"},
-		{"templates/perl/Hello.pm", "test_data/perl/Hello.pm"},
-		{"templates/r/hello.r", "test_data/r/hello.r"},
-		{"templates/html/index.html", "test_data/html/index.html"},
-		{"templates/xml/hello.xml", "test_data/xml/hello.xml"},
-		{"templates/css/style.css", "test_data/css/style.css"},
-		{"templates/scss/style.scss", "test_data/scss/style.scss"},
-		{"templates/sass/style.sass", "test_data/sass/style.sass"},
-		{"templates/lua/hello.lua", "test_data/lua/hello.lua"},
-		// Add more files here as templates are created
+	var files []TestFile
+	templatesDir := "templates"
+
+	// Walk through the templates directory
+	err := filepath.Walk(templatesDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		// Get the relative path from templates directory
+		relPath, err := filepath.Rel(templatesDir, path)
+		if err != nil {
+			log.LogError("Error getting relative path for %s: %v", path, err)
+			return nil
+		}
+
+		// Create the corresponding test_data path
+		testPath := filepath.Join("test_data", relPath)
+
+		files = append(files, TestFile{
+			SourcePath: path,
+			TargetPath: testPath,
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		log.LogError("Error walking templates directory: %v", err)
+		return nil
 	}
+
+	if len(files) == 0 {
+		log.LogError("No template files found in %s", templatesDir)
+	} else {
+		log.LogInfo("Found %d template files", len(files))
+	}
+
+	return files
 }
 
 // BuildTestData creates test files from templates

@@ -85,11 +85,13 @@ test-dir:
 [private]
 run-command lang cmd *FLAGS: ensure-test-dir
     #!/usr/bin/env bash
-    patterns=$(just get-patterns {{lang}})
-    echo "Running {{cmd}} for {{lang}} files..."
+    patterns="$(just get-patterns {{lang}})"
 
-    for pattern in $patterns; do
-        echo "Looking for files matching: $pattern"
+    echo "Running {{cmd}} for {{lang}} files... [$patterns]"
+
+    for pattern in "$patterns"; do
+        echo "Looking for files matching: [{{test_data_dir}}/{{lang}}/**/$pattern]"
+        echo "Command: find {{test_data_dir}}/{{lang}} -type f -name \"$pattern\" 2>/dev/null"
         files=$(find {{test_data_dir}}/{{lang}} -type f -name "$pattern" 2>/dev/null)
         if [ -n "$files" ]; then
             echo "Found files: $files"
