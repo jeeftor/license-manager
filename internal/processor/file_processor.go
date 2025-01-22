@@ -49,6 +49,8 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 	// Create and configure manager
 	manager := license.NewLicenseManager(fp.config.LicenseText, style)
 	manager.SetCommentStyle(commentStyle)
+	// Set the appropriate language handler based on the language type
+	manager.SetLanguageHandler(language.GetLanguageHandler(commentStyle.Language, style))
 	if fp.config.Verbose {
 		manager.SetVerbose(true, fp.logger)
 	}

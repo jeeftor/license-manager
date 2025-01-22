@@ -20,11 +20,12 @@ const (
 
 // LicenseManager handles license operations
 type LicenseManager struct {
-	template     string
-	commentStyle styles.CommentLanguage
-	headerStyle  styles.HeaderFooterStyle
-	verbose      bool
-	logger       *logger.Logger
+	template      string
+	commentStyle  styles.CommentLanguage
+	headerStyle   styles.HeaderFooterStyle
+	langHandler   language.LanguageHandler
+	verbose       bool
+	logger        *logger.Logger
 }
 
 // NewLicenseManager creates a new manager
@@ -44,6 +45,9 @@ func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle, co
 func (m *LicenseManager) SetVerbose(verbose bool, logger *logger.Logger) {
 	m.verbose = verbose
 	m.logger = logger
+	if m.langHandler != nil {
+		m.langHandler.SetLogger(logger)
+	}
 }
 
 // SetCommentStyle sets the comment style
@@ -51,8 +55,20 @@ func (m *LicenseManager) SetCommentStyle(style styles.CommentLanguage) {
 	m.commentStyle = style
 }
 
+// SetLanguageHandler sets the language handler
+func (m *LicenseManager) SetLanguageHandler(handler language.LanguageHandler) {
+	m.langHandler = handler
+	if m.verbose && m.logger != nil {
+		handler.SetLogger(m.logger)
+	}
+}
+
 // getLanguageHandler returns a configured language handler
 func (m *LicenseManager) getLanguageHandler(fileType string) language.LanguageHandler {
+	if m.langHandler != nil {
+		return m.langHandler
+	}
+	// Fallback to creating a new handler if none is set
 	handler := language.GetLanguageHandler(m.commentStyle.Language, m.headerStyle)
 	if m.verbose && m.logger != nil {
 		handler.SetLogger(m.logger)
@@ -100,64 +116,59 @@ func (m *LicenseManager) AddLicense(content string, fileType string) (string, er
 	// Get language handler
 	handler := m.getLanguageHandler(fileType)
 
-	// Extract preamble (e.g., build tags, package declaration)
+	// Extract preamble (e.g., shebang, package declaration)
 	preamble, rest := handler.PreservePreamble(content)
-
 	if m.verbose && m.logger != nil {
 		if preamble != "" {
-			m.logger.LogInfo("  Found preamble:")
-			for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
-				if line != "" {
-					m.logger.LogInfo("    %s", line)
-				}
-			}
-			m.logger.LogInfo("  Content after preamble: %d lines", len(strings.Split(rest, "\n")))
-		} else {
-			m.logger.LogInfo("  No preamble found")
+			m.logger.LogVerbose("Found preamble: %s", truncateString(preamble, 50))
 		}
 	}
 
+	// Check for existing license
 	if m.HasLicense(rest) {
-		if m.verbose && m.logger != nil {
-			m.logger.LogInfo("  Cannot add license: content already has a license block")
-		}
-		return "", errors.NewLicenseError("content already has a license", "")
+		return "", errors.NewLicenseError("license already exists", "add")
 	}
 
-	// Format the license block
-	licenseBlock := comment.FormatComment(m.template, m.commentStyle, m.headerStyle)
+	// Format license block with comment style
+	licenseBlock := m.formatLicenseBlock(m.template)
 
+	// Scan for build directives
+	directives, endIndex := handler.ScanBuildDirectives(rest)
 	if m.verbose && m.logger != nil {
-		m.logger.LogInfo("  Formatted license block (%d lines)", len(strings.Split(licenseBlock, "\n")))
+		if len(directives) > 0 {
+			m.logger.LogVerbose("Found %d build directives", len(directives))
+		}
 	}
 
-	// If content is empty or only whitespace, just return the license
-	if strings.TrimSpace(rest) == "" {
-		if m.verbose && m.logger != nil {
-			m.logger.LogInfo("  Content is empty, returning license block only")
+	// Split content at build directives
+	var beforeDirectives, afterDirectives string
+	if len(directives) > 0 {
+		lines := strings.Split(rest, "\n")
+		beforeDirectives = strings.Join(lines[:endIndex], "\n")
+		if endIndex < len(lines) {
+			afterDirectives = strings.Join(lines[endIndex:], "\n")
 		}
-		if preamble != "" {
-			if m.verbose && m.logger != nil {
-				m.logger.LogInfo("  Adding license after preamble")
-			}
-			return preamble + "\n" + licenseBlock, nil
-		}
-		return licenseBlock, nil
+	} else {
+		afterDirectives = rest
 	}
 
-	// Add a newline between license and content
+	// Build final content
+	var parts []string
 	if preamble != "" {
-		if m.verbose && m.logger != nil {
-			m.logger.LogInfo("  Constructing final content: preamble + license + content")
-			m.logger.LogInfo("  Final structure:")
-			m.logger.LogInfo("    - Preamble: %d lines", len(strings.Split(preamble, "\n")))
-			m.logger.LogInfo("    - License: %d lines", len(strings.Split(licenseBlock, "\n")))
-			m.logger.LogInfo("    - Content: %d lines", len(strings.Split(rest, "\n")))
+		parts = append(parts, preamble)
+	}
+	if len(directives) > 0 {
+		parts = append(parts, beforeDirectives)
+	}
+	parts = append(parts, licenseBlock)
+	if afterDirectives != "" {
+		if !strings.HasPrefix(afterDirectives, "\n") {
+			parts = append(parts, "") // Add blank line before content
 		}
-		return preamble + "\n" + licenseBlock + "\n\n" + rest, nil
+		parts = append(parts, strings.TrimPrefix(afterDirectives, "\n"))
 	}
 
-	return licenseBlock + "\n\n" + rest, nil
+	return strings.Join(parts, "\n"), nil
 }
 
 // RemoveLicense removes the license block from the content

@@ -225,31 +225,41 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 			} else if strings.HasPrefix(line, "<!--") {
 				commentStyle = &styles.CommentLanguage{MultiStart: "<!--", MultiEnd: "-->"}
 				hasCommentMarkers = true
+			} else if strings.HasPrefix(line, "#") {
+				commentStyle = &styles.CommentLanguage{Single: "#"}
+				hasCommentMarkers = true
+			} else if strings.HasPrefix(line, "//") {
+				commentStyle = &styles.CommentLanguage{Single: "//"}
+				hasCommentMarkers = true
 			} else {
 				// If no comment markers, try to match against known header patterns
 				match := styles.Infer(line)
 				if match.Score > 0 && match.IsHeader {
 					foundKnownStyle = true
 					knownStyle = match.Style
+					startIdx = i
 				}
 			}
-			startIdx = i
+			if hasCommentMarkers {
+				startIdx = i
+			}
 			continue
 		}
-		if commentStyle != nil && strings.HasSuffix(line, commentStyle.MultiEnd) {
-			hasCommentMarkers = true
-			endIdx = i
-		}
-	}
 
-	// If no comment markers found, try to find a matching footer
-	if !hasCommentMarkers {
-		for i := len(lines) - 1; i >= 0; i-- {
-			line := strings.TrimSpace(lines[i])
-			if line == "" {
-				continue
+		// If we have comment markers, look for the end marker
+		if hasCommentMarkers {
+			if commentStyle.MultiEnd != "" && strings.Contains(line, commentStyle.MultiEnd) {
+				endIdx = i
+				break
+			} else if commentStyle.Single != "" {
+				// For single-line comments, look for the first non-comment line
+				if !strings.HasPrefix(strings.TrimSpace(line), commentStyle.Single) {
+					endIdx = i - 1 // End at the last comment line
+					break
+				}
 			}
-
+		} else {
+			// Look for a matching footer
 			match := styles.Infer(line)
 			if match.Score > 0 && match.IsFooter {
 				if !foundKnownStyle {
@@ -263,16 +273,28 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 				break
 			}
 		}
+	}
 
-		// If we didn't find any known style patterns, reject it
-		if !foundKnownStyle {
-			return "", "", "", false
+	// For single-line comments, if we haven't found an end, use the last line
+	if hasCommentMarkers && commentStyle.Single != "" && endIdx == -1 {
+		// Find the last line that starts with the comment marker
+		for i := len(lines) - 1; i > startIdx; i-- {
+			line := strings.TrimSpace(lines[i])
+			if line != "" && strings.HasPrefix(line, commentStyle.Single) {
+				endIdx = i
+				break
+			}
 		}
+	}
 
-		// If we found a known style but no footer, reject it
-		if endIdx == -1 {
-			return "", "", "", false
-		}
+	// If we didn't find any known style patterns and no comment markers, reject it
+	if !foundKnownStyle && !hasCommentMarkers {
+		return "", "", "", false
+	}
+
+	// If we found a known style but no footer, reject it
+	if !hasCommentMarkers && endIdx == -1 {
+		return "", "", "", false
 	}
 
 	if startIdx == -1 || endIdx == -1 || startIdx >= endIdx {
