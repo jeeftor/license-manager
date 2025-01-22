@@ -36,18 +36,42 @@ func (fh *FileHandler) shouldSkip(path string) bool {
 		return false
 	}
 
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		fh.logger.LogError("Error getting working directory: %v", err)
+		return false
+	}
+
+	// Convert absolute path to relative path for matching
+	normalizedPath := filepath.ToSlash(path)
+	if strings.HasPrefix(normalizedPath, cwd) {
+		normalizedPath = normalizedPath[len(cwd)+1:] // +1 for the trailing slash
+	}
+	if strings.HasPrefix(normalizedPath, "./") {
+		normalizedPath = normalizedPath[2:]
+	}
+
 	for _, pattern := range strings.Split(fh.skip, ",") {
 		pattern = strings.TrimSpace(pattern)
 		if pattern == "" {
 			continue
 		}
 
-		matched, err := doublestar.Match(pattern, path)
+		// Normalize pattern
+		pattern = filepath.ToSlash(pattern)
+		if strings.HasPrefix(pattern, "./") {
+			pattern = pattern[2:]
+		}
+
+		fh.logger.LogInfo("Checking skip pattern: %s against path: %s", pattern, normalizedPath)
+		matched, err := doublestar.Match(pattern, normalizedPath)
 		if err != nil {
 			fh.logger.LogError("Error matching skip pattern %s: %v", pattern, err)
 			continue
 		}
 		if matched {
+			fh.logger.LogInfo("Path %s matched skip pattern %s", normalizedPath, pattern)
 			return true
 		}
 	}
@@ -72,6 +96,9 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 		if p == "" {
 			continue
 		}
+
+		// Normalize pattern
+		p = filepath.ToSlash(p)
 
 		// Check if pattern is a direct file path (without glob patterns)
 		if !strings.Contains(p, "*") && !strings.Contains(p, "?") && !strings.Contains(p, "[") {
