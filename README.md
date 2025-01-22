@@ -21,7 +21,7 @@ A CLI tool for managing license headers in source code files. This tool helps yo
 
 
 ### Fully Tested Languages
-This is a list of languages that have been fully tested.
+This is a list of languages that have been ~fully~ mostly tested.
 
 - [ ] C
 - [ ] C++
@@ -48,20 +48,69 @@ This is a list of languages that have been fully tested.
 
 ## Installation
 
-### Using Go
+# License Manager
+
+A CLI tool for managing license headers in source code files. This tool helps you add, remove, update, and check license headers across your codebase with ease and precision. It utilizes non-printing Unicode character to mark the start & end of the License comment such that you can easier update or remove the license information.
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/license-manager)](https://goreportcard.com/report/github.com/yourusername/license-manager)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+
+## Installation
+
+You can install the License Manager through several methods:
+
+### Using Homebrew (macOS and Linux)
+
+The easiest way to install on macOS and Linux is through Homebrew:
 
 ```bash
-go install github.com/yourusername/license-manager@latest
+# Add the tap repository
+brew tap jeeftor/tap
+
+# Install the package
+brew install license-manager
+```
+
+To upgrade to the latest version:
+```bash
+brew upgrade license-manager
+```
+
+### Using Debian Package (Ubuntu/Debian)
+
+For Debian-based Linux distributions, you can download and install the .deb package:
+
+```bash
+# Download the latest release
+curl -LO "https://github.com/jeeftor/license-manager/releases/latest/download/license-manager_$(curl -s https://api.github.com/repos/jeeftor/license-manager/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -c 2-)_linux_amd64.deb"
+
+# Install the package
+sudo dpkg -i license-manager_*_linux_amd64.deb
+
+# Install dependencies if needed
+sudo apt-get install -f
+```
+
+You can also download the .deb package directly from the [releases page](https://github.com/jeeftor/license-manager/releases).
+
+### Using Go
+
+If you prefer to install using Go:
+
+```bash
+go install github.com/jeeftor/license-manager@latest
 ```
 
 ### From Source
 
+For the latest development version:
+
 ```bash
-git clone https://github.com/yourusername/license-manager.git
+git clone https://github.com/jeeftor/license-manager.git
 cd license-manager
 go build
 ```
-
 ## Usage
 
 ### Basic Commands
