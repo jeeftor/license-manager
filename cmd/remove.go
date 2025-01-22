@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"license-manager/internal/config"
 	"license-manager/internal/processor"
@@ -12,13 +11,9 @@ var removeCmd = &cobra.Command{
 	Short: "Remove license headers from files",
 	Long:  `Remove license headers from files that have them`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if cfgLicense == "" {
-			return fmt.Errorf("license file (--license) is required for remove command")
-		}
-
 		appCfg := config.AppConfig{
 			// File paths
-			LicenseFile: cfgLicense,
+			LicenseFile: cfgLicense, // Optional for remove command
 			Inputs:      ProcessPatterns(cfgInputs),
 			Skips:       ProcessPatterns(cfgSkips),
 

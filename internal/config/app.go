@@ -38,14 +38,15 @@ func NewAppConfig() AppConfig {
 
 // ToProcessorConfig converts AppConfig to processor.Config
 func (c *AppConfig) ToProcessorConfig() (*processor.Config, error) {
-	// Validate and load license file
-	if c.LicenseFile == "" {
-		return nil, errors.NewValidationError("license file is required", "LicenseFile")
-	}
+	var licenseText string
+	var err error
 
-	licenseText, err := c.loadLicenseFile()
-	if err != nil {
-		return nil, err
+	// Load license file if provided
+	if c.LicenseFile != "" {
+		licenseText, err = c.loadLicenseFile()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Convert to processor config
