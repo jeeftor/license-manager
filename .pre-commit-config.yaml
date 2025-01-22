@@ -18,7 +18,7 @@ repos:
     hooks:
       - id: goimports
         name: goimports
-        entry: goimports
+        entry: bash -c 'go install golang.org/x/tools/cmd/goimports@latest && goimports'
         language: system
         types: [ go ]
         pass_filenames: false
@@ -26,14 +26,14 @@ repos:
 
       - id: gofumpt
         name: gofumpt
-        entry: gofumpt
+        entry: bash -c 'go install mvdan.cc/gofumpt@latest && gofumpt'
         language: system
         types: [go]
         args: ['-w', '-l']
 
       - id: golines
         name: golines
-        entry: golines
+        entry: bash -c 'go install github.com/segmentio/golines@latest && golines'
         language: system
         types: [ go ]
         args: [ '-w' ]
