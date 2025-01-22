@@ -7,6 +7,7 @@ permissions:
   contents: write
 jobs:
   release:
+    needs: pre-commit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,20 +17,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: 'stable'
-
-      - name: Install Go dependencies
-        run: go mod tidy
-
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-
-      - name: Install pre-commit
-        run: pip install pre-commit
-
-      - name: Run pre-commit
-        run: pre-commit run --all-files
-
 
       - uses: goreleaser/goreleaser-action@v4
         with:
