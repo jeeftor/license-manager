@@ -94,7 +94,7 @@ release:
   github:
     owner: jeeftor
     name: license-manager
-  draft: true
+  draft: false
   prerelease: auto
   mode: replace
   header: |
