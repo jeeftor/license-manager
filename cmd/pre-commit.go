@@ -34,8 +34,8 @@ var preCommitCmd = &cobra.Command{
 		// Prepare configuration
 		appCfg := config.AppConfig{
 			LicenseFile: cfgLicense,
-			Input:       strings.Join(stagedFiles, ","),
-			Skip:        cfgSkip,
+			Inputs:      strings.Join(stagedFiles, ","),
+			Skips:       ProcessPatterns(cfgSkips),
 
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go", // default

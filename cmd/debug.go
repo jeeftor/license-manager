@@ -16,13 +16,13 @@ var debugCmd = &cobra.Command{
 	Short: "Debug license markers in files",
 	Long:  `Show license markers in files by making invisible markers visible`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if cfgInput == "" {
+		if cfgInputs == nil {
 			return fmt.Errorf("input file (--input) is required for debug command")
 		}
 
 		appCfg := config.AppConfig{
 			// File paths
-			Input: cfgInput,
+			Inputs: ProcessPatterns(cfgInputs),
 
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,
@@ -34,7 +34,7 @@ var debugCmd = &cobra.Command{
 		}
 
 		// Read the input file
-		content, err := os.ReadFile(appCfg.Input)
+		content, err := os.ReadFile(appCfg.Inputs)
 		if err != nil {
 			return fmt.Errorf("error reading file: %v", err)
 		}

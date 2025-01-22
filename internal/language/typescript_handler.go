@@ -22,7 +22,7 @@ func (h *TypeScriptHandler) PreservePreamble(content string) (string, string) {
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
-		// Skip empty lines at start
+		// Skips empty lines at start
 		if trimmed == "" {
 			if len(preamble) > 0 || len(rest) == 0 {
 				preamble = append(preamble, line)

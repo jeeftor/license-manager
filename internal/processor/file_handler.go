@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"license-manager/internal/errors"
 	"license-manager/internal/logger"
+	"license-manager/internal/styles"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,56 +56,70 @@ func (fh *FileHandler) shouldSkip(path string) bool {
 
 // FindFiles finds all files matching the input pattern
 func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
-	var files []string
+	var allFiles []string
 
-	// Check if pattern is a direct file path
-	if info, err := os.Stat(pattern); err == nil && !info.IsDir() {
-		if isProcessableFile(pattern) && !fh.shouldSkip(pattern) {
-			return []string{pattern}, nil
-		}
-		return nil, errors.NewFileError("file is not a processable type or is skipped", pattern, "validate")
-	}
-
-	// Handle glob patterns
-	matches, err := doublestar.Glob(pattern)
-	if err != nil {
-		return nil, errors.NewFileError("invalid glob pattern", pattern, "glob")
-	}
-
-	// Process each match
-	for _, match := range matches {
-		info, err := os.Stat(match)
-		if err != nil {
-			fh.logger.LogError("Error accessing %s: %v", match, err)
+	// Split input patterns
+	patterns := strings.Split(pattern, ",")
+	for _, p := range patterns {
+		p = strings.TrimSpace(p)
+		if p == "" {
 			continue
 		}
 
-		if info.IsDir() {
-			// Walk directory
-			err := filepath.WalkDir(match, func(path string, d fs.DirEntry, err error) error {
-				if err != nil {
-					fh.logger.LogError("Error walking directory %s: %v", path, err)
-					return nil
-				}
+		var files []string
 
-				if !d.IsDir() && isProcessableFile(path) && !fh.shouldSkip(path) {
-					files = append(files, path)
-				}
-				return nil
-			})
-			if err != nil {
-				fh.logger.LogError("Error walking directory %s: %v", match, err)
+		// Check if pattern is a direct file path
+		if info, err := os.Stat(p); err == nil && !info.IsDir() {
+			if isProcessableFile(p) && !fh.shouldSkip(p) {
+				files = append(files, p)
 			}
-		} else if isProcessableFile(match) && !fh.shouldSkip(match) {
-			files = append(files, match)
+			continue
 		}
+
+		// Handle glob patterns
+		matches, err := doublestar.Glob(p)
+		if err != nil {
+			fh.logger.LogError("Invalid glob pattern %s: %v", p, err)
+			continue
+		}
+
+		// Process each match
+		for _, match := range matches {
+			info, err := os.Stat(match)
+			if err != nil {
+				fh.logger.LogError("Error accessing %s: %v", match, err)
+				continue
+			}
+
+			if info.IsDir() {
+				// Walk directory
+				err := filepath.WalkDir(match, func(path string, d fs.DirEntry, err error) error {
+					if err != nil {
+						fh.logger.LogError("Error walking directory %s: %v", path, err)
+						return nil
+					}
+
+					if !d.IsDir() && isProcessableFile(path) && !fh.shouldSkip(path) {
+						files = append(files, path)
+					}
+					return nil
+				})
+				if err != nil {
+					fh.logger.LogError("Error walking directory %s: %v", match, err)
+				}
+			} else if isProcessableFile(match) && !fh.shouldSkip(match) {
+				files = append(files, match)
+			}
+		}
+
+		allFiles = append(allFiles, files...)
 	}
 
-	if len(files) == 0 {
+	if len(allFiles) == 0 {
 		return nil, errors.NewFileError("no matching files found", pattern, "find")
 	}
 
-	return files, nil
+	return allFiles, nil
 }
 
 // ReadFile reads a file and returns its content
@@ -159,7 +174,7 @@ func (fh *FileHandler) RestoreFile(path string) error {
 
 // isProcessableFile checks if a file should be processed based on its extension
 func isProcessableFile(path string) bool {
-	// Skip hidden files and directories
+	// Skips hidden files and directories
 	if strings.HasPrefix(filepath.Base(path), ".") {
 		return false
 	}
@@ -170,24 +185,7 @@ func isProcessableFile(path string) bool {
 		return false
 	}
 
-	// List of supported file extensions
-	supportedExts := map[string]bool{
-		".go":   true,
-		".py":   true,
-		".js":   true,
-		".jsx":  true,
-		".ts":   true,
-		".tsx":  true,
-		".java": true,
-		".c":    true,
-		".cpp":  true,
-		".h":    true,
-		".hpp":  true,
-		".rs":   true,
-		".rb":   true,
-		".php":  true,
-		".cs":   true,
-	}
-
-	return supportedExts[ext]
+	// Get the comment style for this extension
+	style := styles.GetLanguageCommentStyle(ext)
+	return style.Language != ""
 }

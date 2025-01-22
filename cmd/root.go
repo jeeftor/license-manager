@@ -3,12 +3,13 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 var (
 	cfgLicense      string
-	cfgInput        string
-	cfgSkip         string
+	cfgInputs       []string
+	cfgSkips        []string
 	cfgPrompt       bool
 	cfgDryRun       bool
 	cfgVerbose      bool   // Add verbose flag
@@ -35,9 +36,21 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&cfgPreferMulti, "multi", true, "Prefer multi-line comments where supported")
 
 	rootCmd.PersistentFlags().StringVar(&cfgLicense, "license", "", "Path to license text file")
-	rootCmd.PersistentFlags().StringVar(&cfgInput, "input", "", "Input file patterns (comma-separated)")
-	rootCmd.PersistentFlags().StringVar(&cfgSkip, "skip", "", "Patterns to skip (comma-separated)")
+
+	rootCmd.PersistentFlags().StringSliceVar(&cfgInputs, "input", []string{}, "Inputs file patterns")
+	rootCmd.PersistentFlags().StringSliceVar(&cfgSkips, "skip", []string{}, "Patterns to skip")
+
 	rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
 	rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
 	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
+}
+
+func ProcessPatterns(patterns []string) string {
+	var result []string
+	for _, p := range patterns {
+		// Split on commas if present
+		parts := strings.Split(p, ",")
+		result = append(result, parts...)
+	}
+	return strings.Join(result, ",")
 }

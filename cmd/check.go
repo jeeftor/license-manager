@@ -16,7 +16,7 @@ var checkCmd = &cobra.Command{
 		if cfgLicense == "" {
 			return fmt.Errorf("license file (--license) is required for check command")
 		}
-		if cfgInput == "" {
+		if cfgInputs == nil {
 			return fmt.Errorf("input pattern (--input) is required for check command")
 		}
 
@@ -26,8 +26,8 @@ var checkCmd = &cobra.Command{
 		appCfg := config.AppConfig{
 			// File paths
 			LicenseFile: cfgLicense,
-			Input:       cfgInput,
-			Skip:        cfgSkip,
+			Inputs:      ProcessPatterns(cfgInputs),
+			Skips:       ProcessPatterns(cfgSkips),
 
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,

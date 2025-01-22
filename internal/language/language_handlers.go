@@ -90,8 +90,6 @@ func GetLanguageHandler(fileType string, style styles.HeaderFooterStyle) Languag
 	switch fileType {
 	case "go":
 		return NewGoHandler(style)
-	case "html":
-		return NewHTMLHandler(style)
 	case "js", "jsx":
 		return NewJavaScriptHandler(style)
 	case "ts", "tsx":
@@ -110,6 +108,24 @@ func GetLanguageHandler(fileType string, style styles.HeaderFooterStyle) Languag
 		return NewLuaHandler(style)
 	case "rs":
 		return NewRustHandler(style)
+	case "shell":
+		return NewShebangHandler(style)
+	case "kotlin":
+		return NewKotlinHandler(style)
+	case "scala":
+		return NewScalaHandler(style)
+	case "css":
+		return NewCSSHandler(style)
+	case "xml", "html":
+		return NewHTMLHandler(style) // XML can use HTML handler (both use <!-- -->)
+	//case "markdown", "md":
+	//	return NewHTMLHandler(style) // Markdown can use HTML handler (both use <!-- -->)
+	case "ini", "toml":
+		return NewINIHandler(style)
+	case "swift":
+		return NewSwiftHandler(style)
+	case "csharp":
+		return NewCSharpHandler(style)
 	default:
 		return NewGenericHandler(style)
 	}

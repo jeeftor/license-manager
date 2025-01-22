@@ -133,7 +133,7 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 	for i, line := range lines {
 		line = strings.TrimSpace(line)
 
-		// Skip comment start/end markers
+		// Skips comment start/end markers
 		if !hasMarkers(line) {
 			if strings.HasPrefix(line, style.MultiStart) {
 				line = strings.TrimSpace(strings.TrimPrefix(line, style.MultiStart))
@@ -179,7 +179,7 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 			continue
 		}
 
-		// Skip empty lines at the start or end
+		// Skips empty lines at the start or end
 		if (i == 0 || i == len(lines)-1) && line == "" {
 			continue
 		}
@@ -366,7 +366,7 @@ func ExtractBuildDirectives(content string, langHandler language.LanguageHandler
 	for _, line := range directiveLines {
 		line = strings.TrimSpace(line)
 
-		// Skip empty lines
+		// Skips empty lines
 		if line == "" {
 			continue
 		}

@@ -19,8 +19,8 @@ var updateCmd = &cobra.Command{
 		appCfg := config.AppConfig{
 			// File paths
 			LicenseFile: cfgLicense,
-			Input:       cfgInput,
-			Skip:        cfgSkip,
+			Inputs:      ProcessPatterns(cfgInputs),
+			Skips:       ProcessPatterns(cfgSkips),
 
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,

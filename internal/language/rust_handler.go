@@ -27,7 +27,7 @@ func (h *RustHandler) PreservePreamble(content string) (string, string) {
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
-		// Skip empty lines at the start
+		// Skips empty lines at the start
 		if trimmed == "" {
 			preamble = append(preamble, line)
 			continue

@@ -12,8 +12,8 @@ import (
 type AppConfig struct {
 	// File paths
 	LicenseFile string // Path to license template file
-	Input       string // Input file patterns
-	Skip        string // Skip patterns
+	Inputs      string // Inputs file patterns
+	Skips       string // Skips patterns
 
 	// UI/Behavior settings
 	Verbose     bool
@@ -51,8 +51,8 @@ func (c *AppConfig) ToProcessorConfig() (*processor.Config, error) {
 	// Convert to processor config
 	return &processor.Config{
 		LicenseText: licenseText,
-		Input:       c.Input,
-		Skip:        c.Skip,
+		Input:       c.Inputs,
+		Skip:        c.Skips,
 		Prompt:      c.Interactive,
 		DryRun:      c.DryRun,
 		Verbose:     c.Verbose,

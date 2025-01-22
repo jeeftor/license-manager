@@ -47,7 +47,7 @@ func (h *JavaScriptHandler) PreservePreamble(content string) (string, string) {
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
-		// Skip empty lines
+		// Skips empty lines
 		if trimmed == "" {
 			if !seenCode {
 				preamble = append(preamble, line)

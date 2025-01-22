@@ -35,16 +35,17 @@ var extensionStyles = map[string]CommentLanguage{
 	".scala": {Language: "scala", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
 	".html":  {Language: "html", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
 	".css":   {Language: "css", Single: "", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
-	".sh":    {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".bash":  {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".zsh":   {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".fish":  {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".yaml":  {Language: "yaml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".yml":   {Language: "yaml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".toml":  {Language: "toml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".ini":   {Language: "ini", Single: ";", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".xml":   {Language: "xml", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
-	".md":    {Language: "markdown", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
+	// Shell script extensions
+	".sh":   {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".bash": {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".zsh":  {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".fish": {Language: "shell", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".yaml": {Language: "yaml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".yml":  {Language: "yaml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".toml": {Language: "toml", Single: "#", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".ini":  {Language: "ini", Single: ";", MultiStart: "", MultiEnd: "", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".xml":  {Language: "xml", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
+	".md":   {Language: "markdown", Single: "", MultiStart: "<!--", MultiEnd: "-->", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
 }
 
 // StripCommentMarkers removes comment markers from a line of text based on the language style
