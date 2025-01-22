@@ -57,16 +57,23 @@ jobs:
             echo "Tag is not on master branch"
             exit 1
           fi
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-go@v4
         with:
           go-version: 'stable'
+
+      # Configure Git for Homebrew updates
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use a separate token for Homebrew tap updates
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # The default token is still needed for the main repo
+          GITHUB_DEFAULT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
