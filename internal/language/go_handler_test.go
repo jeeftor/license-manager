@@ -187,10 +187,10 @@ package main`,
 
 func TestGoHandler_PreservePreamble(t *testing.T) {
 	tests := []struct {
-		name          string
-		content       string
-		wantPreamble  string
-		wantRest      string
+		name         string
+		content      string
+		wantPreamble string
+		wantRest     string
 	}{
 		{
 			name: "build and generate directives",
