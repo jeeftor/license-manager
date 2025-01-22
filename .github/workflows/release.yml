@@ -8,21 +8,47 @@ permissions:
   contents: write
 jobs:
   release:
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      github.ref_name == 'master' &&
-      startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      - name: Debug workflow context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: |
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Current ref: ${{ github.ref }}"
+          echo "Ref name: ${{ github.ref_name }}"
+          echo "Full context:"
+          echo "$GITHUB_CONTEXT"
+
+      - name: Run release if conditions met
+        if: |
+          github.event.workflow_run.conclusion == 'success' &&
+          contains(github.event.workflow_run.head_branch, 'master') &&
+          contains(github.ref, 'refs/tags/v')
+        run: echo "Conditions met!"
+
+      # Rest of your original steps, moved inside the conditional...
       - uses: actions/checkout@v4
+        if: |
+          github.event.workflow_run.conclusion == 'success' &&
+          contains(github.event.workflow_run.head_branch, 'master') &&
+          contains(github.ref, 'refs/tags/v')
         with:
           fetch-depth: 0
 
       - uses: actions/setup-go@v4
+        if: |
+          github.event.workflow_run.conclusion == 'success' &&
+          contains(github.event.workflow_run.head_branch, 'master') &&
+          contains(github.ref, 'refs/tags/v')
         with:
           go-version: 'stable'
 
       - uses: goreleaser/goreleaser-action@v4
+        if: |
+          github.event.workflow_run.conclusion == 'success' &&
+          contains(github.event.workflow_run.head_branch, 'master') &&
+          contains(github.ref, 'refs/tags/v')
         with:
           distribution: goreleaser
           version: latest
