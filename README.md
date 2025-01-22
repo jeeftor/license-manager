@@ -19,6 +19,33 @@ A CLI tool for managing license headers in source code files. This tool helps yo
 - **Skip Patterns**: Exclude specific files or directories
 - **Preset Header Styles**: Choose from predefined header/footer styles
 
+
+### Fully Tested Languages
+This is a list of languages that have been fully tested.
+
+- [ ] C
+- [ ] C++
+- [ ] C#
+- [ ] CSS (Cascading Style Sheets)
+- [x] Go
+- [ ] HTML (HyperText Markup Language)
+- [ ] Java
+- [ ] JavaScript
+- [ ] Lua
+- [ ] Perl
+- [ ] PHP (Hypertext Preprocessor)
+- [ ] Python
+- [ ] R
+- [ ] Ruby
+- [ ] Rust
+- [ ] SASS (Syntactically Awesome Style Sheets)
+- [ ] SCSS (Sassy CSS)
+- [ ] Shell Scripts (.sh/.bash/.zsh)
+- [ ] Swift
+- [ ] TypeScript
+- [ ] XML (Extensible Markup Language)
+- [ ] YAML (YAML Ain't Markup Language)
+
 ## Installation
 
 ### Using Go
