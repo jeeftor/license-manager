@@ -1,9 +1,5 @@
 name: Release
 on:
-  workflow_run:
-    workflows: ["Pre-commit"]
-    types:
-      - completed
   push:
     tags:
       - 'v*'
@@ -13,27 +9,37 @@ jobs:
   debug:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Debug conditions
         run: |
           echo "Event name: ${{ github.event_name }}"
-          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
-          echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Base ref: ${{ github.event.base_ref }}"
           echo "Ref: ${{ github.ref }}"
-          echo "All conditions:"
-          echo "1. workflow_run.conclusion == success: ${{ github.event.workflow_run.conclusion == 'success' }}"
-          echo "2. head_branch == master: ${{ github.event.workflow_run.head_branch == 'master' }}"
-          echo "3. event_name == push: ${{ github.event_name == 'push' }}"
-          echo "4. ref starts with v: ${{ startsWith(github.ref, 'refs/tags/v') }}"
+          # Check if tag is on master
+          git fetch origin master
+          if git merge-base --is-ancestor HEAD origin/master; then
+            echo "Tag is on master branch: true"
+          else
+            echo "Tag is on master branch: false"
+          fi
 
   release:
     needs: debug
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'master' &&
-      github.event_name == 'push' &&
-      startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify on master
+        run: |
+          git fetch origin master
+          if ! git merge-base --is-ancestor HEAD origin/master; then
+            echo "Tag is not on master branch"
+            exit 1
+          fi
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
