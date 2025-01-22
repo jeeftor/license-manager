@@ -6,6 +6,7 @@ project_name: license-manager
 before:
   hooks:
     - go mod tidy
+    - go generate ./...
 
 builds:
   - env:
@@ -17,9 +18,9 @@ builds:
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
+    # ignore:
+    #   - goos: windows
+    #     goarch: arm64
     main: .
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
@@ -31,7 +32,9 @@ archives:
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
     format_overrides:
       - goos: windows
         format: zip
@@ -56,6 +59,10 @@ changelog:
       - '^chore:'
       - Merge pull request
       - Merge branch
+# brews:
+#   - name: license-manager
+#     homepage: "https://github.com/jeeftor/license-manager"
+#     description: "A simple license manager for your projects"
 
 release:
   github:
