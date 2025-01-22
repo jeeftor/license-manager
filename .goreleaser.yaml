@@ -1,8 +1,10 @@
 version: 2.2
 project_name: license-manager
+
 before:
   hooks:
     - go mod tidy
+
 builds:
   - env:
       - CGO_ENABLED=0
@@ -20,6 +22,8 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
     binary: license-manager
+
+# Archive configuration remains the same
 archives:
   - format: tar.gz
     name_template: >-
@@ -34,10 +38,47 @@ archives:
       - README.md
       - LICENSE*
       - CHANGELOG*
+
+# New section for creating .deb packages
+nfpms:
+  - package_name: license-manager
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    vendor: jeeftor
+    homepage: https://github.com/jeeftor/license-manager
+    maintainer: Jeff Cook <jeff@cook.com>  # Replace with your email
+    description: License Manager Tool
+    license: MIT  # Adjust based on your license
+    formats:
+      - deb
+    dependencies:
+      - git
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/license-manager/LICENSE
+      - src: ./README.md
+        dst: /usr/share/doc/license-manager/README.md
+
+# New section for Homebrew
+brews:
+  - name: license-manager
+    repository:
+      owner: jeeftor
+      name: homebrew-tap  # You'll need to create this repository
+    folder: Formula
+    homepage: https://github.com/jeeftor/license-manager
+    description: License Manager Tool
+    license: MIT  # Adjust based on your license
+    test: |
+      system "#{bin}/license-manager --version"
+    install: |
+      bin.install "license-manager"
+
 checksum:
   name_template: 'checksums.txt'
+
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+
 changelog:
   sort: asc
   filters:
@@ -48,6 +89,7 @@ changelog:
       - '^chore:'
       - 'Merge pull request'
       - 'Merge branch'
+
 release:
   github:
     owner: jeeftor
