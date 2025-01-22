@@ -5,7 +5,6 @@ on:
       - 'v*'
 permissions:
   contents: write
-
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -13,7 +12,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
       - uses: actions/setup-go@v4
+
       - uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
