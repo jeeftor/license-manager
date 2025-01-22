@@ -328,7 +328,52 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 		}
 	}
 
+	// Check if the content looks like a license
+	if !looksLikeLicense(body) {
+		return "", "", "", false
+	}
+
 	return header, body, footer, true
+}
+
+// Common words that indicate a block of text is likely a license
+var licenseIndicators = []string{
+	"copyright",
+	"license",
+	"permission",
+	"permitted",
+	"granted",
+	"rights",
+	"reserved",
+	"warranties",
+	"liability",
+	"contributors",
+	"apache",
+	"mit ",
+	"bsd ",
+	"gpl",
+	"lgpl",
+	"mozilla",
+	"boost",
+}
+
+// looksLikeLicense checks if the content appears to be a license by looking for common license-related terms
+// and checking the length of the content
+func looksLikeLicense(content string) bool {
+	if len(content) < 50 { // Most licenses are longer than 50 characters
+		return false
+	}
+
+	lowerContent := strings.ToLower(content)
+
+	// Check for common license indicators
+	for _, indicator := range licenseIndicators {
+		if strings.Contains(lowerContent, indicator) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // FormatComment formats text with the given comment style and header/footer style
