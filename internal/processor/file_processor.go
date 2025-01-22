@@ -21,10 +21,12 @@ type FileProcessor struct {
 // NewFileProcessor creates a new FileProcessor instance
 func NewFileProcessor(cfg *Config) *FileProcessor {
 	log := logger.NewLogger(cfg.Verbose)
+	fh := NewFileHandler(log)
+	fh.SetSkipPattern(cfg.Skip)  // Set the skip pattern
 	return &FileProcessor{
 		config:      cfg,
 		logger:      log,
-		fileHandler: NewFileHandler(log),
+		fileHandler: fh,
 		stats:       make(map[string]int),
 	}
 }
@@ -72,6 +74,25 @@ func (fp *FileProcessor) Add() error {
 	files, err := fp.fileHandler.FindFiles(fp.config.Input)
 	if err != nil {
 		return err
+	}
+
+	// Print scanning message with patterns
+	fp.logger.LogInfo("Scanning %d Directories:", len(files))
+	fp.logger.LogInfo("Input Patterns:")
+	for _, pattern := range strings.Split(fp.config.Input, ",") {
+		pattern = strings.TrimSpace(pattern)
+		if pattern != "" {
+			fp.logger.LogInfo("  %s", pattern)
+		}
+	}
+	if fp.config.Skip != "" {
+		fp.logger.LogInfo("Skip Patterns:")
+		for _, pattern := range strings.Split(fp.config.Skip, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				fp.logger.LogInfo("  %s", pattern)
+			}
+		}
 	}
 
 	style := styles.Get(fp.config.PresetStyle)
@@ -145,6 +166,7 @@ func (fp *FileProcessor) Add() error {
 		if fp.config.Prompt && !fp.logger.Prompt(
 			fp.logger.LogQuestion("Add license to %s?", file)) {
 			fp.stats["skipped"]++
+			fp.logger.LogInfo("Skipping %s", file)
 			continue
 		}
 
@@ -171,6 +193,25 @@ func (fp *FileProcessor) Remove() error {
 		return err
 	}
 
+	// Print scanning message with patterns
+	fp.logger.LogInfo("Scanning %d Directories:", len(files))
+	fp.logger.LogInfo("Input Patterns:")
+	for _, pattern := range strings.Split(fp.config.Input, ",") {
+		pattern = strings.TrimSpace(pattern)
+		if pattern != "" {
+			fp.logger.LogInfo("  %s", pattern)
+		}
+	}
+	if fp.config.Skip != "" {
+		fp.logger.LogInfo("Skip Patterns:")
+		for _, pattern := range strings.Split(fp.config.Skip, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				fp.logger.LogInfo("  %s", pattern)
+			}
+		}
+	}
+
 	if fp.config.Verbose {
 		fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
 	}
@@ -193,7 +234,7 @@ func (fp *FileProcessor) Remove() error {
 
 		if newContent == content {
 			fp.stats["skipped"]++
-			fp.logger.LogInfo("No license found in %s", file)
+			fp.logger.LogInfo("Skipping %s", file)
 			continue
 		}
 
@@ -205,6 +246,7 @@ func (fp *FileProcessor) Remove() error {
 		if fp.config.Prompt && !fp.logger.Prompt(
 			fp.logger.LogQuestion("Remove license from %s?", file)) {
 			fp.stats["skipped"]++
+			fp.logger.LogInfo("Skipping %s", file)
 			continue
 		}
 
@@ -231,6 +273,25 @@ func (fp *FileProcessor) Update() error {
 		return err
 	}
 
+	// Print scanning message with patterns
+	fp.logger.LogInfo("Scanning %d Directories:", len(files))
+	fp.logger.LogInfo("Input Patterns:")
+	for _, pattern := range strings.Split(fp.config.Input, ",") {
+		pattern = strings.TrimSpace(pattern)
+		if pattern != "" {
+			fp.logger.LogInfo("  %s", pattern)
+		}
+	}
+	if fp.config.Skip != "" {
+		fp.logger.LogInfo("Skip Patterns:")
+		for _, pattern := range strings.Split(fp.config.Skip, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				fp.logger.LogInfo("  %s", pattern)
+			}
+		}
+	}
+
 	if fp.config.Verbose {
 		fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
 	}
@@ -248,7 +309,7 @@ func (fp *FileProcessor) Update() error {
 
 		if status == license.NoLicense {
 			fp.stats["skipped"]++
-			fp.logger.LogInfo("No license found in %s", file)
+			fp.logger.LogInfo("Skipping %s", file)
 			continue
 		}
 
@@ -273,6 +334,7 @@ func (fp *FileProcessor) Update() error {
 		if fp.config.Prompt && !fp.logger.Prompt(
 			fp.logger.LogQuestion("Update license in %s?", file)) {
 			fp.stats["skipped"]++
+			fp.logger.LogInfo("Skipping %s", file)
 			continue
 		}
 
@@ -297,6 +359,25 @@ func (fp *FileProcessor) Check() error {
 	files, err := fp.fileHandler.FindFiles(fp.config.Input)
 	if err != nil {
 		return err
+	}
+
+	// Print scanning message with patterns
+	fp.logger.LogInfo("Scanning %d Directories:", len(files))
+	fp.logger.LogInfo("Input Patterns:")
+	for _, pattern := range strings.Split(fp.config.Input, ",") {
+		pattern = strings.TrimSpace(pattern)
+		if pattern != "" {
+			fp.logger.LogInfo("  %s", pattern)
+		}
+	}
+	if fp.config.Skip != "" {
+		fp.logger.LogInfo("Skip Patterns:")
+		for _, pattern := range strings.Split(fp.config.Skip, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				fp.logger.LogInfo("  %s", pattern)
+			}
+		}
 	}
 
 	hasFailures := false

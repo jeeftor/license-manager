@@ -14,6 +14,7 @@ import (
 // FileHandler handles file operations
 type FileHandler struct {
 	logger *logger.Logger
+	skip   string
 }
 
 // NewFileHandler creates a new FileHandler
@@ -23,16 +24,45 @@ func NewFileHandler(logger *logger.Logger) *FileHandler {
 	}
 }
 
+// SetSkipPattern sets the skip pattern for file filtering
+func (fh *FileHandler) SetSkipPattern(pattern string) {
+	fh.skip = pattern
+}
+
+// shouldSkip checks if a file should be skipped based on skip patterns
+func (fh *FileHandler) shouldSkip(path string) bool {
+	if fh.skip == "" {
+		return false
+	}
+
+	for _, pattern := range strings.Split(fh.skip, ",") {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+
+		matched, err := doublestar.Match(pattern, path)
+		if err != nil {
+			fh.logger.LogError("Error matching skip pattern %s: %v", pattern, err)
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
 // FindFiles finds all files matching the input pattern
 func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 	var files []string
 
 	// Check if pattern is a direct file path
 	if info, err := os.Stat(pattern); err == nil && !info.IsDir() {
-		if isProcessableFile(pattern) {
+		if isProcessableFile(pattern) && !fh.shouldSkip(pattern) {
 			return []string{pattern}, nil
 		}
-		return nil, errors.NewFileError("file is not a processable type", pattern, "validate")
+		return nil, errors.NewFileError("file is not a processable type or is skipped", pattern, "validate")
 	}
 
 	// Handle glob patterns
@@ -57,7 +87,7 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 					return nil
 				}
 
-				if !d.IsDir() && isProcessableFile(path) {
+				if !d.IsDir() && isProcessableFile(path) && !fh.shouldSkip(path) {
 					files = append(files, path)
 				}
 				return nil
@@ -65,7 +95,7 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 			if err != nil {
 				fh.logger.LogError("Error walking directory %s: %v", match, err)
 			}
-		} else if isProcessableFile(match) {
+		} else if isProcessableFile(match) && !fh.shouldSkip(match) {
 			files = append(files, match)
 		}
 	}
