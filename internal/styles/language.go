@@ -78,6 +78,11 @@ func (c *CommentLanguage) StripCommentMarkers(line string) string {
 
 // GetLanguageCommentStyle returns the appropriate comment style for a given file extension
 func GetLanguageCommentStyle(extension string) CommentLanguage {
+	// Add dot prefix if missing
+	if !strings.HasPrefix(extension, ".") {
+		extension = "." + extension
+	}
+
 	if style, ok := extensionStyles[extension]; ok {
 		return style
 	}
