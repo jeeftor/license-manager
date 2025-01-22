@@ -231,6 +231,9 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 			} else if strings.HasPrefix(line, "//") {
 				commentStyle = &styles.CommentLanguage{Single: "//"}
 				hasCommentMarkers = true
+			} else if line == "'''" || line == `"""` {
+				commentStyle = &styles.CommentLanguage{MultiStart: line, MultiEnd: line}
+				hasCommentMarkers = true
 			} else {
 				// If no comment markers, try to match against known header patterns
 				match := styles.Infer(line)
@@ -248,9 +251,11 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 
 		// If we have comment markers, look for the end marker
 		if hasCommentMarkers {
-			if commentStyle.MultiEnd != "" && strings.Contains(line, commentStyle.MultiEnd) {
-				endIdx = i
-				break
+			if commentStyle.MultiEnd != "" {
+				if line == commentStyle.MultiEnd || strings.HasSuffix(line, commentStyle.MultiEnd) {
+					endIdx = i
+					break
+				}
 			} else if commentStyle.Single != "" {
 				// For single-line comments, look for the first non-comment line
 				if !strings.HasPrefix(strings.TrimSpace(line), commentStyle.Single) {
