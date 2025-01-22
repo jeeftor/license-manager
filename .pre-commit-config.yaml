@@ -1,0 +1,94 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+
+
+
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: goimports
+        name: goimports
+        entry: goimports
+        language: system
+        types: [ go ]
+        pass_filenames: false
+        args: [ '-w' ]
+
+      - id: gofumpt
+        name: gofumpt
+        entry: gofumpt
+        language: system
+        types: [go]
+        args: ['-w', '-l']
+
+      - id: golines
+        name: golines
+        entry: golines
+        language: system
+        types: [ go ]
+        args: [ '-w' ]
+
+
+
+#  - repo: https://github.com/golangci/golangci-lint
+#    rev: v1.49.0
+#    hooks:
+#      - id: golangci-lint
+#  - repo: https://github.com/zricethezav/gitleaks
+#    rev: v8.11.2
+#    hooks:
+#      - id: gitleaks
+
+#ci:
+#  autofix_commit_msg: |
+#    [pre-commit.ci] auto fixes from pre-commit.com hooks
+#
+#    for more information, see https://pre-commit.ci
+#  autofix_prs: true
+#  autoupdate_branch: ''
+#  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+#  autoupdate_schedule: weekly
+#  skip: []
+#  submodules: false
+#
+#
+
+#repos:
+#  -   repo: https://github.com/tekwizely/pre-commit-golang
+#      rev: v0.8.3 # change this to the latest version
+#      hooks:
+#        -   id: golangci-lint
+#            args: [--issues-exit-code=0]
+#
+#
+##            args: ["run", "--issues-exit-code=0"]
+#
+##repos:
+##  - repo: https://github.com/golangci/golangci-lint
+##    rev: v1.43.0 # Use the latest release from https://github.com/golangci/golangci-lint
+##    hooks:
+##      - id: golangci-lint
+##        args: [--no-config, --issues-exit-code=0, --timeout=5m]
+##        # Only lint the staged (modified) Go files.
+##        # Note: Some linters that require a full project context might not work correctly.
+##        additional_dependencies: [github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0]
+##
+##      - id: golangci-lint-full
+##        name: golangci-lint-full
+##        entry: golangci-lint run ./...
+##        # This will run golangci-lint on all files in the repository.
+##        # Suitable for CI environments or full project linting.
+##        language: go
+##        types: [go]
+##        args: [--no-config, --issues-exit-code=0, --timeout=5m]
+##        additional_dependencies: [github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0]
