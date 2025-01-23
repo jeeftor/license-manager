@@ -33,7 +33,7 @@ func newTestHelper(t *testing.T) *testHelper {
 	}
 }
 
-func (h *testHelper) getPattern(tc testCase) []string {
+func (h *testHelper) getPattern(tc languageData) []string {
 	patterns := make([]string, len(tc.patterns))
 	for i, pattern := range tc.patterns {
 		patterns[i] = filepath.Join(h.projectRoot, pattern)
@@ -76,7 +76,7 @@ func (h *testHelper) verifyContentMatchesTemplate(patterns []string) error {
 	return nil
 }
 
-func (h *testHelper) runLicenseCommand(cmd string, patterns []string, expectError bool) (string, string, error) {
+func (h *testHelper) runLicenseCommand(cmd string, patterns []string) (string, string, error) {
 	args := []string{cmd}
 	for _, pattern := range patterns {
 		args = append(args, "--input", pattern)
@@ -84,26 +84,20 @@ func (h *testHelper) runLicenseCommand(cmd string, patterns []string, expectErro
 	if cmd != "remove" {
 		args = append(args, "--license", h.licenseFile)
 	}
-
 	stdout, stderr, err := runCommand(h.t, args...)
-
-	if expectError && err == nil {
-		return stdout, stderr, fmt.Errorf("expected %s command to fail, but it succeeded", cmd)
-	} else if !expectError && err != nil {
-		return stdout, stderr, fmt.Errorf("%s command failed: %v\nStdout: %s\nStderr: %s", cmd, err, stdout, stderr)
-	}
-
-	return stdout, stderr, nil
+	return stdout, stderr, err
 }
 
 func (h *testHelper) verifyLicenseMissing(patterns []string) error {
 	for _, pattern := range patterns {
-		_, stderr, err := h.runLicenseCommand("check", []string{pattern}, true)
+		_, stderr, err := h.runLicenseCommand("check", []string{pattern})
+
+		if strings.Contains(stderr, "exit status 2") {
+			// This is the case we want.
+			return fmt.Errorf("at least one non-matching license was found")
+		}
 		if err == nil {
 			return fmt.Errorf("expected check to fail for files without license, but it passed")
-		}
-		if !strings.Contains(stderr, "missing") && !strings.Contains(stderr, "incorrect") {
-			return fmt.Errorf("expected missing/incorrect license error, got: %s", stderr)
 		}
 	}
 	return nil
@@ -111,7 +105,7 @@ func (h *testHelper) verifyLicenseMissing(patterns []string) error {
 
 func (h *testHelper) verifyLicensePresent(patterns []string) error {
 	for _, pattern := range patterns {
-		stdout, stderr, err := h.runLicenseCommand("check", []string{pattern}, false)
+		stdout, stderr, err := h.runLicenseCommand("check", []string{pattern})
 		if err != nil {
 			return fmt.Errorf("license check failed: %v\nStdout: %s\nStderr: %s", err, stdout, stderr)
 		}

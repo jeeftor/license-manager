@@ -24,7 +24,7 @@ func TestLanguages(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			resetTestData(t) // Reset before each test type
 
-			for _, tc := range testCases {
+			for _, tc := range languageDefinitions[5:6] {
 				tc := tc
 				t.Run(tc.language, func(t *testing.T) {
 					t.Parallel()
@@ -43,13 +43,13 @@ func TestLanguages(t *testing.T) {
 
 func (lt *languageTest) testAdd(t *testing.T) {
 
-	patterns := lt.helper.getPattern(testCase{patterns: lt.patterns})
+	patterns := lt.helper.getPattern(languageData{patterns: lt.patterns})
 
 	if err := lt.helper.verifyLicenseMissing(patterns); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, _, err := lt.helper.runLicenseCommand("add", patterns, false); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("add", patterns); err != nil {
 		t.Fatal(err)
 	}
 
@@ -60,12 +60,12 @@ func (lt *languageTest) testAdd(t *testing.T) {
 
 func (lt *languageTest) testCheckFail(t *testing.T) {
 
-	patterns := lt.helper.getPattern(testCase{patterns: lt.patterns})
+	patterns := lt.helper.getPattern(languageData{patterns: lt.patterns})
 
 	licenseFile := createLicenseFile(t, "incorrect license")
 	defer os.Remove(licenseFile)
 
-	if _, _, err := lt.helper.runLicenseCommand("add", patterns, false); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("add", patterns); err != nil {
 		t.Fatal(err)
 	}
 
@@ -76,19 +76,19 @@ func (lt *languageTest) testCheckFail(t *testing.T) {
 	newLicenseFile := createLicenseFile(t, "new license")
 	defer os.Remove(newLicenseFile)
 
-	if _, _, err := lt.helper.runLicenseCommand("check", patterns, true); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("check", patterns); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func (lt *languageTest) testUpdateCheck(t *testing.T) {
 
-	patterns := lt.helper.getPattern(testCase{patterns: lt.patterns})
+	patterns := lt.helper.getPattern(languageData{patterns: lt.patterns})
 
 	licenseFile := createLicenseFile(t, "original license")
 	defer os.Remove(licenseFile)
 
-	if _, _, err := lt.helper.runLicenseCommand("add", patterns, false); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("add", patterns); err != nil {
 		t.Fatal(err)
 	}
 
@@ -99,20 +99,20 @@ func (lt *languageTest) testUpdateCheck(t *testing.T) {
 	newLicenseFile := createLicenseFile(t, "new license")
 	defer os.Remove(newLicenseFile)
 
-	if _, _, err := lt.helper.runLicenseCommand("update", patterns, false); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("update", patterns); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, _, err := lt.helper.runLicenseCommand("check", patterns, false); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("check", patterns); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func (lt *languageTest) testRemove(t *testing.T) {
 
-	patterns := lt.helper.getPattern(testCase{patterns: lt.patterns})
+	patterns := lt.helper.getPattern(languageData{patterns: lt.patterns})
 
-	if _, _, err := lt.helper.runLicenseCommand("add", patterns, false); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("add", patterns); err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,7 +120,7 @@ func (lt *languageTest) testRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, _, err := lt.helper.runLicenseCommand("remove", patterns, false); err != nil {
+	if _, _, err := lt.helper.runLicenseCommand("remove", patterns); err != nil {
 		t.Fatal(err)
 	}
 

@@ -1,16 +1,22 @@
 package integration
 
 import (
+	"license-manager/internal/styles"
 	"os"
 	"path/filepath"
 )
 
-type testCase struct {
+type languageData struct {
 	language string
 	patterns []string
 }
 
-var testCases = []testCase{
+type singleFileTestInput struct {
+	language styles.CommentLanguage
+	filePath string
+}
+
+var languageDefinitions = []languageData{
 	{"batch", []string{"test_data/batch/*.bat"}},
 	{"c", []string{"test_data/c/*.c", "test_data/c/*.h"}},
 	{"cpp", []string{"test_data/cpp/*.cpp", "test_data/cpp/*.hpp"}},

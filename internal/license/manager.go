@@ -13,19 +13,19 @@ import (
 type Status int
 
 const (
-	NoLicense Status = iota
-	MatchingLicense
+	MatchingLicense Status = iota
+	NoLicense
 	DifferentLicense
 )
 
 // LicenseManager handles license operations
 type LicenseManager struct {
-	template      string
-	commentStyle  styles.CommentLanguage
-	headerStyle   styles.HeaderFooterStyle
-	langHandler   language.LanguageHandler
-	verbose       bool
-	logger        *logger.Logger
+	template     string
+	commentStyle styles.CommentLanguage
+	headerStyle  styles.HeaderFooterStyle
+	langHandler  language.LanguageHandler
+	verbose      bool
+	logger       *logger.Logger
 }
 
 // NewLicenseManager creates a new manager

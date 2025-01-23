@@ -7,6 +7,7 @@ toolchain go1.23.5
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/fatih/color v1.18.0
+	github.com/sergi/go-diff v1.3.1
 	github.com/spf13/cobra v1.8.1
 )
 

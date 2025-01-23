@@ -12,7 +12,7 @@ import (
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check for license headers in files",
-	Long:  `Check if files have the specified license headers\n Exit Code 0 - License Found\nExit Code 1 - `,
+	Long:  `Check if files have the specified license headers\n Exit Code 0 - License Found\nExit Code 1 - License Missing \nExit Code 2 - License Mismatch`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// CLI validation errors should show usage
 		if cfgLicense == "" {

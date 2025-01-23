@@ -13,8 +13,8 @@ type CommentLanguage struct {
 	PreferMulti bool
 }
 
-// Common comment styles for different file extensions
-var extensionStyles = map[string]CommentLanguage{
+// LanguageExtensions Common comment styles for different file extensions
+var LanguageExtensions = map[string]CommentLanguage{
 	".rb":    {Language: "ruby", Single: "#", MultiStart: "=begin", MultiEnd: "=end", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
 	".js":    {Language: "javascript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
 	".jsx":   {Language: "javascript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
@@ -83,7 +83,7 @@ func GetLanguageCommentStyle(extension string) CommentLanguage {
 		extension = "." + extension
 	}
 
-	if style, ok := extensionStyles[extension]; ok {
+	if style, ok := LanguageExtensions[extension]; ok {
 		return style
 	}
 
