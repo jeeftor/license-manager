@@ -94,11 +94,3 @@ jobs:
         env:
           # Use the GitHub App token for both operations
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-
-      - name: Debug Release
-        if: always()
-        run: |
-          echo "Checking homebrew formula..."
-          curl -s https://raw.githubusercontent.com/jeeftor/homebrew-tap/main/Formula/license-manager.rb
-          echo "Checking release checksums..."
-              curl -s https://github.com/jeeftor/license-manager/releases/download/v0.0.1/checksums.txt

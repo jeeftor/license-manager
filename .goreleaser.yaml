@@ -15,9 +15,9 @@ builds:
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
+#    ignore:
+#      - goos: windows
+#        goarch: arm64
     main: .
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
@@ -30,6 +30,7 @@ archives:
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
@@ -42,12 +43,11 @@ archives:
 # New section for creating .deb packages
 nfpms:
   - package_name: license-manager
-    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     vendor: jeeftor
     homepage: https://github.com/jeeftor/license-manager
-    maintainer: Jeff Cook <jeff@cook.com>  # Replace with your email
+    maintainer: Jeff Stein <jeffstein@gmail.com>
     description: License Manager Tool
-    license: MIT  # Adjust based on your license
+    license: MIT
     formats:
       - deb
     dependencies:
@@ -57,6 +57,8 @@ nfpms:
         dst: /usr/share/doc/license-manager/LICENSE
       - src: ./README.md
         dst: /usr/share/doc/license-manager/README.md
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
 
 # New section for Homebrew
 brews:
