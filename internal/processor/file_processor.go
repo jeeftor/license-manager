@@ -435,7 +435,10 @@ func (fp *FileProcessor) Check() error {
 	}
 	if hasFailures {
 		if !fp.config.IgnoreFail {
-			return fmt.Errorf("license check failed: some files have missing or incorrect licenses")
+			if fp.stats["skipped"] > 0 {
+				return NewCheckError("license check failed: some files have missing licenses", license.NoLicense)
+			}
+			return NewCheckError("license check failed: some files have incorrect licenses", license.DifferentLicense)
 		}
 	}
 	//if hasFailures {

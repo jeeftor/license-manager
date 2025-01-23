@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"license-manager/internal/config"
+	"license-manager/internal/license"
 	"license-manager/internal/processor"
+	"os"
 )
 
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check for license headers in files",
-	Long:  `Check if files have the specified license headers`,
+	Long:  `Check if files have the specified license headers\n Exit Code 0 - License Found\nExit Code 1 - `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// CLI validation errors should show usage
 		if cfgLicense == "" {
@@ -48,7 +50,17 @@ var checkCmd = &cobra.Command{
 		}
 
 		p := processor.NewFileProcessor(procCfg)
-		return p.Check()
+		err = p.Check()
+
+		if licErr, ok := err.(*processor.CheckError); ok {
+			switch licErr.Status {
+			case license.NoLicense:
+				os.Exit(1)
+			case license.DifferentLicense:
+				os.Exit(2)
+			}
+		}
+		return err
 	},
 }
 
