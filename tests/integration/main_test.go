@@ -220,7 +220,7 @@ func testWorkflow(file *singleTestFile, t *testing.T) {
 
 	err = verifyLicenseExists(file, devLicense)
 	if err != nil {
-		t.Fatalf("Step 3 - License Error: %v\n", err)
+		t.Fatalf("Step 3 - Verify Add - License Error: %v\n", err)
 
 	}
 	err = verifyLicenseMismatch(file, mitLicense)
@@ -247,7 +247,7 @@ func testWorkflow(file *singleTestFile, t *testing.T) {
 
 	err = verifyLicenseMissing(file, mitLicense)
 	if err != nil {
-		t.Fatalf("Step 8 - License Error: %v\n", err)
+		t.Fatalf("Step 8 - Verify Removal - License Error: %v\n", err)
 	}
 
 	err = verifyLicenseMissing(file, devLicense)
