@@ -17,12 +17,12 @@ const (
 	FullMatch Status = iota
 	// NoLicense indicates that no license was found
 	NoLicense
+	// ContentAndStyleMismatch indicates that both the content and style are different
+	ContentAndStyleMismatch
 	// ContentMismatch indicates that the license content is different
 	ContentMismatch
 	// StyleMismatch indicates that the license content matches but the style is different
 	StyleMismatch
-	// ContentAndStyleMismatch indicates that both the content and style are different
-	ContentAndStyleMismatch
 )
 
 func (s Status) String() string {

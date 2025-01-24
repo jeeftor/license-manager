@@ -24,7 +24,7 @@ var (
 // ExitError represents an error with an exit code
 type ExitError struct {
 	msg  string
-	code int
+	Code int
 }
 
 func (e *ExitError) Error() string {
@@ -78,34 +78,38 @@ var checkCmd = &cobra.Command{
 				case license.NoLicense:
 					return &ExitError{
 						msg:  "license check failed: some files have missing licenses",
-						code: int(license.NoLicense),
+						Code: int(license.NoLicense),
 					}
 				case license.ContentMismatch:
 					return &ExitError{
 						msg:  "license check failed: some files have incorrect license content",
-						code: int(license.ContentMismatch),
+						Code: int(license.ContentMismatch),
 					}
 				case license.StyleMismatch:
 					return &ExitError{
 						msg:  "license check failed: some files have incorrect license style",
-						code: int(license.StyleMismatch),
+						Code: int(license.StyleMismatch),
 					}
 				case license.ContentAndStyleMismatch:
 					return &ExitError{
 						msg:  "license check failed: some files have incorrect license content and style",
-						code: int(license.ContentAndStyleMismatch),
+						Code: int(license.ContentAndStyleMismatch),
 					}
 				default:
 					return &ExitError{
 						msg:  "license check failed: unknown error",
-						code: 5, // Keep this as a constant since it's not part of the Status enum
+						Code: 5, // Keep this as a constant since it's not part of the Status enum
 					}
 				}
 			}
+
 			return &ExitError{
 				msg:  fmt.Sprintf("license check failed: %v", err),
-				code: 5, // Keep this as a constant since it's not part of the Status enum
+				Code: 5, // Keep this as a constant since it's not part of the Status enum
 			}
+		}
+		if cfgVerbose {
+			fmt.Printf("Exit code: 0\n")
 		}
 		return nil
 	},

@@ -395,7 +395,6 @@ func (fp *FileProcessor) Update() error {
 	return nil
 }
 
-// Check checks license headers in files
 func (fp *FileProcessor) Check() error {
 	fp.resetStats()
 
@@ -423,15 +422,16 @@ func (fp *FileProcessor) Check() error {
 		}
 	}
 
-	hasFailures := false
+	hasNoLicense := false
+	hasContentMismatch := false
+	hasStyleMismatch := false
+
 	for _, file := range files {
-		// Get relative path for logging
 		relPath := file
 		if rel, err := filepath.Rel(".", file); err == nil {
 			relPath = rel
 		}
 
-		// Check license status
 		manager, _ := fp.createManager(file)
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
@@ -445,35 +445,124 @@ func (fp *FileProcessor) Check() error {
 			fp.stats["failed"]++
 			switch status {
 			case license.NoLicense:
+				hasNoLicense = true
+				fp.stats["missing"]++
 				fp.logger.LogError("%s: Missing license", relPath)
 			case license.ContentMismatch:
+				hasContentMismatch = true
 				fp.logger.LogError("%s: License content mismatch", relPath)
 			case license.StyleMismatch:
+				hasStyleMismatch = true
 				fp.logger.LogError("%s: License style mismatch (expected %s)", relPath, manager.GetHeaderStyle().Name)
 			case license.ContentAndStyleMismatch:
+				hasContentMismatch = true
+				hasStyleMismatch = true
 				fp.logger.LogError("%s: License content and style mismatch", relPath)
 			default:
 				fp.logger.LogError("%s: Unknown license error", relPath)
 			}
-			if !fp.config.IgnoreFail {
-				return NewCheckError(status, fmt.Sprintf("license check failed: %s", relPath))
-			}
-		} else {
-			fp.stats["passed"]++
-			if fp.config.Verbose {
-				fp.logger.LogSuccess("%s: License OK", relPath)
-			}
+			continue
+		}
+		fp.stats["passed"]++
+		if fp.config.Verbose {
+			fp.logger.LogSuccess("%s: License OK", relPath)
 		}
 	}
-	if hasFailures {
-		if fp.stats["missing"] > 0 {
-			return NewCheckError(license.NoLicense, "license check failed: some files have missing licenses")
-		}
-		return NewCheckError(license.ContentMismatch, "license check failed: some files have incorrect licenses")
+
+	if hasNoLicense {
+		return NewCheckError(license.NoLicense, "license check failed: some files have missing licenses")
+	}
+	if hasContentMismatch && hasStyleMismatch {
+		return NewCheckError(license.ContentAndStyleMismatch, "license check failed: some files have content and style mismatches")
+	}
+	if hasContentMismatch {
+		return NewCheckError(license.ContentMismatch, "license check failed: some files have content mismatches")
+	}
+	if hasStyleMismatch {
+		return NewCheckError(license.StyleMismatch, "license check failed: some files have style mismatches")
 	}
 
 	return nil
 }
+
+// Check checks license headers in files
+//func (fp *FileProcessor) Check() error {
+//	fp.resetStats()
+//
+//	files, err := fp.fileHandler.FindFiles(fp.config.Input)
+//	if err != nil {
+//		return err
+//	}
+//
+//	// Print scanning message with patterns
+//	fp.logger.LogInfo("Scanning %d Directories:", len(files))
+//	fp.logger.LogInfo("Inputs Patterns:")
+//	for _, pattern := range strings.Split(fp.config.Input, ",") {
+//		pattern = strings.TrimSpace(pattern)
+//		if pattern != "" {
+//			fp.logger.LogInfo("  %s", pattern)
+//		}
+//	}
+//	if fp.config.Skip != "" {
+//		fp.logger.LogInfo("Skips Patterns:")
+//		for _, pattern := range strings.Split(fp.config.Skip, ",") {
+//			pattern = strings.TrimSpace(pattern)
+//			if pattern != "" {
+//				fp.logger.LogInfo("  %s", pattern)
+//			}
+//		}
+//	}
+//
+//	hasFailures := false
+//	for _, file := range files {
+//		// Get relative path for logging
+//		relPath := file
+//		if rel, err := filepath.Rel(".", file); err == nil {
+//			relPath = rel
+//		}
+//
+//		// Check license status
+//		manager, _ := fp.createManager(file)
+//		content, err := fp.fileHandler.ReadFile(file)
+//		if err != nil {
+//			fp.stats["failed"]++
+//			fp.logger.LogError("Failed to read %s: %v", relPath, err)
+//			return NewCheckError(license.NoLicense, fmt.Sprintf("failed to read file: %v", err))
+//		}
+//
+//		status := manager.CheckLicenseStatus(content)
+//		if status != license.FullMatch {
+//			fp.stats["failed"]++
+//			switch status {
+//			case license.NoLicense:
+//				fp.logger.LogError("%s: Missing license", relPath)
+//			case license.ContentMismatch:
+//				fp.logger.LogError("%s: License content mismatch", relPath)
+//			case license.StyleMismatch:
+//				fp.logger.LogError("%s: License style mismatch (expected %s)", relPath, manager.GetHeaderStyle().Name)
+//			case license.ContentAndStyleMismatch:
+//				fp.logger.LogError("%s: License content and style mismatch", relPath)
+//			default:
+//				fp.logger.LogError("%s: Unknown license error", relPath)
+//			}
+//			hasFailures = true
+//			continue
+//		} else {
+//			fp.stats["passed"]++
+//			if fp.config.Verbose {
+//				fp.logger.LogSuccess("%s: License OK", relPath)
+//			}
+//		}
+//	}
+//	if hasFailures {
+//		if fp.stats["missing"] > 0 {
+//			return NewCheckError(license.NoLicense, "license check failed: some files have missing licenses")
+//		}
+//		return NewCheckError(license.ContentMismatch, "license check failed: some files have incorrect licenses")
+//	}
+//
+//	return nil
+//}
 
 // describeCommentStyle returns a human-readable description of the comment style
 func describeCommentStyle(cs styles.CommentLanguage) string {

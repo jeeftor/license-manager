@@ -5,6 +5,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"license-manager/internal/logger"
+	"os"
 	"strings"
 	"time"
 )
@@ -83,6 +85,60 @@ It can add, remove, update, and check license headers in multiple files using pa
 }
 
 func Execute() error {
+	cobra.MousetrapHelpText = ""
+
+	// Configure help template
+	helpTemplate := `{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}{{end}}
+
+Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`
+	rootCmd.SetHelpTemplate(helpTemplate)
+
+	// Configure help command
+	rootCmd.SetHelpCommand(&cobra.Command{
+		Use:   "help [command]",
+		Short: "Help about any command",
+		Long:  `Help provides help for any command in the application.`,
+		Run: func(c *cobra.Command, args []string) {
+			cmd, _, e := c.Root().Find(args)
+			if cmd == nil || e != nil {
+				c.Printf("Unknown help topic %#q\n", args)
+				c.Root().Usage()
+			} else {
+				cmd.Help()
+			}
+		},
+	})
+
+	// Configure help flags
+	rootCmd.PersistentFlags().BoolP("help", "h", false, "help for this command")
+
+	// Silence cobra error output since we handle it ourselves
+	rootCmd.SilenceErrors = true
+
+	// Configure output colors
 	cc.Init(&cc.Config{
 		RootCmd:       rootCmd,
 		Headings:      cc.HiYellow + cc.Bold + cc.Underline,
@@ -90,10 +146,20 @@ func Execute() error {
 		Example:       cc.Italic,
 		ExecName:      cc.Bold + cc.Red,
 		CmdShortDescr: cc.Green,
-		//FlagsDescr:    cc.Green,
-		Flags: cc.Bold + cc.Green,
+		Flags:         cc.Bold + cc.Green,
 	})
-	return rootCmd.Execute()
+
+	// Configure error handling
+	err := rootCmd.Execute()
+	if err != nil {
+		if exitErr, ok := err.(*ExitError); ok {
+			os.Exit(exitErr.Code)
+		}
+		log := logger.NewLogger(cfgVerbose)
+		log.LogError("Error: %v", err)
+		os.Exit(1)
+	}
+	return nil
 }
 
 func init() {
@@ -111,6 +177,7 @@ func init() {
 	//rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
 	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
 }
+
 func initConfig() {
 	viper.SetEnvPrefix(envPrefix)
 	viper.AutomaticEnv()

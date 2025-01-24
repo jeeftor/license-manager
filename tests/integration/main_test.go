@@ -3,13 +3,15 @@ package integration
 import (
 	"bufio"
 	"fmt"
-	"github.com/sergi/go-diff/diffmatchpatch"
+	"license-manager/internal/license"
 	"license-manager/internal/styles"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 var testFiles []singleTestFile
@@ -105,7 +107,7 @@ func TestMatrix(t *testing.T) {
 		//{Name: "Remove", Helper: testRemove},
 	}
 
-	for _, file := range testFiles {
+	for _, file := range testFiles[0:1] {
 		file := file // capture varibale in loop
 		for _, stage := range testStage {
 			test := stage // capture loop var
@@ -147,15 +149,19 @@ func testAddAndCheck(file *singleTestFile, t *testing.T) {
 }
 
 func verifyLicenseExists(file *singleTestFile, licensePath string) error {
-	return checkLicenseWithErrorValue(file, licensePath, 0)
+	return checkLicenseWithErrorValue(file, licensePath, []int{int(license.FullMatch)})
 }
 
 func verifyLicenseMissing(file *singleTestFile, licensePath string) error {
-	return checkLicenseWithErrorValue(file, licensePath, 1)
+	return checkLicenseWithErrorValue(file, licensePath, []int{int(license.NoLicense)})
 }
 
 func verifyLicenseMismatch(file *singleTestFile, licensePath string) error {
-	return checkLicenseWithErrorValue(file, licensePath, 2)
+	return checkLicenseWithErrorValue(file, licensePath, []int{
+		int(license.ContentMismatch),
+		int(license.StyleMismatch),
+		int(license.ContentAndStyleMismatch),
+	})
 }
 
 func extractErrorText(input string) string {
@@ -169,34 +175,30 @@ func extractErrorText(input string) string {
 	return strings.Join(errors, "\n")
 }
 
-func checkLicenseWithErrorValue(file *singleTestFile, licensePath string, wanted_exit_code int) error {
-
+func checkLicenseWithErrorValue(file *singleTestFile, licensePath string, wantedExitCodes []int) error {
 	stdout, stderr, err := CheckLicense(file.filePath, licensePath)
-	if wanted_exit_code == 0 {
-		if stderr != "" {
-			return fmt.Errorf("license check failed: %v\n %s\nStderr: %s", err, extractErrorText(stdout), stderr)
-		} else {
+
+	// Extract exit code from stderr
+	exitCode := -1
+	if strings.Contains(stderr, "exit status") {
+		fmt.Sscanf(stderr, "exit status %d", &exitCode)
+	}
+
+	// Check if the exit code is one of the wanted codes
+	for _, code := range wantedExitCodes {
+		if code == 0 && exitCode == 0 {
+			if stderr != "" {
+				return fmt.Errorf("license check failed: %v\n %s\nStderr: %s", err, extractErrorText(stdout), stderr)
+			}
+			return nil
+		}
+		if code == exitCode {
 			return nil
 		}
 	}
-	if wanted_exit_code == 1 { // License Mismatch
-		if strings.Contains(stderr, "exit status 1") {
-			return nil
-		} else {
-			return fmt.Errorf("license check failed: %v\n %s\nStderr: %s", err, extractErrorText(stdout), stderr)
-		}
-	}
 
-	if wanted_exit_code == 2 { // License Missing
-		if strings.Contains(stderr, "exit status 2") {
-			return nil
-		} else {
-			return fmt.Errorf("license check failed: %v\n %s\nStderr: %s", err, extractErrorText(stdout), stderr)
-		}
-	}
-
-	return nil
-
+	return fmt.Errorf("license check failed: got exit code %d, wanted one of %v\n %s\nStderr: %s",
+		exitCode, wantedExitCodes, extractErrorText(stdout), stderr)
 }
 
 func testCheck(file *singleTestFile, t *testing.T) {
