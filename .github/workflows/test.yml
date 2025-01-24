@@ -5,6 +5,11 @@ on:
     push:
         branches: [master]
         tags-ignore: [v*]
+permissions:
+    checks: write
+    pull-requests: write
+    contents: read
+    id-token: write
 
 jobs:
     integration-testing:
@@ -37,3 +42,13 @@ jobs:
                   token: ${{ github.token }}
                   check_name: Test Results
                   report_paths: '**/junit.xml'
+
+            - name: Publish Test Results
+              uses: EnricoMi/publish-unit-test-result-action@v2
+              if: always()
+              with:
+                  files: |-
+                      *.xml
+                      *.json
+            - name: Conclusion
+              run: echo "Conclusion is ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}"
