@@ -9,7 +9,6 @@ on:
             - v*  # ignore version tags
 jobs:
     pre-commit:
-        debug: true
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
