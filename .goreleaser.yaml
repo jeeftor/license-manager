@@ -55,12 +55,15 @@
         - src: ./README.md
           dst: /usr/share/doc/license-manager/README.md
       file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-      repository:
-        apt:
-          name: license-manager
-          owner: jeeftor
-          urls:
-            - 'https://apt.fury.io/jeeftor/'
+
+
+
+#      repository:
+#        apt:
+#          name: license-manager
+#          owner: jeeftor
+#          urls:
+#            - 'https://apt.fury.io/jeeftor/'
 
   publishers:
     - name: fury
