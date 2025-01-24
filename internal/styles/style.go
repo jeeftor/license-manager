@@ -67,6 +67,12 @@ var presetStyles = map[string]HeaderFooterStyle{
 		Header:      "........................................",
 		Footer:      "........................................",
 	},
+	"swords": {
+		Name:        "Swords",
+		Description: "Swords border",
+		Header:      "⚔️══✦══✦══ LICENSE ══✦══✦══⚔️",
+		Footer:      "⚔️══✦══✦═ END LICENSE ═✦══✦══⚔️",
+	},
 }
 
 // Get returns a HeaderFooterStyle by name, or a default if not found
@@ -92,14 +98,29 @@ func Infer(line string) Match {
 	var bestMatch Match
 	bestMatch.Score = 0.0
 
+	// Clean up the line by removing common comment markers and spaces
 	cleanLine := strings.TrimSpace(line)
+	cleanLine = strings.TrimPrefix(cleanLine, "/*")
+	cleanLine = strings.TrimSuffix(cleanLine, "*/")
+	cleanLine = strings.TrimPrefix(cleanLine, "//")
+	cleanLine = strings.TrimPrefix(cleanLine, "*")
+	cleanLine = strings.TrimSpace(cleanLine)
+
+	// Remove zero-width spaces used as markers
+	cleanLine = strings.ReplaceAll(cleanLine, "​", "") // Zero-width space
+	cleanLine = strings.ReplaceAll(cleanLine, "‌", "") // Zero-width non-joiner
+
 	if cleanLine == "" {
 		return bestMatch
 	}
 
 	for _, style := range presetStyles {
+		// Clean up the style headers/footers the same way
+		cleanHeader := strings.TrimSpace(style.Header)
+		cleanFooter := strings.TrimSpace(style.Footer)
+
 		// Try matching against header
-		if cleanLine == strings.TrimSpace(style.Header) {
+		if cleanLine == cleanHeader {
 			return Match{
 				Style:    style,
 				Score:    1.0,
@@ -109,10 +130,32 @@ func Infer(line string) Match {
 		}
 
 		// Try matching against footer
-		if cleanLine == strings.TrimSpace(style.Footer) {
+		if cleanLine == cleanFooter {
 			return Match{
 				Style:    style,
 				Score:    1.0,
+				IsHeader: style.Header == style.Footer,
+				IsFooter: true,
+			}
+		}
+
+		// If no exact match, try similarity matching
+		headerScore := calculateSimilarity(cleanLine, cleanHeader)
+		footerScore := calculateSimilarity(cleanLine, cleanFooter)
+
+		if headerScore > bestMatch.Score {
+			bestMatch = Match{
+				Style:    style,
+				Score:    headerScore,
+				IsHeader: true,
+				IsFooter: style.Header == style.Footer,
+			}
+		}
+
+		if footerScore > bestMatch.Score {
+			bestMatch = Match{
+				Style:    style,
+				Score:    footerScore,
 				IsHeader: style.Header == style.Footer,
 				IsFooter: true,
 			}

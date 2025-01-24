@@ -48,6 +48,7 @@ func (m *LicenseManager) SetVerbose(verbose bool, logger *logger.Logger) {
 	if m.langHandler != nil {
 		m.langHandler.SetLogger(logger)
 	}
+	comment.SetVerbose(verbose)
 }
 
 // SetCommentStyle sets the comment style
@@ -89,13 +90,13 @@ func (m *LicenseManager) HasLicense(content string) bool {
 	if m.verbose && m.logger != nil {
 		if preamble != "" {
 			m.logger.LogInfo("  Found preamble (%d lines)", len(strings.Split(preamble, "\n")))
-			m.logger.LogInfo("  Processing remaining content after preamble...")
+			m.logger.LogInfo("  Processing remaining content...")
 		} else {
 			m.logger.LogInfo("  No preamble found, processing entire content")
 		}
 	}
 
-	_, body, _, success := comment.ExtractComponents(rest)
+	_, body, _, success := comment.ExtractComponents(rest, true)
 	if m.verbose && m.logger != nil {
 		if success {
 			m.logger.LogInfo("  Found existing license block (%d lines)", len(strings.Split(body, "\n")))
@@ -190,7 +191,7 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 		}
 	}
 
-	header, body, footer, success := comment.ExtractComponents(rest)
+	header, body, footer, success := comment.ExtractComponents(rest, true)
 	if !success {
 		if m.verbose && m.logger != nil {
 			m.logger.LogInfo("  No license block found to remove")
@@ -244,10 +245,10 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 // UpdateLicense updates the license block in the content
 func (m *LicenseManager) UpdateLicense(content string) (string, error) {
 	handler := m.getLanguageHandler(m.commentStyle.Language)
-	preamble, rest := handler.PreservePreamble(content)
+	_, rest := handler.PreservePreamble(content)
 
 	if m.verbose && m.logger != nil {
-		if preamble != "" {
+		if rest != "" {
 			m.logger.LogInfo("  Found preamble when updating license")
 		}
 	}
@@ -292,16 +293,27 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 		return NoLicense
 	}
 
-	_, body, _, _ := comment.ExtractComponents(rest, true)
-	_, expectedBody, _, _ := comment.ExtractComponents(m.formatLicenseBlock(m.template), true)
+	// First detect the style from the content
+	detectedStyle := m.DetectHeaderStyle(rest)
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Detected style: %s", detectedStyle.Name)
+	}
+
+	// Format both licenses with the detected style
+	currentLicense := rest
+	expectedLicense := handler.FormatLicense(m.template, m.commentStyle, detectedStyle)
+
+	// Extract both licenses without stripping markers for accurate comparison
+	_, currentBody, _, _ := comment.ExtractComponents(currentLicense, false)
+	_, expectedBody, _, _ := comment.ExtractComponents(expectedLicense, false)
 
 	if m.verbose && m.logger != nil {
-		m.logger.LogInfo("  Found license block (%d lines)", len(strings.Split(body, "\n")))
+		m.logger.LogInfo("  Found license block (%d lines)", len(strings.Split(currentBody, "\n")))
 		m.logger.LogInfo("  Expected license (%d lines)", len(strings.Split(expectedBody, "\n")))
 		m.logger.LogInfo("  Comparing license content...")
 	}
 
-	if strings.TrimSpace(body) == strings.TrimSpace(expectedBody) {
+	if strings.TrimSpace(currentBody) == strings.TrimSpace(expectedBody) {
 		if m.verbose && m.logger != nil {
 			m.logger.LogInfo("  Result: License matches expected content exactly")
 		}
@@ -319,8 +331,19 @@ func (m *LicenseManager) GetLicenseComparison(content string) (current, expected
 	handler := m.getLanguageHandler(m.commentStyle.Language)
 	_, rest := handler.PreservePreamble(content)
 
-	_, currentBody, _, _ := comment.ExtractComponents(rest, true)
-	_, expectedBody, _, _ := comment.ExtractComponents(m.formatLicenseBlock(m.template), true)
+	// First detect the style from the content
+	detectedStyle := m.DetectHeaderStyle(rest)
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Detected style: %s", detectedStyle.Name)
+	}
+
+	// Format both licenses with the detected style
+	currentLicense := rest
+	expectedLicense := handler.FormatLicense(m.template, m.commentStyle, detectedStyle)
+
+	// Extract both licenses without stripping markers for accurate comparison
+	_, currentBody, _, _ := comment.ExtractComponents(currentLicense, false)
+	_, expectedBody, _, _ := comment.ExtractComponents(expectedLicense, false)
 	return currentBody, expectedBody
 }
 
@@ -337,10 +360,91 @@ func (m *LicenseManager) formatLicenseBlock(text string) string {
 	return comment.FormatComment(text, m.commentStyle, m.headerStyle)
 }
 
+// DetectHeaderStyle detects the header/footer style from the content
+func (m *LicenseManager) DetectHeaderStyle(content string) styles.HeaderFooterStyle {
+	handler := m.getLanguageHandler(m.commentStyle.Language)
+	_, rest := handler.PreservePreamble(content)
+
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Content to analyze:\n%s", rest)
+	}
+
+	// Get the current header/footer from the content
+	header, _, footer, success := comment.ExtractComponents(rest, true)
+	if !success {
+		return m.headerStyle // Return current style if extraction fails
+	}
+
+	// Split into lines and find the actual header/footer lines
+	headerLines := strings.Split(header, "\n")
+	footerLines := strings.Split(footer, "\n")
+
+	var firstLine, lastLine string
+	for _, line := range headerLines {
+		line = strings.TrimSpace(line)
+		if line == "" || line == "/*" || line == "*/" {
+			continue
+		}
+		line = strings.TrimPrefix(line, "*")
+		line = strings.TrimPrefix(line, " *")
+		line = strings.TrimSpace(line)
+		if line != "" {
+			firstLine = line
+			break
+		}
+	}
+
+	for i := len(footerLines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(footerLines[i])
+		if line == "" || line == "/*" || line == "*/" {
+			continue
+		}
+		line = strings.TrimPrefix(line, "*")
+		line = strings.TrimPrefix(line, " *")
+		line = strings.TrimSpace(line)
+		if line != "" {
+			lastLine = line
+			break
+		}
+	}
+
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Trying to detect style from header: %q", firstLine)
+		m.logger.LogInfo("  Trying to detect style from footer: %q", lastLine)
+	}
+
+	// Try to match against known styles
+	headerMatch := styles.Infer(firstLine)
+	footerMatch := styles.Infer(lastLine)
+
+	if m.verbose && m.logger != nil {
+		m.logger.LogInfo("  Header match: %s (score: %.2f)", headerMatch.Style.Name, headerMatch.Score)
+		m.logger.LogInfo("  Footer match: %s (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
+	}
+
+	// If both header and footer match the same style with high confidence, use that style
+	if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 && headerMatch.Style.Name == footerMatch.Style.Name {
+		return headerMatch.Style
+	}
+
+	// If just the header matches with high confidence, use that style
+	if headerMatch.Score > 0.8 {
+		return headerMatch.Style
+	}
+
+	// Otherwise return current style
+	return m.headerStyle
+}
+
 // helper function to truncate strings for logging
 func truncateString(s string, n int) string {
 	if len(s) <= n {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+func looksLikeLicense(body string) bool {
+	// TO DO: implement this function
+	return true
 }

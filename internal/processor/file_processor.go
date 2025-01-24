@@ -33,8 +33,6 @@ func NewFileProcessor(cfg *Config) *FileProcessor {
 
 // createManager creates and configures a license manager for a given file
 func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, styles.CommentLanguage) {
-	style := styles.Get(fp.config.PresetStyle)
-
 	// Get comment style for file type
 	ext := filepath.Ext(file)
 	commentStyle := styles.GetLanguageCommentStyle(ext)
@@ -44,6 +42,34 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 		fp.logger.LogInfo("Processing file: %s", file)
 		fp.logger.LogInfo("  Language: %s", commentStyle.Language)
 		fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+	}
+
+	// Try to detect style from existing file content
+	content, err := fp.fileHandler.ReadFile(file)
+	var style styles.HeaderFooterStyle
+	if err == nil {
+		// Create a temporary manager with default style to detect existing style
+		tempManager := license.NewLicenseManager("", styles.Get(fp.config.PresetStyle))
+		tempManager.SetCommentStyle(commentStyle)
+		if tempManager.HasLicense(content) {
+			// If we found a license, use its style
+			style = tempManager.DetectHeaderStyle(content)
+			if fp.config.Verbose {
+				fp.logger.LogInfo("  Detected style: %s", style.Name)
+			}
+		} else {
+			// If no license found, use configured style
+			style = styles.Get(fp.config.PresetStyle)
+			if fp.config.Verbose {
+				fp.logger.LogInfo("  Using configured style: %s", style.Name)
+			}
+		}
+	} else {
+		// If can't read file, use configured style
+		style = styles.Get(fp.config.PresetStyle)
+		if fp.config.Verbose {
+			fp.logger.LogInfo("  Using configured style: %s", style.Name)
+		}
 	}
 
 	// Create and configure manager

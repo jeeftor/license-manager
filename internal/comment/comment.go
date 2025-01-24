@@ -4,8 +4,21 @@ import (
 	"strings"
 
 	"license-manager/internal/language"
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 )
+
+var log *logger.Logger
+
+// SetVerbose enables or disables verbose logging for the comment package
+func SetVerbose(verbose bool) {
+	log = logger.NewLogger(verbose)
+}
+
+func init() {
+	// Initialize with default (non-verbose) logging
+	log = logger.NewLogger(false)
+}
 
 const (
 	MarkerStart = "​" // Zero-width space
@@ -190,20 +203,156 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 	return strings.TrimSpace(strings.Join(processedLines, "\n"))
 }
 
-// ExtractComponents extracts the header, body, and footer from a license block.
-// Returns the extracted components and a success flag.
-func ExtractComponents(content string, stripMarkers ...bool) (header string, body string, footer string, success bool) {
-	shouldStrip := false
-	if len(stripMarkers) > 0 {
-		shouldStrip = stripMarkers[0]
-	}
-
-	lines := strings.Split(content, "\n")
-	if len(lines) < 3 {
+// ExtractComponents extracts the header, body, and footer from a license block
+func ExtractComponents(content string, stripMarkers bool) (header, body, footer string, success bool) {
+	if content == "" {
 		return "", "", "", false
 	}
 
-	// Find the first non-empty line after comment start
+	// Split into lines for processing
+	lines := strings.Split(content, "\n")
+	if len(lines) == 0 {
+		return "", "", "", false
+	}
+
+	// Find the start and end of the license block
+	var startIndex, endIndex int
+	var foundStart, foundEnd bool
+
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		if !foundStart && line == "/*" {
+			startIndex = i
+			foundStart = true
+			continue
+		}
+
+		if foundStart && !foundEnd && line == "*/" {
+			endIndex = i
+			foundEnd = true
+			break
+		}
+	}
+
+	if !foundStart || !foundEnd {
+		return "", "", "", false
+	}
+
+	// Extract the header (first non-empty line after the start marker)
+	var headerLines []string
+	for i := startIndex + 1; i < endIndex; i++ {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+		headerLines = append(headerLines, lines[i])
+		break
+	}
+
+	// Extract the footer (last non-empty line before the end marker)
+	var footerLines []string
+	for i := endIndex - 1; i > startIndex; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+		footerLines = append(footerLines, lines[i])
+		break
+	}
+
+	// Extract the body (everything between header and footer)
+	var bodyLines []string
+	bodyStart := startIndex + 1
+	if len(headerLines) > 0 {
+		bodyStart++
+	}
+	bodyEnd := endIndex
+	if len(footerLines) > 0 {
+		bodyEnd--
+	}
+
+	for i := bodyStart; i < bodyEnd; i++ {
+		line := lines[i]
+		if stripMarkers {
+			line = strings.TrimPrefix(line, "*")
+			line = strings.TrimPrefix(line, " *")
+			line = strings.TrimSpace(line)
+		}
+		bodyLines = append(bodyLines, line)
+	}
+
+	header = strings.Join(headerLines, "\n")
+	body = strings.Join(bodyLines, "\n")
+	footer = strings.Join(footerLines, "\n")
+
+	return header, body, footer, true
+}
+
+// extractComponentsWithMarkers attempts to extract components using Unicode markers.
+// This is a simpler implementation that looks specifically for MarkerStart and MarkerEnd.
+func extractComponentsWithMarkers(lines []string, shouldStrip bool) (header string, body string, footer string, success bool) {
+	startIdx := -1
+	endIdx := -1
+
+	// Find lines with markers
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// Skips empty lines
+		if line == "" {
+			continue
+		}
+
+		if hasMarkers(line) {
+			if startIdx == -1 {
+				startIdx = i
+			} else if endIdx == -1 {
+				endIdx = i
+				break
+			}
+		}
+	}
+
+	// Must have both start and end markers
+	if startIdx == -1 || endIdx == -1 || startIdx >= endIdx {
+		return "", "", "", false
+	}
+
+	header = strings.TrimSpace(lines[startIdx])
+	footer = strings.TrimSpace(lines[endIdx])
+
+	// Extract body (everything between header and footer)
+	bodyLines := lines[startIdx+1 : endIdx]
+	// Remove leading and trailing empty lines from body
+	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[0]) == "" {
+		bodyLines = bodyLines[1:]
+	}
+	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[len(bodyLines)-1]) == "" {
+		bodyLines = bodyLines[:len(bodyLines)-1]
+	}
+	body = strings.TrimSpace(strings.Join(bodyLines, "\n"))
+
+	// Strip the Unicode markers if requested
+	if shouldStrip {
+		header = strings.TrimPrefix(strings.TrimSuffix(header, MarkerEnd), MarkerStart)
+		footer = strings.TrimPrefix(strings.TrimSuffix(footer, MarkerEnd), MarkerStart)
+	}
+
+	// Check if the content looks like a license
+	if !looksLikeLicense(body) {
+		return "", "", "", false
+	}
+
+	return header, body, footer, true
+}
+
+// extractComponentsWithoutMarkers attempts to extract components using comment syntax and style inference.
+// This is a more intensive scan that tries to identify the comment type based on available styles.
+func extractComponentsWithoutMarkers(lines []string, shouldStrip bool) (header string, body string, footer string, success bool) {
 	startIdx := -1
 	endIdx := -1
 	hasCommentMarkers := false
@@ -211,40 +360,52 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 	var commentStyle *styles.CommentLanguage
 	var knownStyle styles.HeaderFooterStyle
 
-	// First try to find comment markers
+	log.LogVerbose("Starting style detection...")
+
+	// Scan for comment markers and known styles
 	for i, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
+
 		if startIdx == -1 {
 			// Try to detect the comment style from the first non-empty line
 			if strings.HasPrefix(line, "/*") {
+				log.LogVerbose("Found C-style comment: %s", line)
 				commentStyle = &styles.CommentLanguage{MultiStart: "/*", MultiEnd: "*/"}
 				hasCommentMarkers = true
 			} else if strings.HasPrefix(line, "<!--") {
+				log.LogVerbose("Found HTML-style comment: %s", line)
 				commentStyle = &styles.CommentLanguage{MultiStart: "<!--", MultiEnd: "-->"}
 				hasCommentMarkers = true
 			} else if strings.HasPrefix(line, "#") {
+				log.LogVerbose("Found Shell-style comment: %s", line)
 				commentStyle = &styles.CommentLanguage{Single: "#"}
 				hasCommentMarkers = true
 			} else if strings.HasPrefix(line, "//") {
+				log.LogVerbose("Found C++-style comment: %s", line)
 				commentStyle = &styles.CommentLanguage{Single: "//"}
 				hasCommentMarkers = true
 			} else if line == "'''" || line == `"""` {
+				log.LogVerbose("Found Python-style comment: %s", line)
 				commentStyle = &styles.CommentLanguage{MultiStart: line, MultiEnd: line}
 				hasCommentMarkers = true
 			} else {
 				// If no comment markers, try to match against known header patterns
 				match := styles.Infer(line)
 				if match.Score > 0 && match.IsHeader {
+					log.LogVerbose("Found known header style: %s (score: %.2f)", match.Style.Name, match.Score)
 					foundKnownStyle = true
 					knownStyle = match.Style
 					startIdx = i
+				} else {
+					log.LogVerbose("No style match for line: %s", line)
 				}
 			}
 			if hasCommentMarkers {
 				startIdx = i
+				log.LogVerbose("Set start index to %d", i)
 			}
 			continue
 		}
@@ -253,12 +414,14 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 		if hasCommentMarkers {
 			if commentStyle.MultiEnd != "" {
 				if line == commentStyle.MultiEnd || strings.HasSuffix(line, commentStyle.MultiEnd) {
+					log.LogVerbose("Found matching end marker at line %d: %s", i, line)
 					endIdx = i
 					break
 				}
 			} else if commentStyle.Single != "" {
 				// For single-line comments, look for the first non-comment line
 				if !strings.HasPrefix(strings.TrimSpace(line), commentStyle.Single) {
+					log.LogVerbose("Found end of single-line comments at line %d", i)
 					endIdx = i - 1 // End at the last comment line
 					break
 				}
@@ -268,14 +431,19 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 			match := styles.Infer(line)
 			if match.Score > 0 && match.IsFooter {
 				if !foundKnownStyle {
+					log.LogVerbose("Found footer style before header: %s (score: %.2f)", match.Style.Name, match.Score)
 					foundKnownStyle = true
 					knownStyle = match.Style
 				} else if match.Style.Name != knownStyle.Name {
+					log.LogVerbose("Footer style mismatch: found %s but expected %s", match.Style.Name, knownStyle.Name)
 					// If footer doesn't match the header style, reject it
 					return "", "", "", false
 				}
+				log.LogVerbose("Found matching footer at line %d: %s", i, line)
 				endIdx = i
 				break
+			} else if match.Score > 0 {
+				log.LogVerbose("Found potential footer match: %s (score: %.2f) but not a footer pattern", match.Style.Name, match.Score)
 			}
 		}
 	}
@@ -286,29 +454,52 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 		for i := len(lines) - 1; i > startIdx; i-- {
 			line := strings.TrimSpace(lines[i])
 			if line != "" && strings.HasPrefix(line, commentStyle.Single) {
+				log.LogVerbose("Found last single-line comment at line %d", i)
 				endIdx = i
 				break
 			}
 		}
 	}
 
+	if !foundKnownStyle && !hasCommentMarkers {
+		log.LogVerbose("No known style patterns or comment markers found")
+	}
+	if !hasCommentMarkers && endIdx == -1 {
+		log.LogVerbose("Found known style but no footer")
+	}
+	if startIdx == -1 || endIdx == -1 || startIdx >= endIdx {
+		log.LogVerbose("Invalid start/end indices: start=%d, end=%d", startIdx, endIdx)
+	}
+
 	// If we didn't find any known style patterns and no comment markers, reject it
 	if !foundKnownStyle && !hasCommentMarkers {
+		log.LogVerbose("No known style patterns or comment markers found")
 		return "", "", "", false
 	}
 
 	// If we found a known style but no footer, reject it
 	if !hasCommentMarkers && endIdx == -1 {
+		log.LogVerbose("Found known style but no footer")
 		return "", "", "", false
 	}
 
 	if startIdx == -1 || endIdx == -1 || startIdx >= endIdx {
+		log.LogVerbose("Invalid start/end indices: start=%d, end=%d", startIdx, endIdx)
 		return "", "", "", false
 	}
 
 	// Extract header, body, and footer
 	header = strings.TrimSpace(lines[startIdx])
 	footer = strings.TrimSpace(lines[endIdx])
+
+	log.LogVerbose("Extracted header: %s", header)
+	log.LogVerbose("Extracted footer: %s", footer)
+
+	if foundKnownStyle {
+		log.LogInfo("Found matching style: %s", knownStyle.Name)
+		log.LogVerbose("  Header: %s", knownStyle.Header)
+		log.LogVerbose("  Footer: %s", knownStyle.Footer)
+	}
 
 	// Extract body (everything between header and footer)
 	bodyLines := lines[startIdx+1 : endIdx]
@@ -325,13 +516,18 @@ func ExtractComponents(content string, stripMarkers ...bool) (header string, bod
 		if commentStyle != nil {
 			header = commentStyle.StripCommentMarkers(header)
 			footer = commentStyle.StripCommentMarkers(footer)
+			log.LogVerbose("Stripped header: %s", header)
+			log.LogVerbose("Stripped footer: %s", footer)
 		}
 	}
 
 	// Check if the content looks like a license
 	if !looksLikeLicense(body) {
+		log.LogVerbose("Content does not look like a license")
 		return "", "", "", false
 	}
+
+	log.LogVerbose("Successfully extracted license components")
 
 	return header, body, footer, true
 }
