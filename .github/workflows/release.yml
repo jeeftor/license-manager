@@ -95,12 +95,14 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Run GoReleaser with the GitHub App token
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
-          version: latest
+          # 'latest', 'nightly', or a semver
+          version: '~> v2'
           args: release --clean
         env:
           # Use the GitHub App token for both operations
