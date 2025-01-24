@@ -13,61 +13,65 @@ repos:
   #        stages: [commit-msg]
 
   # Format commit messages
-  - repo: https://github.com/compilerla/conventional-pre-commit
+-   repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0
     hooks:
-      - id: conventional-pre-commit
+    -   id: conventional-pre-commit
         stages: [prepare-commit-msg]  # Format first
 
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+-   repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.20.0
     hooks:
-      - id: commitlint
+    -   id: commitlint
         stages: [commit-msg]
         additional_dependencies: ['@commitlint/config-conventional']
 
+-   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.12.0
+    hooks:
+    -   id: pretty-format-yaml
+        args: [--autofix, --indent, '4']
 
-  - repo: https://github.com/pre-commit/pre-commit-hooks
+-   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-added-large-files
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
 
-  - repo: local
+-   repo: local
     hooks:
-      - id: goimports
+    -   id: goimports
         name: goimports
         entry: bash -c 'go install golang.org/x/tools/cmd/goimports@latest && goimports'
         language: system
-        types: [ go ]
+        types: [go]
         pass_filenames: false
-        args: [ '-w' ]
+        args: [-w]
 
-      - id: gofumpt
+    -   id: gofumpt
         name: gofumpt
         entry: bash -c 'go install mvdan.cc/gofumpt@latest && gofumpt'
         language: system
         types: [go]
-        args: ['-w', '-l']
+        args: [-w, -l]
 
-      - id: golines
+    -   id: golines
         name: golines
         entry: bash -c 'go install github.com/segmentio/golines@latest && golines'
         language: system
-        types: [ go ]
-        args: [ '-w' ]
+        types: [go]
+        args: [-w]
 
-  - repo: local
+-   repo: local
     hooks:
       # Add this alongside your other local hooks
-      - id: goreleaser-check
+    -   id: goreleaser-check
         name: goreleaser-check
-        entry: bash -c 'if [ -f .goreleaser.yaml ]; then go install github.com/goreleaser/goreleaser@latest && goreleaser check; fi'
+        entry: goreleaser check
         language: system
-        pass_filenames: false
-        types: [go]
+        files: \.goreleaser\.ya?ml$
 
 #  - repo: https://github.com/golangci/golangci-lint
 #    rev: v1.49.0
