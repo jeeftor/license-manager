@@ -1,5 +1,5 @@
 # License Manager
-
+![docs/logo.png](docs/logo.png)
 A CLI tool for managing license headers in source code files. This tool helps you add, remove, update, and check license headers across your codebase with ease and precision. It utilizes non-printing Unicode character to mark the start & end of the License comment such that you can easier update or remove the license information.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/license-manager)](https://goreportcard.com/report/github.com/yourusername/license-manager)
