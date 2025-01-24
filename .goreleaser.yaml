@@ -66,12 +66,8 @@
 #            - 'https://apt.fury.io/jeeftor/'
 
   publishers:
-    - name: fury
-      ids: ['nfpm']
-      dir: "{{ dir .ArtifactPath }}"
-      cmd: curl -F package=@{{ .ArtifactName }} https://push.fury.io/jeeftor/
-      env:
-        - FURY_TOKEN={{ .Env.GEMFURY_TOKEN }}
+    - name: github
+      ids: ['*']  # Publishes all artifacts
 
   brews:
     - name: license-manager
