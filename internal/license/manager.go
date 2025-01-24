@@ -376,8 +376,8 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	expectedLicense := handler.FormatLicense(m.template, m.commentStyle, detectedStyle)
 
 	// Extract both licenses without stripping markers for accurate comparison
-	_, currentBody, _, _ := comment.ExtractComponents(currentLicense, false, m.commentStyle)
-	_, expectedBody, _, _ := comment.ExtractComponents(expectedLicense, false, m.commentStyle)
+	_, currentBody, _, _ := comment.ExtractComponents(currentLicense, true, m.commentStyle)
+	_, expectedBody, _, _ := comment.ExtractComponents(expectedLicense, true, m.commentStyle)
 
 	if currentBody == expectedBody {
 		if m.verbose && m.logger != nil {
@@ -392,7 +392,8 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 		lines1 := strings.Split(expectedBody, "\n")
 		lines2 := strings.Split(currentBody, "\n")
 
-		m.logger.LogInfo("\nDiff:")
+		m.logger.LogInfo("\nDiff: \033[31m expectedBody \033[0m\033[32m currentBody\033[0m")
+
 		for i := 0; i < max(len(lines1), len(lines2)); i++ {
 			line1 := ""
 			line2 := ""

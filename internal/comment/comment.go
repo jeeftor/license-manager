@@ -293,8 +293,10 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 	}
 
 	for i := bodyStart; i < bodyEnd; i++ {
-		line := strings.TrimSpace(lines[i])
+		line := lines[i]
 		if stripMarkers {
+			line = strings.TrimSpace(lines[i])
+			line = strings.TrimPrefix(line, languageStyle.LinePrefix)
 			line = strings.TrimPrefix(line, "*")
 			line = strings.TrimPrefix(line, " *")
 			line = strings.TrimSpace(line)
