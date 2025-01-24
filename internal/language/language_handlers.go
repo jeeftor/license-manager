@@ -117,7 +117,7 @@ func GetLanguageHandler(fileType string, style styles.HeaderFooterStyle) Languag
 	case "css":
 		return NewCSSHandler(style)
 	case "xml", "html":
-		return NewHTMLHandler(style) // XML can use HTML handler (both use <!-- -->)
+		return NewXMLHandler(style) // XML can use HTML handler (both use <!-- -->)
 	//case "markdown", "md":
 	//	return NewHTMLHandler(style) // Markdown can use HTML handler (both use <!-- -->)
 	case "ini", "toml":

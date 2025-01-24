@@ -165,7 +165,7 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgPresetStyle, "style", "simple", "Preset style for header/footer (e.g., simple, modern, elegant)")
+	rootCmd.PersistentFlags().StringVar(&cfgPresetStyle, "style", "hash", "Preset style for header/footer (run styles command for list)")
 	rootCmd.PersistentFlags().BoolVar(&cfgPreferMulti, "multi", true, "Prefer multi-line comments where supported")
 
 	rootCmd.PersistentFlags().StringVar(&cfgLicense, "license", "", "Path to license text file")

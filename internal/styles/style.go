@@ -92,7 +92,7 @@ func Get(name string) HeaderFooterStyle {
 	if style, ok := presetStyles[name]; ok {
 		return style
 	}
-	return presetStyles["simple"] // Return simple style as default
+	return presetStyles["hash"] // Return simple style as default
 }
 
 // List returns a slice of all available style names

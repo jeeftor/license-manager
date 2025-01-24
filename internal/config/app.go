@@ -30,7 +30,7 @@ type AppConfig struct {
 // NewAppConfig returns default application config
 func NewAppConfig() AppConfig {
 	return AppConfig{
-		HeaderStyle:  "simple",
+		HeaderStyle:  "hash",
 		CommentStyle: "go",
 	}
 }
