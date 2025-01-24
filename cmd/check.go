@@ -9,6 +9,8 @@ import (
 	"license-manager/internal/config"
 	"license-manager/internal/license"
 	"license-manager/internal/processor"
+
+	cc "github.com/ivanpirog/coloredcobra"
 )
 
 var (
@@ -35,7 +37,15 @@ func (e *ExitError) Error() string {
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check license headers in files",
-	Long:  `Check license headers in files`,
+	Long: `Check license headers in files
+
+Exit Codes:
+  0: All files match
+  1: At least 1 file is missing a license
+  2: Files have both content and header mismatch
+  3: Files have content mismatch
+  4: Files have style mismatch
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// CLI validation errors should show usage
 		if cfgLicense == "" {
@@ -58,6 +68,16 @@ var checkCmd = &cobra.Command{
 			Verbose:     cfgVerbose,
 			IgnoreFail:  checkIgnoreFail,
 		}
+
+		cc.Init(&cc.Config{
+			RootCmd:       rootCmd,
+			Headings:      cc.HiYellow + cc.Bold + cc.Underline,
+			Commands:      cc.HiBlue + cc.Bold,
+			Example:       cc.Italic,
+			ExecName:      cc.Bold + cc.Red,
+			CmdShortDescr: cc.Green,
+			Flags:         cc.Bold + cc.Green,
+		})
 
 		// Convert to processor config
 		procCfg, err := appCfg.ToProcessorConfig()
