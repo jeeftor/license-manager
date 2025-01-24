@@ -1,26 +1,27 @@
+---
 name: Pre-commit
 on:
     pull_request:
     push:
         branches:
-        -   master # or main, depending on your default branch
+            - master # or main, depending on your default branch
         tags-ignore:
-        -   v*    # ignore version tags
+            - v*  # ignore version tags
 jobs:
     pre-commit:
         runs-on: ubuntu-latest
         steps:
-        -   uses: actions/checkout@v4
-            with:
-                fetch-depth: 0
-        -   uses: actions/setup-go@v4
-            with:
-                go-version: stable
-        -   name: Install Go dependencies
-            run: go mod tidy
-        -   name: Set up Python
-            uses: actions/setup-python@v4
-        -   name: Install pre-commit
-            run: pip install pre-commit
-        -   name: Run pre-commit
-            run: pre-commit run --all-files
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-go@v4
+              with:
+                  go-version: stable
+            - name: Install Go dependencies
+              run: go mod tidy
+            - name: Set up Python
+              uses: actions/setup-python@v4
+            - name: Install pre-commit
+              run: pip install pre-commit
+            - name: Run pre-commit
+              run: pre-commit run --all-files
