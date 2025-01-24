@@ -72,6 +72,7 @@ func (c *Comment) String() string {
 		lines := strings.Split(text, "\n")
 		for _, line := range lines {
 			if c.style.MultiPrefix != "" {
+
 				if line == "" {
 					result = append(result, c.style.MultiPrefix)
 				} else {
@@ -204,7 +205,7 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 }
 
 // ExtractComponents extracts the header, body, and footer from a license block
-func ExtractComponents(content string, stripMarkers bool) (header, body, footer string, success bool) {
+func ExtractComponents(content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer string, success bool) {
 	if content == "" {
 		return "", "", "", false
 	}
@@ -219,25 +220,41 @@ func ExtractComponents(content string, stripMarkers bool) (header, body, footer 
 	var startIndex, endIndex int
 	var foundStart, foundEnd bool
 
+	//for i, line := range lines {
+	//	line = strings.TrimSpace(line)
+	//	if line == "" {
+	//		continue
+	//	}
+	//
+	//	// Look for start markers using language style
+	//	if !foundStart && languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
+	//		startIndex = i
+	//		foundStart = true
+	//		continue
+	//	}
+	//
+	//	// Look for end markers
+	//	if foundStart && !foundEnd && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
+	//		endIndex = i
+	//		foundEnd = true
+	//		break
+	//	}
+	//}
 	for i, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 
-		if !foundStart && line == "/*" {
+		if languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
 			startIndex = i
 			foundStart = true
-			continue
-		}
-
-		if foundStart && !foundEnd && line == "*/" {
+		} else if foundStart && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
 			endIndex = i
 			foundEnd = true
 			break
 		}
 	}
-
 	if !foundStart || !foundEnd {
 		return "", "", "", false
 	}
@@ -276,7 +293,7 @@ func ExtractComponents(content string, stripMarkers bool) (header, body, footer 
 	}
 
 	for i := bodyStart; i < bodyEnd; i++ {
-		line := lines[i]
+		line := strings.TrimSpace(lines[i])
 		if stripMarkers {
 			line = strings.TrimPrefix(line, "*")
 			line = strings.TrimPrefix(line, " *")
@@ -286,6 +303,7 @@ func ExtractComponents(content string, stripMarkers bool) (header, body, footer 
 	}
 
 	header = strings.Join(headerLines, "\n")
+
 	body = strings.Join(bodyLines, "\n")
 	footer = strings.Join(footerLines, "\n")
 

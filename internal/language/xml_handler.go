@@ -41,3 +41,17 @@ func (h *XMLHandler) PreservePreamble(content string) (string, string) {
 
 	return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 }
+
+func (h *XMLHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) string {
+	header := strings.TrimSpace(style.Header)
+	footer := strings.TrimSpace(style.Footer)
+
+	var result []string
+	result = append(result, "<!--")
+	result = append(result, header)
+	result = append(result, license)
+	result = append(result, footer)
+	result = append(result, "-->")
+
+	return strings.Join(result, "\n")
+}
