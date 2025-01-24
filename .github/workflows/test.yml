@@ -7,7 +7,7 @@ on:
         tags-ignore: [v*]
 
 jobs:
-    test:
+    integration-testing:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
