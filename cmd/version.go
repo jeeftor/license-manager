@@ -6,10 +6,16 @@ import (
 	"runtime"
 )
 
+var shortOutput bool
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, args []string) {
+		if shortOutput {
+			fmt.Println(version)
+			return
+		}
 		fmt.Printf("Version:    %s\n", version)
 		fmt.Printf("Built:      %s\n", date)
 		fmt.Printf("Git commit: %s\n", commit)
@@ -19,5 +25,6 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
+	versionCmd.Flags().BoolVarP(&shortOutput, "short", "s", false, "Print only version number")
 	rootCmd.AddCommand(versionCmd)
 }
