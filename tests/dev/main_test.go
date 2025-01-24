@@ -109,7 +109,12 @@ func TestMatrix(t *testing.T) {
 		file := file // capture varibale in loop
 		for _, stage := range testStage {
 			test := stage // capture loop var
-			t.Run(fmt.Sprintf("%s/%s/%s", file.language.Language, file.fileName, test.Name), func(t *testing.T) {
+
+			pathComponents := []string{file.language.Language, file.fileName}
+			if len(testStage) > 1 {
+				pathComponents = append(pathComponents, test.Name)
+			}
+			t.Run(fmt.Sprintf("%s", strings.Join(pathComponents, "/")), func(t *testing.T) {
 				t.Parallel()
 
 				if err := resetFile(file); err != nil {
