@@ -17,7 +17,7 @@
         - arm64
       main: .
       ldflags:
-        - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+        - - -s -w -X github.com/jeeftor/license-manager/cmd.version={{.Version}} -X github.com/jeeftor/license-manager/cmd.commit={{.ShortCommit}} -X github.com/jeeftor/license-manager/cmd.date={{.Date}}
       binary: license-manager
 
   archives:
