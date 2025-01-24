@@ -59,7 +59,15 @@ repos:
         types: [ go ]
         args: [ '-w' ]
 
-
+  - repo: local
+    hooks:
+      # Add this alongside your other local hooks
+      - id: goreleaser-check
+        name: goreleaser-check
+        entry: bash -c 'if [ -f .goreleaser.yaml ]; then go install github.com/goreleaser/goreleaser@latest && goreleaser check; fi'
+        language: system
+        pass_filenames: false
+        types: [go]
 
 #  - repo: https://github.com/golangci/golangci-lint
 #    rev: v1.49.0
