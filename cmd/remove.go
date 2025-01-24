@@ -23,11 +23,10 @@ var removeCmd = &cobra.Command{
 			PreferMulti:  cfgPreferMulti,
 
 			// Behavior flags
-			Verbose:     cfgVerbose,
-			Interactive: cfgPrompt,
-			DryRun:      cfgDryRun,
-			Force:       false,
-			IgnoreFail:  false,
+			Verbose: cfgVerbose,
+
+			Force:      false,
+			IgnoreFail: false,
 		}
 
 		procCfg, err := appCfg.ToProcessorConfig()

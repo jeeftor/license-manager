@@ -1,18 +1,24 @@
 // internal/processor/errors.go
 package processor
 
-import "license-manager/internal/license"
+import (
+	"license-manager/internal/license"
+)
 
-// CheckError represents a failure in license checking
+// CheckError represents an error during license checking
 type CheckError struct {
-	msg    string
 	Status license.Status
-}
-
-func NewCheckError(msg string, status license.Status) *CheckError {
-	return &CheckError{msg: msg, Status: status}
+	Msg    string
 }
 
 func (e *CheckError) Error() string {
-	return e.msg
+	return e.Msg
+}
+
+// NewCheckError creates a new CheckError
+func NewCheckError(status license.Status, msg string) *CheckError {
+	return &CheckError{
+		Status: status,
+		Msg:    msg,
+	}
 }

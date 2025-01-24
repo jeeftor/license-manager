@@ -58,18 +58,18 @@ var logo = "" +
 	purple4.Sprint(`   ▐▌  ▐▌▐▌ ▐▌▐▌  ▐▌▐▌ ▐▌▝▚▄▞▘▐▙▄▄▖▐▌ ▐▌`) + "\n" +
 	versionColor.Sprint(versionString)
 
-var (
-	cfgLicense      string
-	cfgInputs       []string
-	cfgSkips        []string
-	cfgPrompt       bool
-	cfgDryRun       bool
-	cfgVerbose      bool   // Add verbose flag
-	cfgPresetStyle  string // header/footer style
-	cfgPreferMulti  bool   // prefer multi-line comments where supported
-	checkIgnoreFail bool   // Added for check command
-
-)
+//var (
+//	cfgLicense      string
+//	cfgInputs       []string
+//	cfgSkips        []string
+//	cfgPrompt       bool
+//	cfgDryRun       bool
+//	cfgVerbose      bool   // Add verbose flag
+//	cfgPresetStyle  string // header/footer style
+//	cfgPreferMulti  bool   // prefer multi-line comments where supported
+//	checkIgnoreFail bool   // Added for check command
+//
+//)
 
 var rootCmd = &cobra.Command{
 	Use:   "license-manager",
@@ -107,8 +107,8 @@ func init() {
 	rootCmd.PersistentFlags().StringSliceVar(&cfgInputs, "input", []string{}, "Inputs file patterns")
 	rootCmd.PersistentFlags().StringSliceVar(&cfgSkips, "skip", []string{}, "Patterns to skip")
 
-	rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
-	rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
+	//rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
+	//rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
 	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
 }
 func initConfig() {

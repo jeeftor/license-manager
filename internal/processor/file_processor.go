@@ -52,11 +52,13 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 		tempManager := license.NewLicenseManager("", styles.Get(fp.config.PresetStyle))
 		tempManager.SetCommentStyle(commentStyle)
 		if tempManager.HasLicense(content) {
-			// If we found a license, use its style
+			// If we found a license, detect its style for logging purposes
 			style = tempManager.DetectHeaderStyle(content)
 			if fp.config.Verbose {
 				fp.logger.LogInfo("  Detected style: %s", style.Name)
 			}
+			// Always use the configured style for checking
+			style = styles.Get(fp.config.PresetStyle)
 		} else {
 			// If no license found, use configured style
 			style = styles.Get(fp.config.PresetStyle)
@@ -87,11 +89,17 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 // resetStats resets the operation statistics
 func (fp *FileProcessor) resetStats() {
 	fp.stats = map[string]int{
-		"added":     0,
-		"existing":  0,
-		"skipped":   0,
-		"failed":    0,
-		"unchanged": 0,
+		"added":                  0,
+		"existing":               0,
+		"skipped":                0,
+		"failed":                 0,
+		"unchanged":              0,
+		"ok":                     0,
+		"missing":                0,
+		"mismatch":               0,
+		"style_mismatch":         0,
+		"content_style_mismatch": 0,
+		"error":                  0,
 	}
 }
 
@@ -335,45 +343,52 @@ func (fp *FileProcessor) Update() error {
 		manager, _ := fp.createManager(file)
 		status := manager.CheckLicenseStatus(content)
 
+		// Skip files with no license
 		if status == license.NoLicense {
 			fp.stats["skipped"]++
-			fp.logger.LogInfo("Skipping %s", file)
+			fp.logger.LogInfo("Skipping %s (no license)", file)
 			continue
 		}
 
-		newContent, err := manager.UpdateLicense(content)
-		if err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to update license in %s: %v", file, err)
-			continue
-		}
+		// Update files with incorrect style or content
+		if status == license.StyleMismatch || status == license.ContentMismatch || status == license.ContentAndStyleMismatch {
+			newContent, err := manager.UpdateLicense(content)
+			if err != nil {
+				fp.stats["failed"]++
+				fp.logger.LogError("Failed to update license in %s: %v", file, err)
+				continue
+			}
 
-		if newContent == content {
+			if newContent == content {
+				fp.stats["unchanged"]++
+				fp.logger.LogInfo("License is up-to-date in %s", file)
+				continue
+			}
+
+			if fp.config.DryRun {
+				fp.logger.LogInfo("Would update license in %s", file)
+				continue
+			}
+
+			if fp.config.Prompt && !fp.logger.Prompt(
+				fp.logger.LogQuestion("Update license in %s?", file)) {
+				fp.stats["skipped"]++
+				fp.logger.LogInfo("Skipping %s", file)
+				continue
+			}
+
+			if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
+				fp.stats["failed"]++
+				fp.logger.LogError("Failed to write file %s: %v", file, err)
+				continue
+			}
+
+			fp.stats["added"]++
+			fp.logger.LogSuccess("Updated license in %s", file)
+		} else {
 			fp.stats["unchanged"]++
 			fp.logger.LogInfo("License is up-to-date in %s", file)
-			continue
 		}
-
-		if fp.config.DryRun {
-			fp.logger.LogInfo("Would update license in %s", file)
-			continue
-		}
-
-		if fp.config.Prompt && !fp.logger.Prompt(
-			fp.logger.LogQuestion("Update license in %s?", file)) {
-			fp.stats["skipped"]++
-			fp.logger.LogInfo("Skipping %s", file)
-			continue
-		}
-
-		if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to write file %s: %v", file, err)
-			continue
-		}
-
-		fp.stats["added"]++
-		fp.logger.LogSuccess("Updated license in %s", file)
 	}
 
 	fp.logger.PrintStats(fp.stats, "Updated")
@@ -410,69 +425,52 @@ func (fp *FileProcessor) Check() error {
 
 	hasFailures := false
 	for _, file := range files {
-		// Get relative path for cleaner output
-		relPath, err := filepath.Rel(".", file)
-		if err != nil {
-			relPath = file // Fallback to full path
+		// Get relative path for logging
+		relPath := file
+		if rel, err := filepath.Rel(".", file); err == nil {
+			relPath = rel
 		}
 
+		// Check license status
 		manager, _ := fp.createManager(file)
-
-		// Print file path first for better log readability
-		if fp.config.Verbose {
-			fp.logger.LogInfo("Checking %s...", relPath)
-		}
-
 		content, err := fp.fileHandler.ReadFile(file)
 		if err != nil {
 			fp.stats["failed"]++
 			fp.logger.LogError("Failed to read %s: %v", relPath, err)
-			hasFailures = true
-			continue
+			return NewCheckError(license.NoLicense, fmt.Sprintf("failed to read file: %v", err))
 		}
 
 		status := manager.CheckLicenseStatus(content)
-
-		// Clear status indication for each file
-		switch status {
-		case license.NoLicense:
-			fp.stats["skipped"]++
-			fp.logger.LogError("%s: No license found", relPath)
-			hasFailures = true
-
-		case license.DifferentLicense:
+		if status != license.FullMatch {
 			fp.stats["failed"]++
-			fp.logger.LogError("%s: License text differs from expected", relPath)
-			hasFailures = true
-
-			if fp.config.Verbose {
-				// In verbose mode, show actual differences
-				current, expected := manager.GetLicenseComparison(content)
-				fp.logger.LogInfo("Current license in %s:", relPath)
-				fp.logger.LogInfo("%s", current)
-				fp.logger.LogInfo("Expected:")
-				fp.logger.LogInfo("%s", expected)
+			switch status {
+			case license.NoLicense:
+				fp.logger.LogError("%s: Missing license", relPath)
+			case license.ContentMismatch:
+				fp.logger.LogError("%s: License content mismatch", relPath)
+			case license.StyleMismatch:
+				fp.logger.LogError("%s: License style mismatch (expected %s)", relPath, manager.GetHeaderStyle().Name)
+			case license.ContentAndStyleMismatch:
+				fp.logger.LogError("%s: License content and style mismatch", relPath)
+			default:
+				fp.logger.LogError("%s: Unknown license error", relPath)
 			}
-
-		case license.MatchingLicense:
-			fp.stats["unchanged"]++
-			fp.logger.LogSuccess("%s: License OK", relPath)
+			if !fp.config.IgnoreFail {
+				return NewCheckError(status, fmt.Sprintf("license check failed: %s", relPath))
+			}
+		} else {
+			fp.stats["passed"]++
+			if fp.config.Verbose {
+				fp.logger.LogSuccess("%s: License OK", relPath)
+			}
 		}
 	}
 	if hasFailures {
-		if !fp.config.IgnoreFail {
-			if fp.stats["skipped"] > 0 {
-				return NewCheckError("license check failed: some files have missing licenses", license.NoLicense)
-			}
-			return NewCheckError("license check failed: some files have incorrect licenses", license.DifferentLicense)
+		if fp.stats["missing"] > 0 {
+			return NewCheckError(license.NoLicense, "license check failed: some files have missing licenses")
 		}
+		return NewCheckError(license.ContentMismatch, "license check failed: some files have incorrect licenses")
 	}
-	//if hasFailures {
-	//	if !fp.config.IgnoreFail {
-	//		// Print a final summary without all the cobra usage info
-	//		return NewCheckError("license check failed: some files have missing or incorrect licenses")
-	//	}
-	//}
 
 	return nil
 }

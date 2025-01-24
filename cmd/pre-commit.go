@@ -44,7 +44,6 @@ var preCommitCmd = &cobra.Command{
 
 			Verbose:     cfgVerbose,
 			Interactive: false, // Typically want non-interactive in pre-commit
-			DryRun:      false,
 			Force:       false,
 			IgnoreFail:  false, // We want to fail if license checks fail
 		}

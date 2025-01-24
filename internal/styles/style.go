@@ -73,6 +73,18 @@ var presetStyles = map[string]HeaderFooterStyle{
 		Header:      "⚔️══✦══✦══ LICENSE ══✦══✦══⚔️",
 		Footer:      "⚔️══✦══✦═ END LICENSE ═✦══✦══⚔️",
 	},
+	"scrolls": {
+		Name:        "Scrolls",
+		Description: "Scroll pattern border",
+		Header:      "📜 ∽∽∽ LICENSE ∽∽∽ 📜",
+		Footer:      "📜 ∽∽∽ END LICENSE ∽∽∽ 📜",
+	},
+	"waves": {
+		Name:        "Waves",
+		Description: "Wave pattern border",
+		Header:      "〰️〰️〰️〰️ LICENSE BEGIN 〰️〰️〰️〰️",
+		Footer:      "〰️〰️〰️〰️ LICENSE END 〰️〰️〰️〰️",
+	},
 }
 
 // Get returns a HeaderFooterStyle by name, or a default if not found

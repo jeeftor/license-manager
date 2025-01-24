@@ -9,14 +9,38 @@ import (
 	"strings"
 )
 
-// Status represents the status of a license in a file
+// Status represents the status of a license check
 type Status int
 
 const (
-	MatchingLicense Status = iota
+	// FullMatch indicates that both the license content and style match
+	FullMatch Status = iota
+	// NoLicense indicates that no license was found
 	NoLicense
-	DifferentLicense
+	// ContentMismatch indicates that the license content is different
+	ContentMismatch
+	// StyleMismatch indicates that the license content matches but the style is different
+	StyleMismatch
+	// ContentAndStyleMismatch indicates that both the content and style are different
+	ContentAndStyleMismatch
 )
+
+func (s Status) String() string {
+	switch s {
+	case FullMatch:
+		return "License OK"
+	case NoLicense:
+		return "No license found"
+	case ContentMismatch:
+		return "License content mismatch"
+	case StyleMismatch:
+		return "License style mismatch"
+	case ContentAndStyleMismatch:
+		return "License content and style mismatch"
+	default:
+		return "Unknown status"
+	}
+}
 
 // LicenseManager handles license operations
 type LicenseManager struct {
@@ -127,7 +151,10 @@ func (m *LicenseManager) AddLicense(content string, fileType string) (string, er
 
 	// Check for existing license
 	if m.HasLicense(rest) {
-		return "", errors.NewLicenseError("license already exists", "add")
+		// If we're updating, allow the license to be replaced
+		if status := m.CheckLicenseStatus(rest); status == FullMatch {
+			return "", errors.NewLicenseError("license already exists and matches", "add")
+		}
 	}
 
 	// Format license block with comment style
@@ -228,11 +255,31 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 
 	// Remove the license block and any surrounding empty lines
 	result := append(lines[:startLine], lines[endLine+1:]...)
-	for len(result) > 0 && strings.TrimSpace(result[0]) == "" {
-		result = result[1:]
+
+	// Clean up empty comment blocks
+	var cleanedResult []string
+	inEmptyComment := false
+	for _, line := range result {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "/*" {
+			inEmptyComment = true
+			continue
+		}
+		if trimmed == "*/" && inEmptyComment {
+			inEmptyComment = false
+			continue
+		}
+		if !inEmptyComment && trimmed != "" {
+			cleanedResult = append(cleanedResult, line)
+		}
 	}
 
-	newContent := strings.Join(result, "\n")
+	// Remove leading empty lines
+	for len(cleanedResult) > 0 && strings.TrimSpace(cleanedResult[0]) == "" {
+		cleanedResult = cleanedResult[1:]
+	}
+
+	newContent := strings.Join(cleanedResult, "\n")
 	if preamble != "" {
 		if m.verbose && m.logger != nil {
 			m.logger.LogInfo("  Reconstructing content with preamble")
@@ -293,13 +340,33 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 		return NoLicense
 	}
 
-	// First detect the style from the content
+	// Get the current header/footer from the content
 	detectedStyle := m.DetectHeaderStyle(rest)
 	if m.verbose && m.logger != nil {
 		m.logger.LogInfo("  Detected style: %s", detectedStyle.Name)
 	}
 
-	// Format both licenses with the detected style
+	// If a specific style was requested, check if it matches
+	if m.headerStyle.Name != "" && m.headerStyle.Name != detectedStyle.Name {
+		if m.verbose && m.logger != nil {
+			m.logger.LogInfo("  Style mismatch: expected [%s], found [%s]", m.headerStyle.Name, detectedStyle.Name)
+		}
+
+		// Check if content matches despite style mismatch
+		currentLicense := rest
+		expectedLicense := handler.FormatLicense(m.template, m.commentStyle, m.headerStyle)
+
+		// Extract both licenses without stripping markers for accurate comparison
+		_, currentBody, _, _ := comment.ExtractComponents(currentLicense, false)
+		_, expectedBody, _, _ := comment.ExtractComponents(expectedLicense, false)
+
+		if currentBody == expectedBody {
+			return StyleMismatch
+		}
+		return ContentAndStyleMismatch
+	}
+
+	// Compare the license content
 	currentLicense := rest
 	expectedLicense := handler.FormatLicense(m.template, m.commentStyle, detectedStyle)
 
@@ -307,23 +374,17 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	_, currentBody, _, _ := comment.ExtractComponents(currentLicense, false)
 	_, expectedBody, _, _ := comment.ExtractComponents(expectedLicense, false)
 
-	if m.verbose && m.logger != nil {
-		m.logger.LogInfo("  Found license block (%d lines)", len(strings.Split(currentBody, "\n")))
-		m.logger.LogInfo("  Expected license (%d lines)", len(strings.Split(expectedBody, "\n")))
-		m.logger.LogInfo("  Comparing license content...")
-	}
-
-	if strings.TrimSpace(currentBody) == strings.TrimSpace(expectedBody) {
+	if currentBody == expectedBody {
 		if m.verbose && m.logger != nil {
 			m.logger.LogInfo("  Result: License matches expected content exactly")
 		}
-		return MatchingLicense
+		return FullMatch
 	}
 
 	if m.verbose && m.logger != nil {
-		m.logger.LogInfo("  Result: License differs from expected content")
+		m.logger.LogInfo("  Result: License content differs from expected")
 	}
-	return DifferentLicense
+	return ContentMismatch
 }
 
 // GetLicenseComparison returns the current and expected license text for comparison
@@ -433,6 +494,11 @@ func (m *LicenseManager) DetectHeaderStyle(content string) styles.HeaderFooterSt
 	}
 
 	// Otherwise return current style
+	return m.headerStyle
+}
+
+// GetHeaderStyle returns the current header style
+func (m *LicenseManager) GetHeaderStyle() styles.HeaderFooterStyle {
 	return m.headerStyle
 }
 

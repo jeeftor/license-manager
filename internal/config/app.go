@@ -18,7 +18,6 @@ type AppConfig struct {
 	// UI/Behavior settings
 	Verbose     bool
 	Interactive bool
-	DryRun      bool
 	Force       bool
 
 	// Style preferences
@@ -55,10 +54,10 @@ func (c *AppConfig) ToProcessorConfig() (*processor.Config, error) {
 		Input:       c.Inputs,
 		Skip:        c.Skips,
 		Prompt:      c.Interactive,
-		DryRun:      c.DryRun,
 		Verbose:     c.Verbose,
 		PresetStyle: c.HeaderStyle,
 		PreferMulti: c.PreferMulti,
+		IgnoreFail:  c.IgnoreFail,
 	}, nil
 }
 

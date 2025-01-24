@@ -2,17 +2,40 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
+
 	"license-manager/internal/config"
 	"license-manager/internal/license"
 	"license-manager/internal/processor"
-	"os"
 )
 
+var (
+	checkIgnoreFail bool
+	cfgLicense      string
+	cfgInputs       []string
+	cfgSkips        []string
+	cfgPresetStyle  string
+	cfgPreferMulti  bool
+	cfgVerbose      bool
+)
+
+// ExitError represents an error with an exit code
+type ExitError struct {
+	msg  string
+	code int
+}
+
+func (e *ExitError) Error() string {
+	return e.msg
+}
+
+// checkCmd represents the check command
 var checkCmd = &cobra.Command{
 	Use:   "check",
-	Short: "Check for license headers in files",
-	Long:  `Check if files have the specified license headers\n Exit Code 0 - License Found\nExit Code 1 - License Missing \nExit Code 2 - License Mismatch`,
+	Short: "Check license headers in files",
+	Long:  `Check license headers in files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// CLI validation errors should show usage
 		if cfgLicense == "" {
@@ -25,42 +48,66 @@ var checkCmd = &cobra.Command{
 		// After validation passes, silence usage since any further errors are execution errors
 		cmd.SilenceUsage = true
 
+		// Create app config
 		appCfg := config.AppConfig{
-			// File paths
 			LicenseFile: cfgLicense,
-			Inputs:      ProcessPatterns(cfgInputs),
-			Skips:       ProcessPatterns(cfgSkips),
-
-			// Style settings
-			HeaderStyle:  cfgPresetStyle,
-			CommentStyle: "go", // default
-			PreferMulti:  cfgPreferMulti,
-
-			// Behavior flags
+			Inputs:      strings.Join(cfgInputs, ","),
+			Skips:       strings.Join(cfgSkips, ","),
+			HeaderStyle: cfgPresetStyle,
+			PreferMulti: cfgPreferMulti,
 			Verbose:     cfgVerbose,
-			Interactive: cfgPrompt,
-			DryRun:      cfgDryRun,
-			Force:       false,
 			IgnoreFail:  checkIgnoreFail,
 		}
 
+		// Convert to processor config
 		procCfg, err := appCfg.ToProcessorConfig()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create processor config: %w", err)
 		}
 
+		// Create processor and run check
 		p := processor.NewFileProcessor(procCfg)
 		err = p.Check()
 
-		if licErr, ok := err.(*processor.CheckError); ok {
-			switch licErr.Status {
-			case license.NoLicense:
-				os.Exit(1)
-			case license.DifferentLicense:
-				os.Exit(2)
+		if err != nil {
+			if checkErr, ok := err.(*processor.CheckError); ok {
+				if checkIgnoreFail {
+					return nil
+				}
+				switch checkErr.Status {
+				case license.NoLicense:
+					return &ExitError{
+						msg:  "license check failed: some files have missing licenses",
+						code: int(license.NoLicense),
+					}
+				case license.ContentMismatch:
+					return &ExitError{
+						msg:  "license check failed: some files have incorrect license content",
+						code: int(license.ContentMismatch),
+					}
+				case license.StyleMismatch:
+					return &ExitError{
+						msg:  "license check failed: some files have incorrect license style",
+						code: int(license.StyleMismatch),
+					}
+				case license.ContentAndStyleMismatch:
+					return &ExitError{
+						msg:  "license check failed: some files have incorrect license content and style",
+						code: int(license.ContentAndStyleMismatch),
+					}
+				default:
+					return &ExitError{
+						msg:  "license check failed: unknown error",
+						code: 5, // Keep this as a constant since it's not part of the Status enum
+					}
+				}
+			}
+			return &ExitError{
+				msg:  fmt.Sprintf("license check failed: %v", err),
+				code: 5, // Keep this as a constant since it's not part of the Status enum
 			}
 		}
-		return err
+		return nil
 	},
 }
 
