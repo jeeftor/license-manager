@@ -1,4 +1,11 @@
 # License Manager
+
+![GitHub commit activity](https://img.shields.io/github/commit-activity/w/jeeftor/license-manager)
+![GitHub commits since latest release](https://img.shields.io/github/commits-since/jeeftor/license-manager/latest)
+![GitHub Release Date](https://img.shields.io/github/release-date/jeeftor/license-manager)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/jeeftor/license-manager/total)
+![GitHub Repo stars](https://img.shields.io/github/stars/jeeftor/license-manager)
+
 ![docs/logo.png](docs/logo.png)
 A CLI tool for managing license headers in source code files. This tool helps you add, remove, update, and check license headers across your codebase with ease and precision. It utilizes non-printing Unicode character to mark the start & end of the License comment such that you can easier update or remove the license information.
 
