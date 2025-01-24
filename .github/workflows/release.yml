@@ -44,10 +44,7 @@ jobs:
       - uses: anchore/sbom-action/download-syft@v0.17.9
 
       - uses: actions/setup-go@v5
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
+
 
 
       - name: Install Go dependencies
