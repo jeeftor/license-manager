@@ -84,7 +84,7 @@ brews:
       description: License Manager Tool
       license: MIT
       test: |
-          system "#{bin}/license-manager --version"
+          system "#{bin}/license-manager version -s"
       install: |
           bin.install "license-manager"
 
