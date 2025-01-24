@@ -418,8 +418,8 @@ func (m *LicenseManager) DetectHeaderStyle(content string) styles.HeaderFooterSt
 	footerMatch := styles.Infer(lastLine)
 
 	if m.verbose && m.logger != nil {
-		m.logger.LogInfo("  Header match: %s (score: %.2f)", headerMatch.Style.Name, headerMatch.Score)
-		m.logger.LogInfo("  Footer match: %s (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
+		m.logger.LogInfo("  Header match: [%s] (score: %.2f)", headerMatch.Style.Name, headerMatch.Score)
+		m.logger.LogInfo("  Footer match: [%s] (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
 	}
 
 	// If both header and footer match the same style with high confidence, use that style
