@@ -43,7 +43,7 @@ jobs:
       # only needed if using SBOMs
       - uses: anchore/sbom-action/download-syft@v0.17.9
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v5
         with:
           distribution: goreleaser
           version: "~> v2"
