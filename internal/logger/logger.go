@@ -75,14 +75,14 @@ func (l *Logger) Prompt(message string) bool {
 }
 
 // PrintStats prints operation statistics
-func (l *Logger) PrintStats(stats map[string]int) {
+func (l *Logger) PrintStats(stats map[string]int, operation string) {
 	if len(stats) == 0 {
 		return
 	}
 
 	fmt.Println("\nSummary:")
 	if stats["added"] > 0 {
-		l.LogSuccess("Added license to %d files", stats["added"])
+		l.LogSuccess("%s license to %d files", operation, stats["added"])
 	}
 	if stats["existing"] > 0 {
 		l.LogWarning("License already exists in %d files (use 'update' command to modify)", stats["existing"])

@@ -182,7 +182,7 @@ func (fp *FileProcessor) Add() error {
 		fp.logger.LogSuccess("Added license to %s", file)
 	}
 
-	fp.logger.PrintStats(fp.stats)
+	fp.logger.PrintStats(fp.stats, "Added")
 	return nil
 }
 
@@ -262,7 +262,7 @@ func (fp *FileProcessor) Remove() error {
 		fp.logger.LogSuccess("Removed license from %s", file)
 	}
 
-	fp.logger.PrintStats(fp.stats)
+	fp.logger.PrintStats(fp.stats, "Removed")
 	return nil
 }
 
@@ -350,7 +350,7 @@ func (fp *FileProcessor) Update() error {
 		fp.logger.LogSuccess("Updated license in %s", file)
 	}
 
-	fp.logger.PrintStats(fp.stats)
+	fp.logger.PrintStats(fp.stats, "Updated")
 	return nil
 }
 
