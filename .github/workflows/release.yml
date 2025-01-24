@@ -43,9 +43,9 @@ jobs:
       # only needed if using SBOMs
       - uses: anchore/sbom-action/download-syft@v0.17.9
 
-      - uses: actions/setup-go@v5
 
-
+      - name: Set up Go
+        uses: actions/setup-go@v5
 
       - name: Install Go dependencies
         run: go mod tidy
