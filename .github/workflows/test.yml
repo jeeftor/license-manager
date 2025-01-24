@@ -30,19 +30,10 @@ jobs:
             - uses: actions/upload-artifact@v4
               if: always()
               with:
-                  name: junit.xml
-                  path: junit.xml
-#                  path: |
-#                      junit.xml
-#                      test-output.json
-
-#            - name: Publish Test Results
-#              uses: mikepenz/action-junit-report@v3
-#              if: always()
-#              with:
-#                  token: ${{ github.token }}
-#                  check_name: Test Results
-#                  report_paths: '**/junit.xml'
+                  name: test-results
+                  path: |
+                      junit.xml
+                      test-output.json
 
             - name: Publish Test Results
               # https://github.com/marketplace/actions/publish-test-results#json-result
@@ -51,9 +42,20 @@ jobs:
               with:
                   files: |-
                       *.xml
-#                      *.json
+                      *.json
                   json_test_case_results: true  # This enables writing out all test case results to JSON
                   report_individual_runs: true
+            - name: Install GitHub CLI
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y gh
+
+            - name: Update Gist with new test results
+              env:
+                  GIST_ID: ${{ secrets.GIST_ID }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh gist edit $GIST_ID --filename test-output.json --content "$(cat test-output.json)"
 
             - name: Conclusion
               run: echo "Conclusion is ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}"
