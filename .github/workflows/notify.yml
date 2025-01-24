@@ -1,0 +1,41 @@
+---
+name: CI Status Notification
+
+on:
+    workflow_run:
+        workflows: [Release]
+        types:
+            - completed
+
+jobs:
+    notify:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Set notification emoji and message
+              id: notification
+              run: |
+                  if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
+                    VERSION=${GITHUB_REF#refs/tags/}
+                    echo "status=✅" >> $GITHUB_OUTPUT
+                    echo "message=✅ Release workflow successful! Version **${VERSION}** published" >> $GITHUB_OUTPUT
+                  elif [ "${{ github.event.workflow_run.conclusion }}" == "failure" ]; then
+                    echo "status=❌" >> $GITHUB_OUTPUT
+                    echo "message=❌ Release workflow failed" >> $GITHUB_OUTPUT
+                  else
+                    echo "status=⚠️" >> $GITHUB_OUTPUT
+                    echo "message=⚠️ Release workflow status: ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Send notification
+              if: ${{ always() }}
+              run: |-
+                  curl -X POST \
+                    -H "CF-Access-Client-Id: ${{ secrets.CF_APPRISE_TOKEN }}" \
+                    -H "CF-Access-Client-Secret: ${{ secrets.CF_APPRISE_SECRET }}" \
+                    -H "Content-Type: application/json" \
+                    -d '{
+                      "urls": "all://*",
+                      "body": "${{ steps.notification.outputs.message }}",
+                      "title": "CI Status: ${{ github.repository }}"
+                    }' \
+                    https://rise.vookie.net/notify/apprise
