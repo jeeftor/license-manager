@@ -35,15 +35,16 @@ jobs:
                       junit.xml
                       test-output.json
 
-            - name: Publish Test Results
-              uses: mikepenz/action-junit-report@v3
-              if: always()
-              with:
-                  token: ${{ github.token }}
-                  check_name: Test Results
-                  report_paths: '**/junit.xml'
+#            - name: Publish Test Results
+#              uses: mikepenz/action-junit-report@v3
+#              if: always()
+#              with:
+#                  token: ${{ github.token }}
+#                  check_name: Test Results
+#                  report_paths: '**/junit.xml'
 
             - name: Publish Test Results
+              # https://github.com/marketplace/actions/publish-test-results#json-result
               uses: EnricoMi/publish-unit-test-result-action@v2
               if: always()
               with:
