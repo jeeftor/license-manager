@@ -29,3 +29,10 @@ jobs:
                   path: |
                       junit.xml
                       test-output.json
+
+            - name: Publish Test Results
+              uses: mikepenz/action-junit-report@v3
+              if: always()
+              with:
+                  check_name: Test Results
+                  report_paths: '**/junit.xml'
