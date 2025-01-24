@@ -107,7 +107,9 @@ func TestMatrix(t *testing.T) {
 		//{Name: "Remove", Helper: testRemove},
 	}
 
-	for _, file := range testFiles[0:1] {
+	// When testing stuff you want to use this
+	// for _, file := range testFiles[0:1] {
+	for _, file := range testFiles {
 		file := file // capture varibale in loop
 		for _, stage := range testStage {
 			test := stage // capture loop var
@@ -179,7 +181,7 @@ func checkLicenseWithErrorValue(file *singleTestFile, licensePath string, wanted
 	stdout, stderr, err := CheckLicense(file.filePath, licensePath)
 
 	// Extract exit code from stderr
-	exitCode := -1
+	exitCode := 0
 	if strings.Contains(stderr, "exit status") {
 		fmt.Sscanf(stderr, "exit status %d", &exitCode)
 	}
