@@ -35,16 +35,7 @@ jobs:
                       junit.xml
                       test-output.json
 
-            - name: Publish Test Results
-              # https://github.com/marketplace/actions/publish-test-results#json-result
-              uses: EnricoMi/publish-unit-test-result-action@v2
-              if: always()
-              with:
-                  files: |-
-                      *.xml
-                      *.json
-                  json_test_case_results: true  # This enables writing out all test case results to JSON
-                  report_individual_runs: true
+
             - name: Install GitHub CLI
               run: |
                   sudo apt-get update
@@ -56,6 +47,19 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   gh gist edit $GIST_ID --filename test-output.json --content "$(cat test-output.json)"
+                  gh gist edit $GIST_ID --filename junit.xml --content "$(cat junit.xml)"
+
+            - name: Publish Test Results
+              # https://github.com/marketplace/actions/publish-test-results#json-result
+              uses: EnricoMi/publish-unit-test-result-action@v2
+              if: always()
+              with:
+                  files: |-
+                      *.xml
+                      *.json
+                  json_test_case_results: true # This enables writing out all test case results to JSON
+                  report_individual_runs: true
+
 
             - name: Conclusion
               run: echo "Conclusion is ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}"
