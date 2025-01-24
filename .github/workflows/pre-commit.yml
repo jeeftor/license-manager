@@ -19,9 +19,22 @@ jobs:
                   go-version: stable
             - name: Install Go dependencies
               run: go mod tidy
+            - name: Install GoReleaser
+              uses: goreleaser/goreleaser-action@v5
+              with:
+                  install-only: true
+            - name: Install Go tools
+              run: |
+                  go install golang.org/x/tools/cmd/goimports@latest
+                  go install mvdan.cc/gofumpt@latest
+                  go install github.com/segmentio/golines@latest
             - name: Set up Python
               uses: actions/setup-python@v4
             - name: Install pre-commit
               run: pip install pre-commit
             - name: Run pre-commit
-              run: pre-commit run --all-files
+              run: pre-commit run --all-files --show-diff-on-failure
+              env:
+                  SKIP: no-commit-to-branch
+                  TERM: xterm-256color
+                  PRE_COMMIT_COLOR: always
