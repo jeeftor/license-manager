@@ -49,8 +49,11 @@ jobs:
                   GIST_ID: ${{ secrets.GIST_ID }}
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  gh gist edit $GIST_ID --filename test-output.json --content "$(cat test-output.json)"
-                  gh gist edit $GIST_ID --filename junit.xml --content "$(cat junit.xml)"
+                  gh gist edit $GIST_ID -r test-output.json
+                  gh gist edit $GIST_ID -a test-output.json
+                  gh gist edit $GIST_ID -r junit.xml
+                  gh gist edit $GIST_ID -a junit.xml
+
 
             - name: Publish Test Results
               # https://github.com/marketplace/actions/publish-test-results#json-result
