@@ -8,6 +8,8 @@ on:
 permissions:
   contents: write
   packages: write
+  issues: write
+  id-token: write
 
 jobs:
   debug:
@@ -35,9 +37,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v4
+      # only needed if using signing
+      - uses: sigstore/cosign-installer@v3.7.0
+
+      # only needed if using SBOMs
+      - uses: anchore/sbom-action/download-syft@v0.17.9
+
+      - uses: actions/setup-go@v6
         with:
-          go-version: 'stable'
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+
+
       - name: Install Go dependencies
         run: go mod tidy
       - name: Set up Python
