@@ -246,7 +246,7 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 			continue
 		}
 
-		if languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
+		if !foundStart && languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
 			startIndex = i
 			foundStart = true
 		} else if foundStart && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
