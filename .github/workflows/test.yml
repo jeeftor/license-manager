@@ -10,6 +10,7 @@ permissions:
     pull-requests: write
     contents: read
     id-token: write
+    actions: write
 
 jobs:
     integration-testing:
