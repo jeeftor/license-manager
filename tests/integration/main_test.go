@@ -124,7 +124,7 @@ func writeIntegrationStatus() {
 	}
 
 	// Convert the slice to JSON
-	jsonData, err := json.MarshalIndent(testStatusByLanguage, "", "  ")
+	jsonData, err := json.MarshalIndent(statusMap, "", "  ")
 	if err != nil {
 		fmt.Printf("Failed to marshal JSON: %v", err)
 	}
