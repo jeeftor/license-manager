@@ -117,8 +117,9 @@ func writeIntegrationStatus() {
 			color = "#00FF00" // Green for Pass
 		}
 		statusMap[lang] = map[string]string{
-			"color":  color,
-			"status": status,
+			"color":    color,
+			"status":   status,
+			"langauge": lang,
 		}
 	}
 
