@@ -251,21 +251,25 @@ func testCheck(file *singleTestFile, t *testing.T) {
 func testWorkflow(file *singleTestFile, t *testing.T) {
 	err := verifyLicenseMissing(file, devLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 1 - License Error: %v\n", err)
 	}
 
 	_, _, err = AddLicense(file.filePath, devLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 2 - Error adding license: %v\n", err)
 	}
 
 	err = verifyLicenseExists(file, devLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 3 - Verify Add - License Error: %v\n", err)
 
 	}
 	err = verifyLicenseMismatch(file, mitLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 4 - License Error: %v\n", err)
 	}
 
@@ -273,26 +277,31 @@ func testWorkflow(file *singleTestFile, t *testing.T) {
 
 	_, _, err = UpdateLicense(file.filePath, mitLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 5 - Error updating license: %v\n", err)
 	}
 
 	err = verifyLicenseExists(file, mitLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 6 - License Error: %v\n", err)
 	}
 
 	_, _, err = RemoveLicense(file.filePath)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 7 - Error removing license: %v\n", err)
 	}
 
 	err = verifyLicenseMissing(file, mitLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 8 - Verify Removal - License Error: %v\n", err)
 	}
 
 	err = verifyLicenseMissing(file, devLicense)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 9 - License Error: %v\n", err)
 	}
 
@@ -300,6 +309,7 @@ func testWorkflow(file *singleTestFile, t *testing.T) {
 
 	diffText, err := diffFiles(file.filePath, file.templateFilePath)
 	if err != nil {
+		testStatusByLanguage[file.language.Language] = "Fail"
 		t.Fatalf("Step 10 - Diff Error: %v\n%s", err, diffText)
 	}
 
