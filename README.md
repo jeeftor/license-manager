@@ -30,6 +30,8 @@ A CLI tool for managing license headers in source code files. This tool helps yo
 ### Fully Tested Languages
 This is a list of languages that have been ~fully~ mostly tested.
 
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=status.c.status&style=for-the-badge&label=c&color=status.c.color)
+
 ![Dynamic C Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.c.status&label=C&labelColor=%24.c.color)
 
 ![Dynamic C++ Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.cpp.status&label=C%2B%2B&labelColor=%24.cpp.color)

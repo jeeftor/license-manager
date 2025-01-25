@@ -108,30 +108,43 @@ func getProjectRoot() string {
 	}
 	return filepath.Dir(filepath.Dir(wd))
 }
-
 func writeIntegrationStatus() {
 	mtn, _ := time.LoadLocation("America/Denver")
 	now := time.Now().In(mtn)
 
+	type langStatus struct {
+		Color    string `json:"color"`    // Name like "red", "green"
+		ColorHex string `json:"colorHex"` // "FF0000"
+		ColorRgb string `json:"colorRgb"` // "rgb(255,0,0)"
+		Lang     string `json:"lang"`
+		Status   string `json:"status"`
+	}
+
 	jsonStruct := struct {
-		Date   string                       `json:"date"`
-		Time   string                       `json:"time"`
-		Status map[string]map[string]string `json:"status"`
+		Date         string                `json:"date"`
+		Time         string                `json:"time"`
+		LangStatuses map[string]langStatus `json:",inline"`
 	}{
-		Date:   now.Format("Jan 2 2006"),
-		Time:   now.Format("3:04pm"),
-		Status: make(map[string]map[string]string),
+		Date:         now.Format("Jan 2 2006"),
+		Time:         now.Format("3:04pm") + " Mountain Time",
+		LangStatuses: make(map[string]langStatus),
 	}
 
 	for lang, status := range testStatusByLanguage {
-		color := "FF0000"
+		colorName := "red"
+		colorHex := "FF0000"
+		colorRgb := "rgb(255,0,0)"
 		if status == "Pass" {
-			color = "00FF00"
+			colorName = "green"
+			colorHex = "00FF00"
+			colorRgb = "rgb(0,255,0)"
 		}
-		jsonStruct.Status[lang] = map[string]string{
-			"color":  color,
-			"status": status,
-			"lang":   lang,
+		jsonStruct.LangStatuses[lang] = langStatus{
+			Color:    colorName,
+			ColorHex: colorHex,
+			ColorRgb: colorRgb,
+			Lang:     lang,
+			Status:   status,
 		}
 	}
 
@@ -140,8 +153,7 @@ func writeIntegrationStatus() {
 		fmt.Printf("Failed to marshal JSON: %v", err)
 	}
 
-	outputPath := filepath.Join(getProjectRoot(), "integration-status.json")
-	err = os.WriteFile(outputPath, jsonData, 0644)
+	err = os.WriteFile(filepath.Join(getProjectRoot(), "integration-status.json"), jsonData, 0644)
 	if err != nil {
 		fmt.Printf("Failed to write integration status to file: %v", err)
 	}
