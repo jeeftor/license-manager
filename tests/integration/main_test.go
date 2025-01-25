@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"license-manager/internal/license"
 	"license-manager/internal/styles"
@@ -9,12 +10,16 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 var testFiles []singleTestFile
+
+var testStatusByLanguage = make(map[string]string) // "Pass" or "Fail"
+var statusMutex = &sync.Mutex{}
 
 type TestStageDefinition struct {
 	Name   string
@@ -34,6 +39,10 @@ func gatherTestFiles(searchPath string, outputPath string) []singleTestFile {
 	var files []singleTestFile
 
 	for ext, style := range styles.LanguageExtensions {
+
+		// Initialize the status for the language
+		testStatusByLanguage[style.Language] = "Pass"
+
 		pattern := filepath.Join(projectRoot, searchPath, "**", "*"+ext)
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
@@ -99,7 +108,33 @@ func getProjectRoot() string {
 	return filepath.Dir(filepath.Dir(wd))
 }
 
+func writeIntegrationStatus(t *testing.T) {
+	// After all tests have completed, write the results to JSON
+	var statusMap []map[string]string
+	for lang, status := range testStatusByLanguage {
+		statusMap = append(statusMap, map[string]string{
+			"Language": lang,
+			"Status":   status,
+		})
+	}
+
+	// Convert the slice to JSON
+	jsonData, err := json.MarshalIndent(statusMap, "", "  ")
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	// Write to file
+	outputPath := filepath.Join(getProjectRoot(), "integration-status.json")
+	err = os.WriteFile(outputPath, jsonData, 0644)
+	if err != nil {
+		t.Fatalf("Failed to write integration status to file: %v", err)
+	}
+}
+
 func TestMatrix(t *testing.T) {
+	defer writeIntegrationStatus(t)
+
 	testStage := []TestStageDefinition{
 		//{Name: "Add", Helper: testAddAndCheck},
 		{Name: "AddModifyUpdateRemove", Helper: testWorkflow},
@@ -125,9 +160,15 @@ func TestMatrix(t *testing.T) {
 					t.Fatal(err)
 				}
 				test.Helper(&file, t)
+
+				// Check if the test failed and update status
+				if t.Failed() {
+					testStatusByLanguage[file.language.Language] = "Fail"
+				}
 			})
 		}
 	}
+
 }
 
 func testAddAndCheck(file *singleTestFile, t *testing.T) {
