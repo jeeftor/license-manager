@@ -30,6 +30,33 @@ A CLI tool for managing license headers in source code files. This tool helps yo
 ### Fully Tested Languages
 This is a list of languages that have been ~fully~ mostly tested.
 
+![Dynamic C Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.c.status&label=C&labelColor=%24.c.color)
+
+![Dynamic C++ Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.cpp.status&label=C%2B%2B&labelColor=%24.cpp.color)
+
+![Dynamic C# Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.csharp.status&label=C%23&labelColor=%24.csharp.color)
+
+![Dynamic CSS Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.css.status&label=CSS&labelColor=%24.css.color)
+
+![Dynamic Go Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.go.status&label=Go&labelColor=%24.go.color)
+
+![Dynamic HTML Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.html.status&label=HTML&labelColor=%24.html.color)
+
+![Dynamic INI Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.ini.status&label=INI&labelColor=%24.ini.color)
+
+![Dynamic Java Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.java.status&label=Java&labelColor=%24.java.color)
+
+![Dynamic JavaScript Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.javascript.status&label=JavaScript&labelColor=%24.javascript.color)
+
+![Dynamic Kotlin Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.kotlin.status&label=Kotlin&labelColor=%24.kotlin.color)
+
+![Dynamic Markdown Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.markdown.status&label=Markdown&labelColor=%24.markdown.color)
+
+![Dynamic PHP Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.php.status&label=PHP&labelColor=%24.php.color)
+
+![Dynamic Python Badge](https://img.shields
+
+
 - [ ] C
 - [ ] C++
 - [ ] C#

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -109,28 +110,36 @@ func getProjectRoot() string {
 }
 
 func writeIntegrationStatus() {
-	// After all tests have completed, write the results to JSON
-	statusMap := make(map[string]map[string]string)
+	mtn, _ := time.LoadLocation("America/Denver")
+	now := time.Now().In(mtn)
+
+	jsonStruct := struct {
+		Date   string                       `json:"date"`
+		Time   string                       `json:"time"`
+		Status map[string]map[string]string `json:"status"`
+	}{
+		Date:   now.Format("Jan 2 2006"),
+		Time:   now.Format("3:04pm"),
+		Status: make(map[string]map[string]string),
+	}
+
 	for lang, status := range testStatusByLanguage {
-		color := "#FF0000" // Default to red (Fail)
+		color := "FF0000"
 		if status == "Pass" {
-			color = "#00FF00" // Green for Pass
+			color = "00FF00"
 		}
-		statusMap[lang] = map[string]string{
-			"color":    color,
-			"status":   status,
-			"langauge": lang,
+		jsonStruct.Status[lang] = map[string]string{
+			"color":  color,
+			"status": status,
+			"lang":   lang,
 		}
 	}
 
-	// Convert the slice to JSON
-	jsonData, err := json.MarshalIndent(statusMap, "", "  ")
+	jsonData, err := json.MarshalIndent(jsonStruct, "", "  ")
 	if err != nil {
 		fmt.Printf("Failed to marshal JSON: %v", err)
 	}
 
-	// Write to file
-	// https://gist.githubusercontent.com/jeeftor/f639b71257cceeb283a30cba77ee17c9/raw/integration-status.json
 	outputPath := filepath.Join(getProjectRoot(), "integration-status.json")
 	err = os.WriteFile(outputPath, jsonData, 0644)
 	if err != nil {
