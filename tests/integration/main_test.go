@@ -110,13 +110,18 @@ func getProjectRoot() string {
 
 func writeIntegrationStatus() {
 	// After all tests have completed, write the results to JSON
-	//var statusMap []map[string]string
-	//for lang, status := range testStatusByLanguage {
-	//	statusMap = append(statusMap, map[string]string{
-	//		"Language": lang,
-	//		"Status":   status,
-	//	})
-	//}
+	var statusMap []map[string]string
+	for lang, status := range testStatusByLanguage {
+		color := "#FF0000" // Default to red (Fail)
+		if status == "Pass" {
+			color = "#00FF00" // Green for Pass
+		}
+		statusMap = append(statusMap, map[string]string{
+			"language": lang,
+			"status":   status,
+			"color":    color,
+		})
+	}
 
 	// Convert the slice to JSON
 	jsonData, err := json.MarshalIndent(testStatusByLanguage, "", "  ")
