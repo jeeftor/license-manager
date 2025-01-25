@@ -110,16 +110,16 @@ func getProjectRoot() string {
 
 func writeIntegrationStatus(t *testing.T) {
 	// After all tests have completed, write the results to JSON
-	var statusMap []map[string]string
-	for lang, status := range testStatusByLanguage {
-		statusMap = append(statusMap, map[string]string{
-			"Language": lang,
-			"Status":   status,
-		})
-	}
+	//var statusMap []map[string]string
+	//for lang, status := range testStatusByLanguage {
+	//	statusMap = append(statusMap, map[string]string{
+	//		"Language": lang,
+	//		"Status":   status,
+	//	})
+	//}
 
 	// Convert the slice to JSON
-	jsonData, err := json.MarshalIndent(statusMap, "", "  ")
+	jsonData, err := json.MarshalIndent(testStatusByLanguage, "", "  ")
 	if err != nil {
 		t.Fatalf("Failed to marshal JSON: %v", err)
 	}
