@@ -113,42 +113,42 @@ func writeIntegrationStatus() {
 	now := time.Now().In(mtn)
 
 	type langStatus struct {
-		Color    string `json:"color"`    // Name like "red", "green"
-		ColorHex string `json:"colorHex"` // "FF0000"
-		ColorRgb string `json:"colorRgb"` // "rgb(255,0,0)"
+		Color    string `json:"color"`
+		ColorHex string `json:"colorHex"`
+		ColorRgb string `json:"colorRgb"`
 		Lang     string `json:"lang"`
 		Status   string `json:"status"`
+		Emoji    string `json:"emoji"`
+		Text     string `json:"text"`
 	}
 
-	jsonStruct := struct {
-		Date         string                `json:"date"`
-		Time         string                `json:"time"`
-		LangStatuses map[string]langStatus `json:",inline"`
-	}{
-		Date:         now.Format("Jan 2 2006"),
-		Time:         now.Format("3:04pm") + " Mountain Time",
-		LangStatuses: make(map[string]langStatus),
-	}
+	output := make(map[string]interface{})
+	output["date"] = now.Format("Jan 2 2006")
+	output["time"] = now.Format("3:04pm") + " Mountain Time"
 
 	for lang, status := range testStatusByLanguage {
 		colorName := "red"
-		colorHex := "FF0000"
+		colorHex := "ff0000"
 		colorRgb := "rgb(255,0,0)"
+		emoji := "❌"
 		if status == "Pass" {
 			colorName = "green"
 			colorHex = "00FF00"
 			colorRgb = "rgb(0,255,0)"
+			emoji = "✅"
 		}
-		jsonStruct.LangStatuses[lang] = langStatus{
+		output[lang] = langStatus{
 			Color:    colorName,
 			ColorHex: colorHex,
 			ColorRgb: colorRgb,
 			Lang:     lang,
 			Status:   status,
+			Emoji:    emoji,
+			Text:     fmt.Sprintf("%s %s", emoji, status),
 		}
 	}
 
-	jsonData, err := json.MarshalIndent(jsonStruct, "", "  ")
+	jsonData, err := json.MarshalIndent(output, "", "  ")
 	if err != nil {
 		fmt.Printf("Failed to marshal JSON: %v", err)
 	}

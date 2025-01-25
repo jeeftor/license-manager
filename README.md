@@ -30,33 +30,47 @@ A CLI tool for managing license headers in source code files. This tool helps yo
 ### Fully Tested Languages
 This is a list of languages that have been ~fully~ mostly tested.
 
-![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=status.c.status&style=for-the-badge&label=c&color=status.c.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=cpp.text&label=cpp)
 
-![Dynamic C Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.c.status&label=C&labelColor=%24.c.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=csharp.text&label=csharp)
 
-![Dynamic C++ Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.cpp.status&label=C%2B%2B&labelColor=%24.cpp.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=css.text&label=css)
 
-![Dynamic C# Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.csharp.status&label=C%23&labelColor=%24.csharp.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=go.text&label=go)
 
-![Dynamic CSS Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.css.status&label=CSS&labelColor=%24.css.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=html.text&label=html)
 
-![Dynamic Go Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.go.status&label=Go&labelColor=%24.go.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=ini.text&label=ini)
 
-![Dynamic HTML Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.html.status&label=HTML&labelColor=%24.html.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=java.text&label=java)
 
-![Dynamic INI Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.ini.status&label=INI&labelColor=%24.ini.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=javascript.text&label=javascript)
 
-![Dynamic Java Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.java.status&label=Java&labelColor=%24.java.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=kotlin.text&label=kotlin)
 
-![Dynamic JavaScript Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.javascript.status&label=JavaScript&labelColor=%24.javascript.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=markdown.text&label=markdown)
 
-![Dynamic Kotlin Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.kotlin.status&label=Kotlin&labelColor=%24.kotlin.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=php.text&label=php)
 
-![Dynamic Markdown Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.markdown.status&label=Markdown&labelColor=%24.markdown.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=python.text&label=python)
 
-![Dynamic PHP Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=%24.php.status&label=PHP&labelColor=%24.php.color)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=ruby.text&label=ruby)
 
-![Dynamic Python Badge](https://img.shields
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=rust.text&label=rust)
+
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=scala.text&label=scala)
+
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=shell.text&label=shell)
+
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=swift.text&label=swift)
+
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=toml.text&label=toml)
+
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=typescript.text&label=typescript)
+
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=xml.text&label=xml)
+
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=yaml.text&label=yaml)
 
 
 - [ ] C
