@@ -49,8 +49,11 @@ jobs:
                   GIST_ID: ${{ secrets.GIST_ID }}
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
+                  gh gist edit $GIST_ID -d test-output.json
                   gh gist edit $GIST_ID -a test-output.json
+                  gh gist edit $GIST_ID -d junit.xml
                   gh gist edit $GIST_ID -a junit.xml
+                  gh gist edit $GIST_ID -d /integration-status.json
                   gh gist edit $GIST_ID -a /integration-status.json
 
 
