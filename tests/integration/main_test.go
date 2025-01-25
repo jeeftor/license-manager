@@ -108,7 +108,7 @@ func getProjectRoot() string {
 	return filepath.Dir(filepath.Dir(wd))
 }
 
-func writeIntegrationStatus(t *testing.T) {
+func writeIntegrationStatus() {
 	// After all tests have completed, write the results to JSON
 	//var statusMap []map[string]string
 	//for lang, status := range testStatusByLanguage {
@@ -121,19 +121,25 @@ func writeIntegrationStatus(t *testing.T) {
 	// Convert the slice to JSON
 	jsonData, err := json.MarshalIndent(testStatusByLanguage, "", "  ")
 	if err != nil {
-		t.Fatalf("Failed to marshal JSON: %v", err)
+		fmt.Printf("Failed to marshal JSON: %v", err)
 	}
 
 	// Write to file
 	outputPath := filepath.Join(getProjectRoot(), "integration-status.json")
 	err = os.WriteFile(outputPath, jsonData, 0644)
 	if err != nil {
-		t.Fatalf("Failed to write integration status to file: %v", err)
+		fmt.Printf("Failed to write integration status to file: %v", err)
 	}
 }
 
+func TestMain(m *testing.M) {
+	code := m.Run()
+
+	writeIntegrationStatus()
+	os.Exit(code)
+}
+
 func TestMatrix(t *testing.T) {
-	defer writeIntegrationStatus(t)
 
 	testStage := []TestStageDefinition{
 		//{Name: "Add", Helper: testAddAndCheck},
