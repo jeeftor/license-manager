@@ -110,17 +110,16 @@ func getProjectRoot() string {
 
 func writeIntegrationStatus() {
 	// After all tests have completed, write the results to JSON
-	var statusMap []map[string]string
+	statusMap := make(map[string]map[string]string)
 	for lang, status := range testStatusByLanguage {
 		color := "#FF0000" // Default to red (Fail)
 		if status == "Pass" {
 			color = "#00FF00" // Green for Pass
 		}
-		statusMap = append(statusMap, map[string]string{
-			"language": lang,
-			"status":   status,
-			"color":    color,
-		})
+		statusMap[lang] = map[string]string{
+			"color":  color,
+			"status": status,
+		}
 	}
 
 	// Convert the slice to JSON
@@ -130,6 +129,7 @@ func writeIntegrationStatus() {
 	}
 
 	// Write to file
+	// https://gist.githubusercontent.com/jeeftor/f639b71257cceeb283a30cba77ee17c9/raw/integration-status.json
 	outputPath := filepath.Join(getProjectRoot(), "integration-status.json")
 	err = os.WriteFile(outputPath, jsonData, 0644)
 	if err != nil {
