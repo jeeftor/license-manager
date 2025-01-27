@@ -12,12 +12,12 @@ var log *logger.Logger
 
 // SetVerbose enables or disables verbose logging for the comment package
 func SetVerbose(verbose bool) {
-	log = logger.NewLogger(verbose)
+	log = logger.NewLogger(verbose, logger.DebugLevel)
 }
 
 func init() {
 	// Initialize with default (non-verbose) logging
-	log = logger.NewLogger(false)
+	log = logger.NewLogger(false, logger.NoticeLevel)
 }
 
 const (

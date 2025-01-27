@@ -18,6 +18,24 @@ const (
 	FatalLevel
 )
 
+func ParseLogLevel(level string) LogLevel {
+
+	switch strings.ToLower(level) {
+	case "debug":
+		return DebugLevel
+	case "info":
+		return InfoLevel
+	case "notice":
+		return NoticeLevel
+	case "warn":
+		return WarningLevel
+	case "warning":
+		return WarningLevel
+	default:
+		return ErrorLevel
+	}
+}
+
 type LogLevel int
 
 // Logger handles all logging operations
@@ -28,10 +46,10 @@ type Logger struct {
 }
 
 // NewLogger creates a new Logger instance
-func NewLogger(verbose bool) *Logger {
+func NewLogger(verbose bool, LogLevel LogLevel) *Logger {
 	return &Logger{
 		verbose: verbose,
-		level:   DebugLevel,
+		level:   LogLevel,
 		colors: map[string]*color.Color{
 			"error":   color.New(color.FgRed),
 			"warning": color.New(color.FgYellow),

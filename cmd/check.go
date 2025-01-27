@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"license-manager/internal/logger"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -19,6 +20,7 @@ var (
 	cfgInputs       []string
 	cfgSkips        []string
 	cfgPresetStyle  string
+	cfgLogLevel     string
 	cfgPreferMulti  bool
 	cfgVerbose      bool
 )
@@ -66,6 +68,7 @@ Exit Codes:
 			HeaderStyle: cfgPresetStyle,
 			PreferMulti: cfgPreferMulti,
 			Verbose:     cfgVerbose,
+			LogLevel:    logger.ParseLogLevel(cfgLogLevel),
 			IgnoreFail:  checkIgnoreFail,
 		}
 

@@ -3,6 +3,7 @@ package config
 
 import (
 	"license-manager/internal/errors"
+	"license-manager/internal/logger"
 	"license-manager/internal/processor"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ type AppConfig struct {
 
 	// UI/Behavior settings
 	Verbose     bool
+	LogLevel    logger.LogLevel
 	Interactive bool
 	Force       bool
 

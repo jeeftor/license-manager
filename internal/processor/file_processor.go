@@ -21,7 +21,7 @@ type FileProcessor struct {
 
 // NewFileProcessor creates a new FileProcessor instance
 func NewFileProcessor(cfg *Config) *FileProcessor {
-	log := logger.NewLogger(cfg.Verbose)
+	log := logger.NewLogger(cfg.Verbose, cfg.LogLevel)
 	fh := NewFileHandler(log)
 	fh.SetSkipPattern(cfg.Skip) // Set the skip pattern
 	return &FileProcessor{

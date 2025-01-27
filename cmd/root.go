@@ -155,7 +155,7 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 		if exitErr, ok := err.(*ExitError); ok {
 			os.Exit(exitErr.Code)
 		}
-		log := logger.NewLogger(cfgVerbose)
+		log := logger.NewLogger(cfgVerbose, logger.ParseLogLevel(cfgLogLevel))
 		log.LogError("Error: %v", err)
 		os.Exit(1)
 	}
@@ -175,6 +175,7 @@ func init() {
 
 	//rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
 	//rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
+	rootCmd.PersistentFlags().StringVar(&cfgLogLevel, "log-level", "notice", "Log level (debug, info, notice, warn, error)")
 	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
 }
 

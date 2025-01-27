@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var log = logger.NewLogger(false)
+var log = logger.NewLogger(false, logger.DebugLevel)
 
 var buildTestDataCmd = &cobra.Command{
 	Use:   "build-test-data",
