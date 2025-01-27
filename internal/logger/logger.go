@@ -45,6 +45,12 @@ func NewLogger(verbose bool) *Logger {
 
 func (l *Logger) Log(level LogLevel, showPrefix bool, format string, args ...interface{}) {
 	if l.level <= level {
+		var outputText string
+		if len(args) > 0 && !(len(args) == 1 && fmt.Sprintf("%v", args[0]) == "[]") {
+			outputText = fmt.Sprintf(format, args...)
+		} else {
+			outputText = format // Just use the string directly if no args or empty slice
+		}
 
 		var prefix string
 		switch level {
@@ -59,12 +65,12 @@ func (l *Logger) Log(level LogLevel, showPrefix bool, format string, args ...int
 		case ErrorLevel, FatalLevel:
 			prefix = l.colors["error"].Sprint("ERROR:")
 		}
+
 		if showPrefix {
-			fmt.Printf("%s %s\n", prefix, fmt.Sprintf(format, args...))
+			fmt.Printf("%s %s\n", prefix, outputText)
 		} else {
-			fmt.Printf("%s\n", fmt.Sprintf(format, args...))
+			fmt.Printf("%s\n", outputText)
 		}
-		//fmt.Printf("%s %s\n", prefix, fmt.Sprintf(format, args...))
 	}
 }
 

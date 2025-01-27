@@ -1,6 +1,7 @@
 package language
 
 import (
+	"github.com/fatih/color"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -36,7 +37,7 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 	var inGenerateSection bool
 
 	if h.logger != nil {
-		h.logger.LogVerbose("Go handler: Scanning for directives...")
+		h.logger.LogVerbose("Go handler: Scanning 📡️ for directives...")
 	}
 
 	for i, line := range lines {
@@ -45,7 +46,7 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 		// Check for package declaration first
 		if strings.HasPrefix(trimmed, "package ") {
 			if h.logger != nil {
-				h.logger.LogVerbose("Found package declaration at line %d", i)
+				h.logger.LogVerbose("  Found 📦️ package declaration at line %d", i)
 			}
 			if len(directives) > 0 {
 				return directives, i, true
@@ -71,14 +72,14 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 			directives = append(directives, line)
 			lastWasDirective = true
 			if h.logger != nil {
-				h.logger.LogVerbose("Found directive: %s", line)
+				h.logger.LogVerbose("  Found 🔧 directive: %s", color.New(color.FgHiYellow).Sprint(line))
 			}
 		} else if trimmed == "" {
 			// Keep blank lines if we're still in a directive section
 			if lastWasDirective {
 				directives = append(directives, line)
 				if h.logger != nil {
-					h.logger.LogVerbose("Keeping blank line after directive")
+					h.logger.LogVerbose("  Found ↕ blank line after directive")
 				}
 			}
 		} else {

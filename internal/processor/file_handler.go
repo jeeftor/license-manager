@@ -110,7 +110,7 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 			//fh.logger.LogInfo("Checking direct file path: %s (abs: %s)", p, absPath)
 
 			if info, err := os.Stat(absPath); err == nil && !info.IsDir() {
-				fh.logger.LogInfo("Found file: %s", absPath)
+				fh.logger.LogDebug("Found file: %s", absPath)
 				if isProcessableFile(absPath) && !fh.shouldSkip(absPath) {
 					allFiles = append(allFiles, absPath)
 					fh.logger.LogDebug("Added file: %s", absPath)

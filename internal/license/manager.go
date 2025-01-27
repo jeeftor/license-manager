@@ -108,18 +108,6 @@ func (m *LicenseManager) HasLicense(content string) bool {
 		m.logger.LogInfo("  Using comment style: %s", m.commentStyle.Language)
 	}
 
-	//handler := m.getLanguageHandler(m.commentStyle.Language)
-	//preamble, rest := handler.PreservePreamble(content)
-	//
-	//if m.verbose && m.logger != nil {
-	//	if preamble != "" {
-	//		m.logger.LogInfo("  [%s] Found preamble (%d lines)", m.commentStyle.Language, len(strings.Split(preamble, "\n")))
-	//		m.logger.LogInfo("  [%s] Processing remaining content...", m.commentStyle.Language)
-	//	} else {
-	//		m.logger.LogInfo("  [%s] No preamble found, processing entire content", m.commentStyle.Language)
-	//	}
-	//}
-
 	h, body, f, success := comment.ExtractComponents(content, true, m.commentStyle)
 	if m.verbose && m.logger != nil {
 		if h == f {
@@ -331,7 +319,7 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 
 	if m.verbose && m.logger != nil {
 		if preamble != "" {
-			m.logger.LogInfo("  Found preamble (%d lines)", len(strings.Split(preamble, "\n")))
+			m.logger.LogInfo("  Found preamble 📝️ (%d lines)", len(strings.Split(preamble, "\n")))
 			m.logger.LogInfo("  Analyzing content after preamble...")
 		} else {
 			m.logger.LogInfo("  No preamble found, analyzing full content")

@@ -240,7 +240,7 @@ func (fp *FileProcessor) Remove() error {
 
 	// Print scanning message with patterns
 	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-	fp.logger.LogInfo("Inputs Patterns:")
+	fp.logger.LogInfo("Input Patterns:")
 	for _, pattern := range strings.Split(fp.config.Input, ",") {
 		pattern = strings.TrimSpace(pattern)
 		if pattern != "" {
@@ -320,21 +320,9 @@ func (fp *FileProcessor) Update() error {
 
 	// Print scanning message with patterns
 	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-	fp.logger.LogInfo("Inputs Patterns:")
-	for _, pattern := range strings.Split(fp.config.Input, ",") {
-		pattern = strings.TrimSpace(pattern)
-		if pattern != "" {
-			fp.logger.LogInfo("  %s", pattern)
-		}
-	}
+	fp.logger.LogInfo("Inputs Patterns: %s", fp.config.Input)
 	if fp.config.Skip != "" {
-		fp.logger.LogInfo("Skips Patterns:")
-		for _, pattern := range strings.Split(fp.config.Skip, ",") {
-			pattern = strings.TrimSpace(pattern)
-			if pattern != "" {
-				fp.logger.LogInfo("  %s", pattern)
-			}
-		}
+		fp.logger.LogInfo("Skips Patterns: %s", fp.config.Skip)
 	}
 
 	if fp.config.Verbose {
@@ -414,7 +402,7 @@ func (fp *FileProcessor) Check() error {
 
 	// Print scanning message with patterns
 	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-	fp.logger.LogInfo("Inputs Patterns:")
+	fp.logger.LogInfo("Input Patterns:")
 	for _, pattern := range strings.Split(fp.config.Input, ",") {
 		pattern = strings.TrimSpace(pattern)
 		if pattern != "" {
