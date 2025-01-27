@@ -9,28 +9,74 @@ import (
 	"github.com/fatih/color"
 )
 
+const (
+	DebugLevel = iota
+	InfoLevel
+	NoticeLevel
+	WarningLevel
+	ErrorLevel
+	FatalLevel
+)
+
+type LogLevel int
+
 // Logger handles all logging operations
 type Logger struct {
 	verbose bool
 	colors  map[string]*color.Color
+	level   LogLevel
 }
 
 // NewLogger creates a new Logger instance
 func NewLogger(verbose bool) *Logger {
 	return &Logger{
 		verbose: verbose,
+		level:   DebugLevel,
 		colors: map[string]*color.Color{
 			"error":   color.New(color.FgRed),
 			"warning": color.New(color.FgYellow),
 			"success": color.New(color.FgGreen),
+			"notice":  color.New(color.FgBlue), // Example color for notices
 			"info":    color.New(color.FgCyan),
+			"debug":   color.New(color.FgMagenta),
 		},
+	}
+}
+
+func (l *Logger) Log(level LogLevel, showPrefix bool, format string, args ...interface{}) {
+	if l.level <= level {
+
+		var prefix string
+		switch level {
+		case DebugLevel:
+			prefix = l.colors["debug"].Sprint("DEBUG:")
+		case InfoLevel:
+			prefix = l.colors["info"].Sprint("INFO:")
+		case NoticeLevel:
+			prefix = l.colors["notice"].Sprint("NOTICE:")
+		case WarningLevel:
+			prefix = l.colors["warning"].Sprint("WARNING:")
+		case ErrorLevel, FatalLevel:
+			prefix = l.colors["error"].Sprint("ERROR:")
+		}
+		if showPrefix {
+			fmt.Printf("%s %s\n", prefix, fmt.Sprintf(format, args...))
+		} else {
+			fmt.Printf("%s\n", fmt.Sprintf(format, args...))
+		}
+		//fmt.Printf("%s %s\n", prefix, fmt.Sprintf(format, args...))
 	}
 }
 
 // LogError logs an error message
 func (l *Logger) LogError(format string, args ...interface{}) {
-	fmt.Printf("%s %s\n", l.colors["error"].Sprint("ERROR:"), fmt.Sprintf(format, args...))
+	l.Log(ErrorLevel, true, format, args)
+	//fmt.Printf("%s %s\n", l.colors["error"].Sprint("ERROR:"), fmt.Sprintf(format, args...))
+}
+
+func (l *Logger) LogDebug(format string, args ...interface{}) {
+	l.Log(DebugLevel, true, format, args)
+	//fmt.Printf("%s %s\n", l.colors["error"].Sprint("ERROR:"), fmt.Sprintf(format, args...))
 }
 
 // LogWarning logs a warning message
@@ -40,12 +86,15 @@ func (l *Logger) LogWarning(format string, args ...interface{}) {
 
 // LogSuccess logs a success message
 func (l *Logger) LogSuccess(format string, args ...interface{}) {
-	fmt.Printf("%s %s\n", l.colors["success"].Sprint("✓"), fmt.Sprintf(format, args...))
+
+	successPrefix := l.colors["success"].Sprint("✓ ")
+	l.Log(NoticeLevel, false, successPrefix+format, args...)
 }
 
 // LogInfo logs an info message
 func (l *Logger) LogInfo(format string, args ...interface{}) {
-	fmt.Printf("%s %s\n", l.colors["info"].Sprint("INFO:"), fmt.Sprintf(format, args...))
+	//fmt.Printf("%s %s\n", l.colors["info"].Sprint("INFO:"), fmt.Sprintf(format, args...))
+	l.Log(InfoLevel, true, format, args)
 }
 
 // LogQuestion formats a question message and returns it

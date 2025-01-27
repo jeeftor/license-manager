@@ -2,6 +2,7 @@ package processor
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"license-manager/internal/language"
 	"license-manager/internal/license"
 	"license-manager/internal/logger"
@@ -113,29 +114,37 @@ func (fp *FileProcessor) Add() error {
 	}
 
 	// Print scanning message with patterns
-	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-	fp.logger.LogInfo("Inputs Patterns:")
+	var debugMsg strings.Builder
+	debugMsg.WriteString(fmt.Sprintf(" Scanning %d inputs ", len(files)))
 	for _, pattern := range strings.Split(fp.config.Input, ",") {
 		pattern = strings.TrimSpace(pattern)
 		if pattern != "" {
-			fp.logger.LogInfo("  %s", pattern)
+			coloredPattern := color.New(color.FgHiCyan).Sprint(pattern) // or any other color like "debug", "notice", etc
+			debugMsg.WriteString(fmt.Sprintf("%s ", coloredPattern))
 		}
 	}
+
+	// Log the entire message at once
+	fp.logger.LogDebug("%s", debugMsg.String())
+	// Handle skip patterns
 	if fp.config.Skip != "" {
-		fp.logger.LogInfo("Skips Patterns:")
+		var skipMsg strings.Builder
+		skipMsg.WriteString("Skip Patterns:\n")
 		for _, pattern := range strings.Split(fp.config.Skip, ",") {
 			pattern = strings.TrimSpace(pattern)
 			if pattern != "" {
-				fp.logger.LogInfo("  %s", pattern)
+				coloredPattern := color.New(color.FgYellow).Sprint(pattern) // Using yellow for skip patterns
+				skipMsg.WriteString(fmt.Sprintf("      %s\n", coloredPattern))
 			}
 		}
+		fp.logger.LogInfo(skipMsg.String())
 	}
 
 	style := styles.Get(fp.config.PresetStyle)
 	if fp.config.Verbose {
-		fp.logger.LogInfo("Using style: %s", style.Name)
+		fp.logger.LogDebug("Using style: %s", style.Name)
 		if fp.config.PreferMulti {
-			fp.logger.LogInfo("Preferring multi-line comments where supported")
+			fp.logger.LogDebug("Preferring multi-line comments where supported")
 		}
 	}
 
@@ -216,7 +225,7 @@ func (fp *FileProcessor) Add() error {
 		fp.logger.LogSuccess("Added license to %s", file)
 	}
 
-	fp.logger.PrintStats(fp.stats, "Added")
+	//fp.logger.PrintStats(fp.stats, "Added")
 	return nil
 }
 

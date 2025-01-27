@@ -87,7 +87,7 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 	if err != nil {
 		return nil, errors.NewFileError("failed to get working directory", "", "find")
 	}
-	fh.logger.LogInfo("Current working directory: %s", cwd)
+	fh.logger.LogDebug("Current working directory: %s", cwd)
 
 	// Split input patterns
 	patterns := strings.Split(pattern, ",")
@@ -107,18 +107,18 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 			if !filepath.IsAbs(p) {
 				absPath = filepath.Join(cwd, p)
 			}
-			fh.logger.LogInfo("Checking direct file path: %s (abs: %s)", p, absPath)
+			//fh.logger.LogInfo("Checking direct file path: %s (abs: %s)", p, absPath)
 
 			if info, err := os.Stat(absPath); err == nil && !info.IsDir() {
 				fh.logger.LogInfo("Found file: %s", absPath)
 				if isProcessableFile(absPath) && !fh.shouldSkip(absPath) {
 					allFiles = append(allFiles, absPath)
-					fh.logger.LogInfo("Added file: %s", absPath)
+					fh.logger.LogDebug("Added file: %s", absPath)
 				} else {
-					fh.logger.LogInfo("File not processable or skipped: %s", absPath)
+					fh.logger.LogDebug("File not processable or skipped: %s", absPath)
 				}
 			} else {
-				fh.logger.LogInfo("File not found or is directory: %s (err: %v)", absPath, err)
+				fh.logger.LogDebug("File not found or is directory: %s (err: %v)", absPath, err)
 			}
 			continue
 		}
