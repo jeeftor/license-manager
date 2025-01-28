@@ -70,7 +70,7 @@ ensure-test-dir:
 
 # Build and clean commands
 clean:
-    rm -rf dist junit.xml integration-status.json test-output.json
+    rm -rf dist
 
 build:
     goreleaser build --snapshot --clean
@@ -85,37 +85,44 @@ test-dir:
 [private]
 run-command lang cmd *FLAGS: ensure-test-dir
     #!/usr/bin/env bash
-    patterns=$(just get-patterns {{lang}})
+    patterns="$(just get-patterns {{lang}})"
 
     echo "Running {{cmd}} for {{lang}} files... [$patterns]"
 
-    # Split patterns and create find arguments
-    find_args=""
-    for pattern in $patterns; do
-        if [ -n "$find_args" ]; then
-            find_args="$find_args -o"
+    # Split patterns on spaces and process each one
+    echo "$patterns" | tr ' ' '\n' | while read -r pattern; do
+        echo "Looking for files matching: [{{test_data_dir}}/{{lang}}/**/$pattern]"
+        echo "Command: find {{test_data_dir}}/{{lang}} -type f -name \"$pattern\" 2>/dev/null"
+        files=$(find {{test_data_dir}}/{{lang}} -type f -name "$pattern" 2>/dev/null)
+        if [ -n "$files" ]; then
+            echo "Found files: $files"
+            echo "$files" |  xargs -I {} {{go_cmd}} {{cmd}} --input {} {{FLAGS}} --license {{license_path}}
+        else
+            echo "Warning: No {{lang}} files found matching pattern $pattern"
+            echo "If this is unexpected, try running 'just test-dir' to recreate test files"
         fi
-        find_args="$find_args -name \"$pattern\""
     done
 
-    echo "Looking for files in: {{test_data_dir}}/{{lang}}"
-    echo "Command: find {{test_data_dir}}/{{lang}} -type f \( $find_args \) 2>/dev/null"
+list lang: ensure-test-dir
+    #!/usr/bin/env bash
+    patterns="$(just get-patterns {{lang}})"
+    echo "Listing files for {{lang}}... [patterns: $patterns]"
 
-    # Use eval to properly handle the complex find command
-    files=$(eval "find {{test_data_dir}}/{{lang}} -type f \( $find_args \) 2>/dev/null")
-
-    if [ -n "$files" ]; then
-        echo "Found files: $files"
-        echo "$files" | xargs -I {} {{go_cmd}} {{cmd}} --input {} {{FLAGS}} --license {{license_path}}
-    else
-        echo "Warning: No {{lang}} files found matching patterns: $patterns"
-        echo "If this is unexpected, try running 'just test-dir' to recreate test files"
-    fi
+    echo "$patterns" | tr ' ' '\n' | while read -r pattern; do
+        echo "Looking for pattern: $pattern"
+        files=$(find {{test_data_dir}}/{{lang}} -type f -name "$pattern" 2>/dev/null)
+        if [ -n "$files" ]; then
+            echo "Found:"
+            echo "$files" | sed 's/^/  /'
+        else
+            echo "No files found matching $pattern"
+        fi
+    done
 
 # Language-specific commands
-add lang: (run-command lang "add" "--log-level" "notice") # "--verbose")
-check lang: (run-command lang "check" "--log-level" "notice")
-update lang: (run-command lang "update" "--log-level" "notice")
+add lang: (run-command lang "add" "--verbose")
+check lang: (run-command lang "check")
+update lang: (run-command lang "update" "--verbose")
 debug lang: (run-command lang "debug")
 remove lang: (run-command lang "remove")
 modify lang: ensure-test-dir
