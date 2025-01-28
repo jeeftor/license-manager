@@ -198,8 +198,7 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 	return strings.TrimSpace(strings.Join(processedLines, "\n"))
 }
 
-// ExtractComponents extracts the header, body, and footer from a license block
-// ExtractComponents extracts the header, body, and footer from a license block.
+// ExtractComponents extracts the header, body, footer, and remaining content from a license block.
 // It handles both multi-line comment blocks (like /* ... */) and single-line comment blocks (like # or //).
 //
 // Parameters:
@@ -212,15 +211,16 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 //   - header: The first line after the comment start (usually contains license identifier)
 //   - body: The main content of the license
 //   - footer: The last line before the comment end (usually contains a closing marker)
+//   - rest: Any remaining content after the license block
 //   - success: Whether the extraction was successful
-func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer string, success bool) {
+func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer, rest string, success bool) {
 	if content == "" {
-		return "", "", "", false
+		return "", "", "", "", false
 	}
 
 	lines := strings.Split(content, "\n")
 	if len(lines) == 0 {
-		return "", "", "", false
+		return "", "", "", "", false
 	}
 
 	var startIndex, endIndex int
@@ -288,7 +288,7 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 	}
 
 	if !foundStart || !foundEnd {
-		return "", "", "", false
+		return "", "", "", "", false
 	}
 
 	// Extract header (first non-empty line after start)
@@ -346,14 +346,21 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 		}
 	}
 
+	// Extract rest (everything after the license block)
+	var restLines []string
+	if endIndex < len(lines)-1 {
+		restLines = lines[endIndex+1:]
+	}
+
 	header = strings.Join(headerLines, "\n")
 	body = strings.Join(bodyLines, "\n")
 	footer = strings.Join(footerLines, "\n")
+	rest = strings.Join(restLines, "\n")
 
-	logger.LogDebug("  Extracted components - Header: %d lines, Body: %d lines, Footer: %d lines",
-		len(headerLines), len(bodyLines), len(footerLines))
+	logger.LogDebug("  Extracted components - Header: %d lines, Body: %d lines, Footer: %d lines, Rest: %d lines",
+		len(headerLines), len(bodyLines), len(footerLines), len(restLines))
 
-	return header, body, footer, true
+	return header, body, footer, rest, true
 }
 
 // extractComponentsWithoutMarkers attempts to extract components using comment syntax and style inference.
