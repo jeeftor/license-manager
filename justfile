@@ -70,7 +70,7 @@ ensure-test-dir:
 
 # Build and clean commands
 clean:
-    rm -rf dist
+    rm -rf dist junit.xml integration-status.json test-output.json
 
 build:
     goreleaser build --snapshot --clean
