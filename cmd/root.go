@@ -60,19 +60,6 @@ var logo = "" +
 	purple4.Sprint(`   ▐▌  ▐▌▐▌ ▐▌▐▌  ▐▌▐▌ ▐▌▝▚▄▞▘▐▙▄▄▖▐▌ ▐▌`) + "\n" +
 	versionColor.Sprint(versionString)
 
-//var (
-//	cfgLicense      string
-//	cfgInputs       []string
-//	cfgSkips        []string
-//	cfgPrompt       bool
-//	cfgDryRun       bool
-//	cfgVerbose      bool   // Add verbose flag
-//	cfgPresetStyle  string // header/footer style
-//	cfgPreferMulti  bool   // prefer multi-line comments where supported
-//	checkIgnoreFail bool   // Added for check command
-//
-//)
-
 var rootCmd = &cobra.Command{
 	Use:   "license-manager",
 	Short: color.CyanString("A tool to manage license headers in source files"),
@@ -114,6 +101,7 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
+
 	rootCmd.SetHelpTemplate(helpTemplate)
 
 	// Configure help command
@@ -187,6 +175,10 @@ func initConfig() {
 	// Update variables with viper values
 	if viper.IsSet("license") {
 		cfgLicense = viper.GetString("license")
+	}
+
+	if viper.IsSet("log-level") {
+		cfgLogLevel = viper.GetString("log-level")
 	}
 	//if viper.IsSet("style") {
 	//	cfgPresetStyle = viper.GetString("style")

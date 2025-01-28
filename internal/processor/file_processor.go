@@ -50,7 +50,7 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 	var style styles.HeaderFooterStyle
 	if err == nil {
 		// Create a temporary manager with default style to detect existing style
-		tempManager := license.NewLicenseManager("", styles.Get(fp.config.PresetStyle))
+		tempManager := license.NewLicenseManager(fp.logger, "", styles.Get(fp.config.PresetStyle))
 		tempManager.SetCommentStyle(commentStyle)
 		if tempManager.HasLicense(content) {
 			// If we found a license, detect its style for logging purposes
@@ -76,13 +76,10 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 	}
 
 	// Create and configure manager
-	manager := license.NewLicenseManager(fp.config.LicenseText, style)
+	manager := license.NewLicenseManager(fp.logger, fp.config.LicenseText, style)
 	manager.SetCommentStyle(commentStyle)
 	// Set the appropriate language handler based on the language type
 	manager.SetLanguageHandler(language.GetLanguageHandler(commentStyle.Language, style))
-	if fp.config.Verbose {
-		manager.SetVerbose(true, fp.logger)
-	}
 
 	return manager, commentStyle
 }

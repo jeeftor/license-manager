@@ -60,6 +60,7 @@ func (c *AppConfig) ToProcessorConfig() (*processor.Config, error) {
 		PresetStyle: c.HeaderStyle,
 		PreferMulti: c.PreferMulti,
 		IgnoreFail:  c.IgnoreFail,
+		LogLevel:    c.LogLevel,
 	}, nil
 }
 

@@ -53,11 +53,12 @@ type LicenseManager struct {
 }
 
 // NewLicenseManager creates a new manager
-func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle, commentStyle ...styles.CommentLanguage) *LicenseManager {
+func NewLicenseManager(logger *logger.Logger, template string, headerStyle styles.HeaderFooterStyle, commentStyle ...styles.CommentLanguage) *LicenseManager {
 	manager := &LicenseManager{
 		template:    template,
 		headerStyle: headerStyle,
 		verbose:     false,
+		logger:      logger,
 	}
 	if len(commentStyle) > 0 {
 		manager.commentStyle = commentStyle[0]
@@ -65,15 +66,16 @@ func NewLicenseManager(template string, headerStyle styles.HeaderFooterStyle, co
 	return manager
 }
 
-// SetVerbose enables verbose logging
-func (m *LicenseManager) SetVerbose(verbose bool, logger *logger.Logger) {
-	m.verbose = verbose
-	m.logger = logger
-	if m.langHandler != nil {
-		m.langHandler.SetLogger(logger)
-	}
-	comment.SetVerbose(verbose)
-}
+//// SetVerbose enables verbose logging
+//func (m *LicenseManager) SetVerbose(verbose bool, logger *logger.Logger) {
+//	m.verbose = verbose
+//	m.logger = logger
+//	if m.langHandler != nil {
+//		m.langHandler.SetLogger(logger)
+//	}
+//	comment.SetLogger(logger)
+//
+//}
 
 // SetCommentStyle sets the comment style
 func (m *LicenseManager) SetCommentStyle(style styles.CommentLanguage) {
