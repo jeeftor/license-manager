@@ -13,7 +13,9 @@ type INIHandler struct {
 }
 
 func NewINIHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *INIHandler {
-	return &INIHandler{GenericHandler: NewGenericHandler(logger, style, "ini")}
+	h := &INIHandler{GenericHandler: NewGenericHandler(logger, style, "ini")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *INIHandler) PreservePreamble(content string) (string, string) {

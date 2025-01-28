@@ -12,7 +12,9 @@ type PHPHandler struct {
 }
 
 func NewPHPHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *PHPHandler {
-	return &PHPHandler{GenericHandler: NewGenericHandler(logger, style, "php")}
+	h := &PHPHandler{GenericHandler: NewGenericHandler(logger, style, "php")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *PHPHandler) PreservePreamble(content string) (string, string) {

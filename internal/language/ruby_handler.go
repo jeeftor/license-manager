@@ -12,7 +12,9 @@ type RubyHandler struct {
 }
 
 func NewRubyHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *RubyHandler {
-	return &RubyHandler{GenericHandler: NewGenericHandler(logger, style, "rb")}
+	h := &RubyHandler{GenericHandler: NewGenericHandler(logger, style, "rb")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *RubyHandler) PreservePreamble(content string) (string, string) {

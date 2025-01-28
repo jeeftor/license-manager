@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"license-manager/internal/force"
-	"license-manager/internal/language"
 	"license-manager/internal/license"
 	"license-manager/internal/logger"
 	"license-manager/internal/styles"
@@ -35,54 +34,51 @@ func NewFileProcessor(cfg *Config) *FileProcessor {
 
 // createManager creates and configures a license manager for a given file
 func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, styles.CommentLanguage) {
-	// Get comment style for file type
+	// Get comment headerFooterStyle for file type
 	ext := filepath.Ext(file)
 	commentStyle := styles.GetLanguageCommentStyle(ext)
 
 	if fp.config.ForceCommentStyle == force.Single {
-		fp.logger.LogWarning("Overriding default comment style to %s", fp.config.ForceCommentStyle)
+		fp.logger.LogWarning("Overriding default comment headerFooterStyle to %s", fp.config.ForceCommentStyle)
 		commentStyle.PreferMulti = false
 	} else if fp.config.ForceCommentStyle == force.Multi {
-		fp.logger.LogWarning("Overriding default comment style to %s", fp.config.ForceCommentStyle)
+		fp.logger.LogWarning("Overriding default comment headerFooterStyle to %s", fp.config.ForceCommentStyle)
 		commentStyle.PreferMulti = true
 	}
 
 	fp.logger.LogInfo("Processing file: %s", file)
 	fp.logger.LogInfo("  Language: %s", commentStyle.Language)
-	fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
+	fp.logger.LogInfo("  Comment headerFooterStyle: %s", describeCommentStyle(commentStyle))
 
-	// Try to detect style from existing file content
+	// Try to detect headerFooterStyle from existing file content
 	content, err := fp.fileHandler.ReadFile(file)
-	var style styles.HeaderFooterStyle
+	var headerFooterStyle styles.HeaderFooterStyle
 	if err == nil {
-		// Create a temporary manager with default style to detect existing style
-		tempManager := license.NewLicenseManager(fp.logger, "", styles.Get(fp.config.PresetStyle))
-		tempManager.SetCommentStyle(commentStyle)
-		if tempManager.HasLicense(content) {
-			// If we found a license, detect its style for logging purposes
-			style = tempManager.DetectHeaderStyle(content)
-			fp.logger.LogInfo("  Detected style: %s", style.Name)
-			// Always use the configured style for checking
-			style = styles.Get(fp.config.PresetStyle)
+		// Create a temporary manager with default headerFooterStyle to detect existing headerFooterStyle
+
+		tempManager := license.NewLicenseManager(fp.logger, "", ext, styles.Get(fp.config.PresetStyle), commentStyle)
+		success, components := tempManager.HasLicense(content)
+
+		if success {
+			// If we found a license, detect its headerFooterStyle for logging purposes
+
+			headerFooterStyle = tempManager.DetectHeaderAndFooterStyle(components.Header, components.Footer)
+			fp.logger.LogInfo("  Detected headerFooterStyle: %s", headerFooterStyle.Name)
+			// Always use the configured headerFooterStyle for checking
+			headerFooterStyle = styles.Get(fp.config.PresetStyle)
 		} else {
-			// If no license found, use configured style
-			style = styles.Get(fp.config.PresetStyle)
-			fp.logger.LogInfo("  Using configured style: %s", style.Name)
+			// If no license found, use configured headerFooterStyle
+			headerFooterStyle = styles.Get(fp.config.PresetStyle)
+			fp.logger.LogInfo("  Using configured headerFooterStyle: %s", headerFooterStyle.Name)
 
 		}
 	} else {
-		// If can't read file, use configured style
-		style = styles.Get(fp.config.PresetStyle)
-
-		fp.logger.LogInfo("  Using configured style: %s", style.Name)
-
+		// If can't read file, use configured headerFooterStyle
+		headerFooterStyle = styles.Get(fp.config.PresetStyle)
+		fp.logger.LogInfo("  Using configured headerFooterStyle: %s", headerFooterStyle.Name)
 	}
-
 	// Create and configure manager
-	manager := license.NewLicenseManager(fp.logger, fp.config.LicenseText, style)
-	manager.SetCommentStyle(commentStyle)
-	// Set the appropriate language handler based on the language type
-	manager.SetLanguageHandler(language.GetLanguageHandler(fp.logger, commentStyle.Language, style))
+	manager := license.NewLicenseManager(fp.logger, fp.config.LicenseText, ext, headerFooterStyle, commentStyle)
 
 	return manager, commentStyle
 }
@@ -155,28 +151,34 @@ func (fp *FileProcessor) Add() error {
 		manager, commentStyle := fp.createManager(file)
 
 		// Get the appropriate language handler and check for preamble
-		handler := language.GetLanguageHandler(fp.logger, commentStyle.Language, style)
-		preamble, rest := handler.PreservePreamble(content)
+		//handler := language.GetLanguageHandler(fp.logger, commentStyle.Language, style)
 
-		if preamble != "" {
-			fp.logger.LogInfo("  Found preamble:")
-			for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
-				if line != "" {
-					fp.logger.LogInfo("    %s", line)
-				}
-			}
-		} else {
-			fp.logger.LogInfo("  No preamble found")
-		}
+		// Does it have a license
+		//
+		//
+		//
+		//preamble, rest := handler.PreservePreamble(content)
+		//
+		//if preamble != "" {
+		//	fp.logger.LogInfo("  Found preamble:")
+		//	for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
+		//		if line != "" {
+		//			fp.logger.LogInfo("    %s", line)
+		//		}
+		//	}
+		//} else {
+		//	fp.logger.LogInfo("  No preamble found")
+		//}
 
-		if manager.HasLicense(content) {
+		hasLicense, extract := manager.HasLicense(content)
+		if hasLicense {
 			fp.stats["existing"]++
 			fp.logger.LogWarning("License already exists in %s", file)
 			continue
 		}
 
 		// Use rest instead of content to add license after preamble
-		newContent, err := manager.AddLicense(rest, commentStyle.Language)
+		newContent, err := manager.AddLicense(extract.Rest, commentStyle.Language)
 		if err != nil {
 			fp.stats["failed"]++
 			fp.logger.LogError("Failed to add license to %s: %v", file, err)
@@ -184,8 +186,8 @@ func (fp *FileProcessor) Add() error {
 		}
 
 		// Recombine preamble with the licensed content
-		if preamble != "" {
-			newContent = preamble + "\n" + newContent
+		if extract.Preamble != "" {
+			newContent = extract.Preamble + "\n" + newContent
 		}
 
 		// Debug the actual comment being added in verbose mode

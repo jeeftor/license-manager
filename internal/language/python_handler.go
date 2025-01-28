@@ -12,7 +12,11 @@ type PythonHandler struct {
 }
 
 func NewPythonHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *PythonHandler {
-	return &PythonHandler{GenericHandler: NewGenericHandler(logger, style, "py")}
+	h := &PythonHandler{
+		GenericHandler: NewGenericHandler(logger, style, "py"),
+	}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *PythonHandler) PreservePreamble(content string) (string, string) {
@@ -58,8 +62,7 @@ func (h *PythonHandler) PreservePreamble(content string) (string, string) {
 
 	return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 }
-
-func (h *PythonHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) string {
+func (h *PythonHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock {
 	// First try to detect if there's already a comment style
 	lines := strings.Split(license, "\n")
 	hasTripleQuotes := false
@@ -76,9 +79,18 @@ func (h *PythonHandler) FormatLicense(license string, commentStyle styles.Commen
 		}
 	}
 
+	header := strings.TrimSpace(style.Header)
+	footer := strings.TrimSpace(style.Footer)
+	var result []string
+
 	// If it's already using triple quotes, keep that style
 	if hasTripleQuotes {
-		return license
+		return FullLicenseBlock{
+			String: license,
+			Header: header,
+			Body:   license,
+			Footer: footer,
+		}
 	}
 
 	// If it's using hash comments, keep that style
@@ -98,21 +110,15 @@ func (h *PythonHandler) FormatLicense(license string, commentStyle styles.Commen
 		commentStyle.PreferMulti = true
 	}
 
-	// Format the license
-	header := strings.TrimSpace(style.Header)
-	footer := strings.TrimSpace(style.Footer)
-
-	var result []string
-
+	var bodyLines []string
 	if commentStyle.PreferMulti {
 		// Multi-line comment style with triple quotes
 		result = append(result, commentStyle.MultiStart)
 		if header != "" {
 			result = append(result, header)
 		}
-		for _, line := range strings.Split(license, "\n") {
-			result = append(result, line)
-		}
+		bodyLines = lines // Store raw body lines
+		result = append(result, license)
 		if footer != "" {
 			result = append(result, footer)
 		}
@@ -122,11 +128,13 @@ func (h *PythonHandler) FormatLicense(license string, commentStyle styles.Commen
 		if header != "" {
 			result = append(result, commentStyle.Single+commentStyle.LinePrefix+header)
 		}
-		for _, line := range strings.Split(license, "\n") {
+		for _, line := range lines {
 			if line == "" {
 				result = append(result, "")
+				bodyLines = append(bodyLines, "")
 			} else {
 				result = append(result, commentStyle.Single+commentStyle.LinePrefix+line)
+				bodyLines = append(bodyLines, line)
 			}
 		}
 		if footer != "" {
@@ -134,5 +142,10 @@ func (h *PythonHandler) FormatLicense(license string, commentStyle styles.Commen
 		}
 	}
 
-	return strings.Join(result, "\n")
+	return FullLicenseBlock{
+		String: strings.Join(result, "\n"),
+		Header: header,
+		Body:   strings.Join(bodyLines, "\n"),
+		Footer: footer,
+	}
 }

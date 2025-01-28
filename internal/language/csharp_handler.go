@@ -13,7 +13,9 @@ type CSharpHandler struct {
 }
 
 func NewCSharpHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *CSharpHandler {
-	return &CSharpHandler{GenericHandler: NewGenericHandler(logger, style, "cs")}
+	h := &CSharpHandler{GenericHandler: NewGenericHandler(logger, style, "cs")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *CSharpHandler) PreservePreamble(content string) (string, string) {

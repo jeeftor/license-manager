@@ -12,7 +12,9 @@ type GoHandler struct {
 }
 
 func NewGoHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *GoHandler {
-	return &GoHandler{GenericHandler: NewGenericHandler(logger, style, "go")}
+	h := &GoHandler{GenericHandler: NewGenericHandler(logger, style, "go")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 // isDirective checks if a line is a Go directive

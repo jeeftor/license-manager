@@ -214,6 +214,7 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 //   - rest: Any remaining content after the license block
 //   - success: Whether the extraction was successful
 func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer, rest string, success bool) {
+
 	if content == "" {
 		return "", "", "", "", false
 	}

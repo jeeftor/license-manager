@@ -13,7 +13,9 @@ type ScalaHandler struct {
 }
 
 func NewScalaHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *ScalaHandler {
-	return &ScalaHandler{GenericHandler: NewGenericHandler(logger, style, "scala")}
+	h := &ScalaHandler{GenericHandler: NewGenericHandler(logger, style, "scala")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *ScalaHandler) PreservePreamble(content string) (string, string) {

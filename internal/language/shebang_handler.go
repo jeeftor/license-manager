@@ -12,7 +12,11 @@ type ShebangHandler struct {
 }
 
 func NewShebangHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *ShebangHandler {
-	return &ShebangHandler{GenericHandler: NewGenericHandler(logger, style, "sh")}
+	h := &ShebangHandler{
+		GenericHandler: NewGenericHandler(logger, style, "sh"),
+	}
+	h.GenericHandler.subclassHandler = h // Set ShebangHandler as the preamble handler
+	return h
 }
 
 func (h *ShebangHandler) PreservePreamble(content string) (string, string) {

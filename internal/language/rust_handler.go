@@ -13,7 +13,9 @@ type RustHandler struct {
 }
 
 func NewRustHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *RustHandler {
-	return &RustHandler{GenericHandler: NewGenericHandler(logger, style, ".rs")}
+	h := &RustHandler{GenericHandler: NewGenericHandler(logger, style, ".rs")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *RustHandler) PreservePreamble(content string) (string, string) {

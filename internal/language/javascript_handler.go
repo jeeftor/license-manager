@@ -34,7 +34,9 @@ type JavaScriptHandler struct {
 }
 
 func NewJavaScriptHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *JavaScriptHandler {
-	return &JavaScriptHandler{GenericHandler: NewGenericHandler(logger, style, ".js")}
+	h := &JavaScriptHandler{GenericHandler: NewGenericHandler(logger, style, ".js")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *JavaScriptHandler) PreservePreamble(content string) (string, string) {

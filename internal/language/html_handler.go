@@ -12,7 +12,9 @@ type HTMLHandler struct {
 }
 
 func NewHTMLHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *HTMLHandler {
-	return &HTMLHandler{GenericHandler: NewGenericHandler(logger, style, "html")}
+	h := &HTMLHandler{GenericHandler: NewGenericHandler(logger, style, "html")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *HTMLHandler) PreservePreamble(content string) (string, string) {

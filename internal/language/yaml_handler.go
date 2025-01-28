@@ -12,7 +12,9 @@ type YAMLHandler struct {
 }
 
 func NewYAMLHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *YAMLHandler {
-	return &YAMLHandler{GenericHandler: NewGenericHandler(logger, style, ".yml")}
+	h := &YAMLHandler{GenericHandler: NewGenericHandler(logger, style, ".yml")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *YAMLHandler) PreservePreamble(content string) (string, string) {

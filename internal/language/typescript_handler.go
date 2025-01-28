@@ -12,7 +12,9 @@ type TypeScriptHandler struct {
 }
 
 func NewTypeScriptHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *TypeScriptHandler {
-	return &TypeScriptHandler{JavaScriptHandler: NewJavaScriptHandler(logger, style)}
+	h := &TypeScriptHandler{JavaScriptHandler: NewJavaScriptHandler(logger, style)}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *TypeScriptHandler) PreservePreamble(content string) (string, string) {

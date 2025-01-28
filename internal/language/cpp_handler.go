@@ -13,7 +13,9 @@ type CppHandler struct {
 }
 
 func NewCppHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *CppHandler {
-	return &CppHandler{GenericHandler: NewGenericHandler(logger, style, "cpp")}
+	h := &CppHandler{GenericHandler: NewGenericHandler(logger, style, "cpp")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *CppHandler) PreservePreamble(content string) (string, string) {

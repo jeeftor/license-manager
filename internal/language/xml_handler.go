@@ -12,7 +12,12 @@ type XMLHandler struct {
 }
 
 func NewXMLHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *XMLHandler {
-	return &XMLHandler{GenericHandler: NewGenericHandler(logger, style, "xml")}
+	h := &XMLHandler{
+		GenericHandler: NewGenericHandler(logger, style, "xml"),
+	}
+	h.GenericHandler.subclassHandler = h
+	return h
+
 }
 
 func (h *XMLHandler) PreservePreamble(content string) (string, string) {
@@ -43,7 +48,7 @@ func (h *XMLHandler) PreservePreamble(content string) (string, string) {
 	return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 }
 
-func (h *XMLHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) string {
+func (h *XMLHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock {
 	header := strings.TrimSpace(style.Header)
 	footer := strings.TrimSpace(style.Footer)
 
@@ -54,5 +59,10 @@ func (h *XMLHandler) FormatLicense(license string, commentStyle styles.CommentLa
 	result = append(result, footer)
 	result = append(result, "-->")
 
-	return strings.Join(result, "\n")
+	return FullLicenseBlock{
+		String: strings.Join(result, "\n"),
+		Header: header,
+		Body:   license,
+		Footer: footer,
+	}
 }

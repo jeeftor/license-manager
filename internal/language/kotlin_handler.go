@@ -13,7 +13,9 @@ type KotlinHandler struct {
 }
 
 func NewKotlinHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *KotlinHandler {
-	return &KotlinHandler{GenericHandler: NewGenericHandler(logger, style, ".kt")}
+	h := &KotlinHandler{GenericHandler: NewGenericHandler(logger, style, ".kt")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *KotlinHandler) PreservePreamble(content string) (string, string) {
