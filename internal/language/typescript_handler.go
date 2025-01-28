@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,8 @@ type TypeScriptHandler struct {
 	*JavaScriptHandler
 }
 
-func NewTypeScriptHandler(style styles.HeaderFooterStyle) *TypeScriptHandler {
-	return &TypeScriptHandler{JavaScriptHandler: NewJavaScriptHandler(style)}
+func NewTypeScriptHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *TypeScriptHandler {
+	return &TypeScriptHandler{JavaScriptHandler: NewJavaScriptHandler(logger, style)}
 }
 
 func (h *TypeScriptHandler) PreservePreamble(content string) (string, string) {

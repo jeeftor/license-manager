@@ -15,8 +15,6 @@ type LanguageHandler interface {
 	PreservePreamble(content string) (preamble, rest string)
 	// ScanBuildDirectives scans the content and returns the build directives and where they end
 	ScanBuildDirectives(content string) (directives []string, endIndex int)
-	// SetLogger sets the logger for verbose output
-	SetLogger(logger *logger.Logger)
 }
 
 // GenericHandler provides default license formatting
@@ -25,10 +23,10 @@ type GenericHandler struct {
 	logger *logger.Logger
 }
 
-func NewGenericHandler(style styles.HeaderFooterStyle) *GenericHandler {
+func NewGenericHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *GenericHandler {
 	return &GenericHandler{
 		style:  style,
-		logger: nil,
+		logger: logger,
 	}
 }
 
@@ -86,47 +84,47 @@ func (h *GenericHandler) SetLogger(logger *logger.Logger) {
 }
 
 // GetLanguageHandler returns the appropriate handler for a given file type
-func GetLanguageHandler(fileType string, style styles.HeaderFooterStyle) LanguageHandler {
+func GetLanguageHandler(logger *logger.Logger, fileType string, style styles.HeaderFooterStyle) LanguageHandler {
 	switch fileType {
 	case "go":
-		return NewGoHandler(style)
+		return NewGoHandler(logger, style)
 	case "js", "jsx":
-		return NewJavaScriptHandler(style)
+		return NewJavaScriptHandler(logger, style)
 	case "ts", "tsx":
-		return NewTypeScriptHandler(style)
+		return NewTypeScriptHandler(logger, style)
 	case "yaml":
-		return NewYAMLHandler(style)
+		return NewYAMLHandler(logger, style)
 	case "python", "py":
-		return NewPythonHandler(style)
+		return NewPythonHandler(logger, style)
 	case "cpp", "c", "h", "hpp":
-		return NewCppHandler(style)
+		return NewCppHandler(logger, style)
 	case "php":
-		return NewPHPHandler(style)
+		return NewPHPHandler(logger, style)
 	case "rb", "ruby":
-		return NewRubyHandler(style)
+		return NewRubyHandler(logger, style)
 	case "lua":
-		return NewLuaHandler(style)
+		return NewLuaHandler(logger, style)
 	case "rs":
-		return NewRustHandler(style)
+		return NewRustHandler(logger, style)
 	case "shell":
-		return NewShebangHandler(style)
+		return NewShebangHandler(logger, style)
 	case "kotlin":
-		return NewKotlinHandler(style)
+		return NewKotlinHandler(logger, style)
 	case "scala":
-		return NewScalaHandler(style)
+		return NewScalaHandler(logger, style)
 	case "css":
-		return NewCSSHandler(style)
+		return NewCSSHandler(logger, style)
 	case "xml", "html":
-		return NewXMLHandler(style) // XML can use HTML handler (both use <!-- -->)
+		return NewXMLHandler(logger, style) // XML can use HTML handler (both use <!-- -->)
 	//case "markdown", "md":
-	//	return NewHTMLHandler(style) // Markdown can use HTML handler (both use <!-- -->)
+	//	return NewHTMLHandler(logger, style) // Markdown can use HTML handler (both use <!-- -->)
 	case "ini", "toml":
-		return NewINIHandler(style)
+		return NewINIHandler(logger, style)
 	case "swift":
-		return NewSwiftHandler(style)
+		return NewSwiftHandler(logger, style)
 	case "csharp":
-		return NewCSharpHandler(style)
+		return NewCSharpHandler(logger, style)
 	default:
-		return NewGenericHandler(style)
+		return NewGenericHandler(logger, style)
 	}
 }

@@ -2,6 +2,7 @@ package language
 
 import (
 	"github.com/fatih/color"
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,8 @@ type GoHandler struct {
 	*GenericHandler
 }
 
-func NewGoHandler(style styles.HeaderFooterStyle) *GoHandler {
-	return &GoHandler{GenericHandler: NewGenericHandler(style)}
+func NewGoHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *GoHandler {
+	return &GoHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 // isDirective checks if a line is a Go directive

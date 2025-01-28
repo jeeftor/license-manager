@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"strings"
 
 	"license-manager/internal/styles"
@@ -11,8 +12,8 @@ type CSSHandler struct {
 	*GenericHandler
 }
 
-func NewCSSHandler(style styles.HeaderFooterStyle) *CSSHandler {
-	return &CSSHandler{GenericHandler: NewGenericHandler(style)}
+func NewCSSHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *CSSHandler {
+	return &CSSHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *CSSHandler) PreservePreamble(content string) (string, string) {

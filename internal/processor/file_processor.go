@@ -74,7 +74,7 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 	manager := license.NewLicenseManager(fp.logger, fp.config.LicenseText, style)
 	manager.SetCommentStyle(commentStyle)
 	// Set the appropriate language handler based on the language type
-	manager.SetLanguageHandler(language.GetLanguageHandler(commentStyle.Language, style))
+	manager.SetLanguageHandler(language.GetLanguageHandler(fp.logger, commentStyle.Language, style))
 
 	return manager, commentStyle
 }
@@ -150,7 +150,7 @@ func (fp *FileProcessor) Add() error {
 		manager, commentStyle := fp.createManager(file)
 
 		// Get the appropriate language handler and check for preamble
-		handler := language.GetLanguageHandler(commentStyle.Language, style)
+		handler := language.GetLanguageHandler(fp.logger, commentStyle.Language, style)
 		preamble, rest := handler.PreservePreamble(content)
 
 		if preamble != "" {

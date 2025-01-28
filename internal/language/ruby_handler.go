@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,8 @@ type RubyHandler struct {
 	*GenericHandler
 }
 
-func NewRubyHandler(style styles.HeaderFooterStyle) *RubyHandler {
-	return &RubyHandler{GenericHandler: NewGenericHandler(style)}
+func NewRubyHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *RubyHandler {
+	return &RubyHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *RubyHandler) PreservePreamble(content string) (string, string) {

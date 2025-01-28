@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,8 @@ type XMLHandler struct {
 	*GenericHandler
 }
 
-func NewXMLHandler(style styles.HeaderFooterStyle) *XMLHandler {
-	return &XMLHandler{GenericHandler: NewGenericHandler(style)}
+func NewXMLHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *XMLHandler {
+	return &XMLHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *XMLHandler) PreservePreamble(content string) (string, string) {

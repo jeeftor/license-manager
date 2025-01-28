@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"strings"
 
 	"license-manager/internal/styles"
@@ -11,8 +12,8 @@ type KotlinHandler struct {
 	*GenericHandler
 }
 
-func NewKotlinHandler(style styles.HeaderFooterStyle) *KotlinHandler {
-	return &KotlinHandler{GenericHandler: NewGenericHandler(style)}
+func NewKotlinHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *KotlinHandler {
+	return &KotlinHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *KotlinHandler) PreservePreamble(content string) (string, string) {

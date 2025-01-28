@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,8 @@ type LuaHandler struct {
 	*GenericHandler
 }
 
-func NewLuaHandler(style styles.HeaderFooterStyle) *LuaHandler {
-	return &LuaHandler{GenericHandler: NewGenericHandler(style)}
+func NewLuaHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *LuaHandler {
+	return &LuaHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *LuaHandler) PreservePreamble(content string) (string, string) {

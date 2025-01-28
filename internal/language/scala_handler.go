@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"strings"
 
 	"license-manager/internal/styles"
@@ -11,8 +12,8 @@ type ScalaHandler struct {
 	*GenericHandler
 }
 
-func NewScalaHandler(style styles.HeaderFooterStyle) *ScalaHandler {
-	return &ScalaHandler{GenericHandler: NewGenericHandler(style)}
+func NewScalaHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *ScalaHandler {
+	return &ScalaHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *ScalaHandler) PreservePreamble(content string) (string, string) {

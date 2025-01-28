@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,8 @@ type PHPHandler struct {
 	*GenericHandler
 }
 
-func NewPHPHandler(style styles.HeaderFooterStyle) *PHPHandler {
-	return &PHPHandler{GenericHandler: NewGenericHandler(style)}
+func NewPHPHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *PHPHandler {
+	return &PHPHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *PHPHandler) PreservePreamble(content string) (string, string) {

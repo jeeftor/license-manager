@@ -199,7 +199,7 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 }
 
 // ExtractComponents extracts the header, body, and footer from a license block
-func ExtractComponents(content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer string, success bool) {
+func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer string, success bool) {
 	if content == "" {
 		return "", "", "", false
 	}
@@ -214,26 +214,6 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 	var startIndex, endIndex int
 	var foundStart, foundEnd bool
 
-	//for i, line := range lines {
-	//	line = strings.TrimSpace(line)
-	//	if line == "" {
-	//		continue
-	//	}
-	//
-	//	// Look for start markers using language style
-	//	if !foundStart && languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
-	//		startIndex = i
-	//		foundStart = true
-	//		continue
-	//	}
-	//
-	//	// Look for end markers
-	//	if foundStart && !foundEnd && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
-	//		endIndex = i
-	//		foundEnd = true
-	//		break
-	//	}
-	//}
 	for i, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -243,9 +223,11 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 		if !foundStart && languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
 			startIndex = i
 			foundStart = true
+			logger.LogDebug("  Found start marker: %s at line %d of 'content'", languageStyle.MultiStart, i)
 		} else if foundStart && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
 			endIndex = i
 			foundEnd = true
+			logger.LogDebug("  Found end marker: %s at line %d of 'content'", languageStyle.MultiEnd, i)
 			break
 		}
 	}
@@ -260,7 +242,13 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 		if line == "" {
 			continue
 		}
-		headerLines = append(headerLines, lines[i])
+		if stripMarkers {
+			line = languageStyle.StripCommentMarkers(line)
+			line = strings.TrimSpace(line)
+			headerLines = append(headerLines, line)
+		} else {
+			headerLines = append(headerLines, lines[i])
+		}
 		break
 	}
 
@@ -271,7 +259,13 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 		if line == "" {
 			continue
 		}
-		footerLines = append(footerLines, lines[i])
+		if stripMarkers {
+			line = languageStyle.StripCommentMarkers(line)
+			line = strings.TrimSpace(line)
+			footerLines = append(footerLines, line)
+		} else {
+			footerLines = append(footerLines, lines[i])
+		}
 		break
 	}
 
@@ -289,17 +283,15 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 	for i := bodyStart; i < bodyEnd; i++ {
 		line := lines[i]
 		if stripMarkers {
-			line = strings.TrimSpace(lines[i])
-			line = strings.TrimPrefix(line, languageStyle.LinePrefix)
-			line = strings.TrimPrefix(line, "*")
-			line = strings.TrimPrefix(line, " *")
+			line = languageStyle.StripCommentMarkers(line)
 			line = strings.TrimSpace(line)
+			bodyLines = append(bodyLines, line)
+		} else {
+			bodyLines = append(bodyLines, line)
 		}
-		bodyLines = append(bodyLines, line)
 	}
 
 	header = strings.Join(headerLines, "\n")
-
 	body = strings.Join(bodyLines, "\n")
 	footer = strings.Join(footerLines, "\n")
 
@@ -715,28 +707,8 @@ func (c *Comment) SetBody(body string) {
 	c.body = body
 }
 
-//func (c *Comment) SetStyle(style styles.CommentLanguage) {
-//	c.style = style
-//}
-
 func (c *Comment) SetHeaderFooterStyle(hfStyle styles.HeaderFooterStyle) {
 	c.hfStyle = hfStyle
 	c.header = hfStyle.Header
 	c.footer = hfStyle.Footer
 }
-
-//func (c *Comment) GetStyle() styles.CommentLanguage {
-//	return c.style
-//}
-//
-//func (c *Comment) GetHeader() string {
-//	return c.header
-//}
-//
-//func (c *Comment) GetFooter() string {
-//	return c.footer
-//}
-//
-//func (c *Comment) GetBody() string {
-//	return c.body
-//}

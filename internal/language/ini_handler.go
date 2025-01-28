@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"strings"
 
 	"license-manager/internal/styles"
@@ -11,8 +12,8 @@ type INIHandler struct {
 	*GenericHandler
 }
 
-func NewINIHandler(style styles.HeaderFooterStyle) *INIHandler {
-	return &INIHandler{GenericHandler: NewGenericHandler(style)}
+func NewINIHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *INIHandler {
+	return &INIHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *INIHandler) PreservePreamble(content string) (string, string) {

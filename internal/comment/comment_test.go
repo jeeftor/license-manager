@@ -56,6 +56,52 @@ This is the body text
 			wantSuccess:  true,
 		},
 		{
+			name: "Python triple single quote comment",
+			content: `'''
+ * License Header
+ * Copyright 2025 Example Corp
+ * License Footer
+ '''
+
+def main():
+    pass`,
+			stripMarkers: true,
+			wantHeader:   "License Header",
+			wantBody:     "Copyright 2025 Example Corp",
+			wantFooter:   "License Footer",
+			wantSuccess:  true,
+		},
+		{
+			name: "Python triple double quote comment",
+			content: `"""
+ * License Header
+ * Copyright 2025 Example Corp
+ * License Footer
+ """
+
+def main():
+    pass`,
+			stripMarkers: true,
+			wantHeader:   "License Header",
+			wantBody:     "Copyright 2025 Example Corp",
+			wantFooter:   "License Footer",
+			wantSuccess:  true,
+		},
+		{
+			name: "Python hash comment",
+			content: `# License Header
+# Copyright 2025 Example Corp
+# License Footer
+
+def main():
+    pass`,
+			stripMarkers: true,
+			wantHeader:   "License Header",
+			wantBody:     "Copyright 2025 Example Corp",
+			wantFooter:   "License Footer",
+			wantSuccess:  true,
+		},
+		{
 			name: "HTML-style comment",
 			content: `<!-- MIT License -->
 Permission is hereby granted
@@ -140,7 +186,25 @@ Body content
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotHeader, gotBody, gotFooter, gotSuccess := ExtractComponents(tt.content, tt.stripMarkers)
+			var style styles.CommentLanguage
+			if strings.Contains(tt.content, `'''`) || strings.Contains(tt.content, `"""`) {
+				style = styles.CommentLanguage{
+					Single:     "#",
+					MultiStart: "'''",
+					MultiEnd:   "'''",
+				}
+				if strings.Contains(tt.content, `"""`) {
+					style.MultiStart = `"""`
+					style.MultiEnd = `"""`
+				}
+			} else {
+				style = styles.CommentLanguage{
+					Single:     "//",
+					MultiStart: "/*",
+					MultiEnd:   "*/",
+				}
+			}
+			gotHeader, gotBody, gotFooter, gotSuccess := ExtractComponents(tt.content, tt.stripMarkers, style)
 			if gotSuccess != tt.wantSuccess {
 				t.Errorf("ExtractComponents() success = %v, want %v", gotSuccess, tt.wantSuccess)
 				return
@@ -230,6 +294,63 @@ Content here
 
 End Notice
 -->`,
+		},
+		{
+			name: "Python triple single quote comment style",
+			style: styles.CommentLanguage{
+				Single:     "#",
+				MultiStart: "'''",
+				MultiEnd:   "'''",
+			},
+			hfStyle: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			body: "Body text\nSecond line",
+			expected: `'''
+License Header
+
+Body text
+Second line
+
+License Footer
+'''`,
+		},
+		{
+			name: "Python triple double quote comment style",
+			style: styles.CommentLanguage{
+				Single:     "#",
+				MultiStart: `"""`,
+				MultiEnd:   `"""`,
+			},
+			hfStyle: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			body: "Body text\nSecond line",
+			expected: `"""
+License Header
+
+Body text
+Second line
+
+License Footer
+"""`,
+		},
+		{
+			name: "Python hash comment style",
+			style: styles.CommentLanguage{
+				Single: "#",
+			},
+			hfStyle: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			body: "Body text\nSecond line",
+			expected: `# License Header
+# Body text
+# Second line
+# License Footer`,
 		},
 	}
 

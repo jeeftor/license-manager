@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,8 @@ type ShebangHandler struct {
 	*GenericHandler
 }
 
-func NewShebangHandler(style styles.HeaderFooterStyle) *ShebangHandler {
-	return &ShebangHandler{GenericHandler: NewGenericHandler(style)}
+func NewShebangHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *ShebangHandler {
+	return &ShebangHandler{GenericHandler: NewGenericHandler(logger, style)}
 }
 
 func (h *ShebangHandler) PreservePreamble(content string) (string, string) {
