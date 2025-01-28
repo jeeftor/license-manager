@@ -64,10 +64,17 @@ func NewLogger(verbose bool, LogLevel LogLevel) *Logger {
 func (l *Logger) Log(level LogLevel, showPrefix bool, format string, args ...interface{}) {
 	if l.level <= level {
 		var outputText string
-		if len(args) > 0 && !(len(args) == 1 && fmt.Sprintf("%v", args[0]) == "[]") {
+		if len(args) > 0 {
+			// Always use fmt.Sprintf for consistency with direct Printf
 			outputText = fmt.Sprintf(format, args...)
 		} else {
-			outputText = format // Just use the string directly if no args or empty slice
+			// When no args are provided and format contains %%, we need to handle it specially
+			// to match fmt.Printf behavior
+			if strings.Contains(format, "%%") {
+				outputText = fmt.Sprintf(format)
+			} else {
+				outputText = format
+			}
 		}
 
 		var prefix string
@@ -94,31 +101,27 @@ func (l *Logger) Log(level LogLevel, showPrefix bool, format string, args ...int
 
 // LogError logs an error message
 func (l *Logger) LogError(format string, args ...interface{}) {
-	l.Log(ErrorLevel, true, format, args)
-	//fmt.Printf("%s %s\n", l.colors["error"].Sprint("ERROR:"), fmt.Sprintf(format, args...))
+	l.Log(ErrorLevel, true, format, args...)
 }
 
 func (l *Logger) LogDebug(format string, args ...interface{}) {
-	l.Log(DebugLevel, true, format, args)
-	//fmt.Printf("%s %s\n", l.colors["error"].Sprint("ERROR:"), fmt.Sprintf(format, args...))
+	l.Log(DebugLevel, true, format, args...)
 }
 
 // LogWarning logs a warning message
 func (l *Logger) LogWarning(format string, args ...interface{}) {
-	fmt.Printf("%s %s\n", l.colors["warning"].Sprint("WARNING:"), fmt.Sprintf(format, args...))
+	l.Log(WarningLevel, true, format, args...)
 }
 
 // LogSuccess logs a success message
 func (l *Logger) LogSuccess(format string, args ...interface{}) {
-
 	successPrefix := l.colors["success"].Sprint("✓ ")
 	l.Log(NoticeLevel, false, successPrefix+format, args...)
 }
 
 // LogInfo logs an info message
 func (l *Logger) LogInfo(format string, args ...interface{}) {
-	//fmt.Printf("%s %s\n", l.colors["info"].Sprint("INFO:"), fmt.Sprintf(format, args...))
-	l.Log(InfoLevel, true, format, args)
+	l.Log(InfoLevel, true, format, args...)
 }
 
 // LogQuestion formats a question message and returns it
