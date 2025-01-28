@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"license-manager/internal/logger"
 	"os/exec"
 	"strings"
 
@@ -42,7 +43,9 @@ var preCommitCmd = &cobra.Command{
 			CommentStyle: "go", // default
 			PreferMulti:  cfgPreferMulti,
 
-			Verbose:     cfgVerbose,
+			Verbose:  cfgVerbose,
+			LogLevel: logger.ParseLogLevel(cfgLogLevel),
+
 			Interactive: false, // Typically want non-interactive in pre-commit
 			Force:       false,
 			IgnoreFail:  false, // We want to fail if license checks fail

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"license-manager/internal/config"
+	"license-manager/internal/logger"
 	"license-manager/internal/processor"
 )
 
@@ -28,7 +29,8 @@ var addCmd = &cobra.Command{
 			PreferMulti:  cfgPreferMulti,
 
 			// Behavior flags
-			Verbose: cfgVerbose,
+			Verbose:  cfgVerbose,
+			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 
 			Force:      false,
 			IgnoreFail: false,
