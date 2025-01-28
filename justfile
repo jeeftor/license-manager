@@ -85,22 +85,32 @@ test-dir:
 [private]
 run-command lang cmd *FLAGS: ensure-test-dir
     #!/usr/bin/env bash
-    patterns="$(just get-patterns {{lang}})"
+    patterns=$(just get-patterns {{lang}})
 
     echo "Running {{cmd}} for {{lang}} files... [$patterns]"
 
-    for pattern in "$patterns"; do
-        echo "Looking for files matching: [{{test_data_dir}}/{{lang}}/**/$pattern]"
-        echo "Command: find {{test_data_dir}}/{{lang}} -type f -name \"$pattern\" 2>/dev/null"
-        files=$(find {{test_data_dir}}/{{lang}} -type f -name "$pattern" 2>/dev/null)
-        if [ -n "$files" ]; then
-            echo "Found files: $files"
-            echo "$files" |  xargs -I {} {{go_cmd}} {{cmd}} --input {} {{FLAGS}} --license {{license_path}}
-        else
-            echo "Warning: No {{lang}} files found matching pattern $pattern"
-            echo "If this is unexpected, try running 'just test-dir' to recreate test files"
+    # Split patterns and create find arguments
+    find_args=""
+    for pattern in $patterns; do
+        if [ -n "$find_args" ]; then
+            find_args="$find_args -o"
         fi
+        find_args="$find_args -name \"$pattern\""
     done
+
+    echo "Looking for files in: {{test_data_dir}}/{{lang}}"
+    echo "Command: find {{test_data_dir}}/{{lang}} -type f \( $find_args \) 2>/dev/null"
+
+    # Use eval to properly handle the complex find command
+    files=$(eval "find {{test_data_dir}}/{{lang}} -type f \( $find_args \) 2>/dev/null")
+
+    if [ -n "$files" ]; then
+        echo "Found files: $files"
+        echo "$files" | xargs -I {} {{go_cmd}} {{cmd}} --input {} {{FLAGS}} --license {{license_path}}
+    else
+        echo "Warning: No {{lang}} files found matching patterns: $patterns"
+        echo "If this is unexpected, try running 'just test-dir' to recreate test files"
+    fi
 
 # Language-specific commands
 add lang: (run-command lang "add" "--log-level" "notice") # "--verbose")

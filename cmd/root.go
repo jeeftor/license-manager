@@ -161,10 +161,8 @@ func init() {
 	rootCmd.PersistentFlags().StringSliceVar(&cfgInputs, "input", []string{}, "Inputs file patterns")
 	rootCmd.PersistentFlags().StringSliceVar(&cfgSkips, "skip", []string{}, "Patterns to skip")
 
-	//rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
-	//rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
 	rootCmd.PersistentFlags().StringVar(&cfgLogLevel, "log-level", "notice", "Log level (debug, info, notice, warn, error)")
-	//rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
+
 }
 
 func initConfig() {
@@ -183,15 +181,6 @@ func initConfig() {
 	if viper.IsSet("style") {
 		cfgPresetStyle = viper.GetString("style")
 	}
-	//if viper.IsSet("multi") {
-	//	cfgPreferMulti = viper.GetBool("multi")
-	//}
-	//if viper.IsSet("prompt") {
-	//	cfgPrompt = viper.GetBool("prompt")
-	//}
-	//if viper.IsSet("dry-run") {
-	//	cfgDryRun = viper.GetBool("dry-run")
-	//}
 
 }
 
