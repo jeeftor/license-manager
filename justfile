@@ -104,8 +104,8 @@ run-command lang cmd *FLAGS: ensure-test-dir
 
 # Language-specific commands
 add lang: (run-command lang "add" "--log-level" "notice") # "--verbose")
-check lang: (run-command lang "check" "--verbose")
-update lang: (run-command lang "update" "--verbose")
+check lang: (run-command lang "check" "--log-level" "notice")
+update lang: (run-command lang "update" "--log-level" "notice")
 debug lang: (run-command lang "debug")
 remove lang: (run-command lang "remove")
 modify lang: ensure-test-dir

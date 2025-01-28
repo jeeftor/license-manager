@@ -22,7 +22,6 @@ var (
 	cfgPresetStyle  string
 	cfgLogLevel     string
 	cfgPreferMulti  bool
-	cfgVerbose      bool
 )
 
 // ExitError represents an error with an exit code
@@ -67,7 +66,6 @@ Exit Codes:
 			Skips:       strings.Join(cfgSkips, ","),
 			HeaderStyle: cfgPresetStyle,
 			PreferMulti: cfgPreferMulti,
-			Verbose:     cfgVerbose,
 			LogLevel:    logger.ParseLogLevel(cfgLogLevel),
 			IgnoreFail:  checkIgnoreFail,
 		}
@@ -131,9 +129,9 @@ Exit Codes:
 				Code: 5, // Keep this as a constant since it's not part of the Status enum
 			}
 		}
-		if cfgVerbose {
-			fmt.Printf("Exit code: 0\n")
-		}
+		//if cfgVerbose {
+		//fmt.Printf("Exit code: 0\n")
+		//}
 		return nil
 	},
 }

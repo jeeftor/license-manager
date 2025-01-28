@@ -17,7 +17,6 @@ type AppConfig struct {
 	Skips       string // Skips patterns
 
 	// UI/Behavior settings
-	Verbose     bool
 	LogLevel    logger.LogLevel
 	Interactive bool
 	Force       bool
@@ -56,7 +55,7 @@ func (c *AppConfig) ToProcessorConfig() (*processor.Config, error) {
 		Input:       c.Inputs,
 		Skip:        c.Skips,
 		Prompt:      c.Interactive,
-		Verbose:     c.Verbose,
+
 		PresetStyle: c.HeaderStyle,
 		PreferMulti: c.PreferMulti,
 		IgnoreFail:  c.IgnoreFail,

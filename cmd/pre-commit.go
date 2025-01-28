@@ -43,7 +43,6 @@ var preCommitCmd = &cobra.Command{
 			CommentStyle: "go", // default
 			PreferMulti:  cfgPreferMulti,
 
-			Verbose:  cfgVerbose,
 			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 
 			Interactive: false, // Typically want non-interactive in pre-commit
@@ -86,5 +85,4 @@ func init() {
 
 	// Reuse existing flags from check command, but with pre-commit specific defaults
 	preCommitCmd.Flags().StringVar(&cfgLicense, "license", "./LICENSE", "Path to license file")
-	preCommitCmd.Flags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
 }

@@ -40,16 +40,14 @@ type LogLevel int
 
 // Logger handles all logging operations
 type Logger struct {
-	verbose bool
-	colors  map[string]*color.Color
-	level   LogLevel
+	colors map[string]*color.Color
+	level  LogLevel
 }
 
 // NewLogger creates a new Logger instance
-func NewLogger(verbose bool, LogLevel LogLevel) *Logger {
+func NewLogger(LogLevel LogLevel) *Logger {
 	return &Logger{
-		verbose: verbose,
-		level:   LogLevel,
+		level: LogLevel,
 		colors: map[string]*color.Color{
 			"error":   color.New(color.FgRed),
 			"warning": color.New(color.FgYellow),
@@ -131,9 +129,7 @@ func (l *Logger) LogQuestion(format string, args ...interface{}) string {
 
 // LogVerbose logs a message only in verbose mode
 func (l *Logger) LogVerbose(format string, args ...interface{}) {
-	if l.verbose {
-		l.LogInfo(format, args...)
-	}
+	l.Log(DebugLevel, true, format, args...)
 }
 
 // Prompt asks the user for confirmation

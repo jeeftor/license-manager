@@ -21,7 +21,7 @@ type FileProcessor struct {
 
 // NewFileProcessor creates a new FileProcessor instance
 func NewFileProcessor(cfg *Config) *FileProcessor {
-	log := logger.NewLogger(cfg.Verbose, cfg.LogLevel)
+	log := logger.NewLogger(cfg.LogLevel)
 	fh := NewFileHandler(log)
 	fh.SetSkipPattern(cfg.Skip) // Set the skip pattern
 	return &FileProcessor{
@@ -39,11 +39,9 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 	commentStyle := styles.GetLanguageCommentStyle(ext)
 	commentStyle.PreferMulti = fp.config.PreferMulti
 
-	if fp.config.Verbose {
-		fp.logger.LogInfo("Processing file: %s", file)
-		fp.logger.LogInfo("  Language: %s", commentStyle.Language)
-		fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
-	}
+	fp.logger.LogInfo("Processing file: %s", file)
+	fp.logger.LogInfo("  Language: %s", commentStyle.Language)
+	fp.logger.LogInfo("  Comment style: %s", describeCommentStyle(commentStyle))
 
 	// Try to detect style from existing file content
 	content, err := fp.fileHandler.ReadFile(file)
@@ -55,24 +53,21 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 		if tempManager.HasLicense(content) {
 			// If we found a license, detect its style for logging purposes
 			style = tempManager.DetectHeaderStyle(content)
-			if fp.config.Verbose {
-				fp.logger.LogInfo("  Detected style: %s", style.Name)
-			}
+			fp.logger.LogInfo("  Detected style: %s", style.Name)
 			// Always use the configured style for checking
 			style = styles.Get(fp.config.PresetStyle)
 		} else {
 			// If no license found, use configured style
 			style = styles.Get(fp.config.PresetStyle)
-			if fp.config.Verbose {
-				fp.logger.LogInfo("  Using configured style: %s", style.Name)
-			}
+			fp.logger.LogInfo("  Using configured style: %s", style.Name)
+
 		}
 	} else {
 		// If can't read file, use configured style
 		style = styles.Get(fp.config.PresetStyle)
-		if fp.config.Verbose {
-			fp.logger.LogInfo("  Using configured style: %s", style.Name)
-		}
+
+		fp.logger.LogInfo("  Using configured style: %s", style.Name)
+
 	}
 
 	// Create and configure manager
@@ -138,11 +133,10 @@ func (fp *FileProcessor) Add() error {
 	}
 
 	style := styles.Get(fp.config.PresetStyle)
-	if fp.config.Verbose {
-		fp.logger.LogDebug("Using style: %s", style.Name)
-		if fp.config.PreferMulti {
-			fp.logger.LogDebug("Preferring multi-line comments where supported")
-		}
+
+	fp.logger.LogDebug("Using style: %s", style.Name)
+	if fp.config.PreferMulti {
+		fp.logger.LogDebug("Preferring multi-line comments where supported")
 	}
 
 	for _, file := range files {
@@ -159,17 +153,15 @@ func (fp *FileProcessor) Add() error {
 		handler := language.GetLanguageHandler(commentStyle.Language, style)
 		preamble, rest := handler.PreservePreamble(content)
 
-		if fp.config.Verbose {
-			if preamble != "" {
-				fp.logger.LogInfo("  Found preamble:")
-				for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
-					if line != "" {
-						fp.logger.LogInfo("    %s", line)
-					}
+		if preamble != "" {
+			fp.logger.LogInfo("  Found preamble:")
+			for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
+				if line != "" {
+					fp.logger.LogInfo("    %s", line)
 				}
-			} else {
-				fp.logger.LogInfo("  No preamble found")
 			}
+		} else {
+			fp.logger.LogInfo("  No preamble found")
 		}
 
 		if manager.HasLicense(content) {
@@ -192,12 +184,10 @@ func (fp *FileProcessor) Add() error {
 		}
 
 		// Debug the actual comment being added in verbose mode
-		if fp.config.Verbose {
-			fp.logger.LogInfo("  License will be added as:")
-			formattedLicense := manager.FormatLicenseForFile(fp.config.LicenseText)
-			for _, line := range strings.Split(formattedLicense, "\n") {
-				fp.logger.LogInfo("    %s", line)
-			}
+		fp.logger.LogInfo("  License will be added as:")
+		formattedLicense := manager.FormatLicenseForFile(fp.config.LicenseText)
+		for _, line := range strings.Split(formattedLicense, "\n") {
+			fp.logger.LogInfo("    %s", line)
 		}
 
 		if fp.config.DryRun {
@@ -254,9 +244,7 @@ func (fp *FileProcessor) Remove() error {
 		}
 	}
 
-	if fp.config.Verbose {
-		fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
-	}
+	fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
 
 	for _, file := range files {
 		content, err := fp.fileHandler.ReadFile(file)
@@ -322,9 +310,7 @@ func (fp *FileProcessor) Update() error {
 		fp.logger.LogInfo("Skips Patterns: %s", fp.config.Skip)
 	}
 
-	if fp.config.Verbose {
-		fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
-	}
+	fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
 
 	for _, file := range files {
 		content, err := fp.fileHandler.ReadFile(file)
@@ -458,9 +444,8 @@ func (fp *FileProcessor) Check() error {
 			continue
 		}
 		fp.stats["passed"]++
-		if fp.config.Verbose {
-			fp.logger.LogSuccess("%s: License OK", relPath)
-		}
+		fp.logger.LogSuccess("%s: License OK", relPath)
+
 	}
 
 	if hasNoLicense {
@@ -478,85 +463,6 @@ func (fp *FileProcessor) Check() error {
 
 	return nil
 }
-
-// Check checks license headers in files
-//func (fp *FileProcessor) Check() error {
-//	fp.resetStats()
-//
-//	files, err := fp.fileHandler.FindFiles(fp.config.Input)
-//	if err != nil {
-//		return err
-//	}
-//
-//	// Print scanning message with patterns
-//	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-//	fp.logger.LogInfo("Inputs Patterns:")
-//	for _, pattern := range strings.Split(fp.config.Input, ",") {
-//		pattern = strings.TrimSpace(pattern)
-//		if pattern != "" {
-//			fp.logger.LogInfo("  %s", pattern)
-//		}
-//	}
-//	if fp.config.Skip != "" {
-//		fp.logger.LogInfo("Skips Patterns:")
-//		for _, pattern := range strings.Split(fp.config.Skip, ",") {
-//			pattern = strings.TrimSpace(pattern)
-//			if pattern != "" {
-//				fp.logger.LogInfo("  %s", pattern)
-//			}
-//		}
-//	}
-//
-//	hasFailures := false
-//	for _, file := range files {
-//		// Get relative path for logging
-//		relPath := file
-//		if rel, err := filepath.Rel(".", file); err == nil {
-//			relPath = rel
-//		}
-//
-//		// Check license status
-//		manager, _ := fp.createManager(file)
-//		content, err := fp.fileHandler.ReadFile(file)
-//		if err != nil {
-//			fp.stats["failed"]++
-//			fp.logger.LogError("Failed to read %s: %v", relPath, err)
-//			return NewCheckError(license.NoLicense, fmt.Sprintf("failed to read file: %v", err))
-//		}
-//
-//		status := manager.CheckLicenseStatus(content)
-//		if status != license.FullMatch {
-//			fp.stats["failed"]++
-//			switch status {
-//			case license.NoLicense:
-//				fp.logger.LogError("%s: Missing license", relPath)
-//			case license.ContentMismatch:
-//				fp.logger.LogError("%s: License content mismatch", relPath)
-//			case license.StyleMismatch:
-//				fp.logger.LogError("%s: License style mismatch (expected %s)", relPath, manager.GetHeaderStyle().Name)
-//			case license.ContentAndStyleMismatch:
-//				fp.logger.LogError("%s: License content and style mismatch", relPath)
-//			default:
-//				fp.logger.LogError("%s: Unknown license error", relPath)
-//			}
-//			hasFailures = true
-//			continue
-//		} else {
-//			fp.stats["passed"]++
-//			if fp.config.Verbose {
-//				fp.logger.LogSuccess("%s: License OK", relPath)
-//			}
-//		}
-//	}
-//	if hasFailures {
-//		if fp.stats["missing"] > 0 {
-//			return NewCheckError(license.NoLicense, "license check failed: some files have missing licenses")
-//		}
-//		return NewCheckError(license.ContentMismatch, "license check failed: some files have incorrect licenses")
-//	}
-//
-//	return nil
-//}
 
 // describeCommentStyle returns a human-readable description of the comment style
 func describeCommentStyle(cs styles.CommentLanguage) string {

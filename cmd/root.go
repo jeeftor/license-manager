@@ -143,7 +143,7 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 		if exitErr, ok := err.(*ExitError); ok {
 			os.Exit(exitErr.Code)
 		}
-		log := logger.NewLogger(cfgVerbose, logger.ParseLogLevel(cfgLogLevel))
+		log := logger.NewLogger(logger.ParseLogLevel(cfgLogLevel))
 		log.LogError("Error: %v", err)
 		os.Exit(1)
 	}
@@ -164,7 +164,7 @@ func init() {
 	//rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
 	//rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
 	rootCmd.PersistentFlags().StringVar(&cfgLogLevel, "log-level", "notice", "Log level (debug, info, notice, warn, error)")
-	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
+	//rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
 }
 
 func initConfig() {
@@ -180,9 +180,9 @@ func initConfig() {
 	if viper.IsSet("log-level") {
 		cfgLogLevel = viper.GetString("log-level")
 	}
-	//if viper.IsSet("style") {
-	//	cfgPresetStyle = viper.GetString("style")
-	//}
+	if viper.IsSet("style") {
+		cfgPresetStyle = viper.GetString("style")
+	}
 	//if viper.IsSet("multi") {
 	//	cfgPreferMulti = viper.GetBool("multi")
 	//}
@@ -192,9 +192,7 @@ func initConfig() {
 	//if viper.IsSet("dry-run") {
 	//	cfgDryRun = viper.GetBool("dry-run")
 	//}
-	//if viper.IsSet("verbose") {
-	//	cfgVerbose = viper.GetBool("verbose")
-	//}
+
 }
 
 func ProcessPatterns(patterns []string) string {

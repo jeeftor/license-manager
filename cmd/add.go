@@ -29,7 +29,6 @@ var addCmd = &cobra.Command{
 			PreferMulti:  cfgPreferMulti,
 
 			// Behavior flags
-			Verbose:  cfgVerbose,
 			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 
 			Force:      false,

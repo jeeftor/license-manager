@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"license-manager/internal/comment"
+	"license-manager/internal/logger"
 	"os"
 	"strings"
 
@@ -30,8 +31,7 @@ var debugCmd = &cobra.Command{
 			CommentStyle: "go",
 			PreferMulti:  cfgPreferMulti,
 
-			// Debug needs verbose output
-			Verbose: true,
+			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 		}
 
 		// Read the input file

@@ -14,7 +14,6 @@ type Config struct {
 	// Processing behavior
 	Prompt      bool // Whether to prompt before changes
 	DryRun      bool // Whether to show what would be done without doing it
-	Verbose     bool // Whether to show verbose output
 	LogLevel    logger.LogLevel
 	PreferMulti bool // Whether to prefer multi-line comments
 	IgnoreFail  bool // Whether to return success even if checks fail
