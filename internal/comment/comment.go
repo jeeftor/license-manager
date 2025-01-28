@@ -199,43 +199,99 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 }
 
 // ExtractComponents extracts the header, body, and footer from a license block
+// ExtractComponents extracts the header, body, and footer from a license block.
+// It handles both multi-line comment blocks (like /* ... */) and single-line comment blocks (like # or //).
+//
+// Parameters:
+//   - logger: Logger instance for debug output
+//   - content: The full content of the file
+//   - stripMarkers: Whether to remove comment markers from the extracted content
+//   - languageStyle: The comment style rules for the specific language
+//
+// Returns:
+//   - header: The first line after the comment start (usually contains license identifier)
+//   - body: The main content of the license
+//   - footer: The last line before the comment end (usually contains a closing marker)
+//   - success: Whether the extraction was successful
 func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer string, success bool) {
 	if content == "" {
 		return "", "", "", false
 	}
 
-	// Split into lines for processing
 	lines := strings.Split(content, "\n")
 	if len(lines) == 0 {
 		return "", "", "", false
 	}
 
-	// Find the start and end of the license block
 	var startIndex, endIndex int
 	var foundStart, foundEnd bool
 
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
+	// Handle multi-line comment blocks (/* ... */)
+	if languageStyle.MultiStart != "" {
+		for i, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
 
-		if !foundStart && languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
-			startIndex = i
-			foundStart = true
-			logger.LogDebug("  Found start marker: %s at line %d of 'content'", languageStyle.MultiStart, i)
-		} else if foundStart && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
-			endIndex = i
-			foundEnd = true
-			logger.LogDebug("  Found end marker: %s at line %d of 'content'", languageStyle.MultiEnd, i)
-			break
+			if !foundStart && strings.HasPrefix(line, languageStyle.MultiStart) {
+				startIndex = i
+				foundStart = true
+				logger.LogDebug("  Found multi-line start marker: %s at line %d", languageStyle.MultiStart, i)
+			} else if foundStart && strings.HasSuffix(line, languageStyle.MultiEnd) {
+				endIndex = i
+				foundEnd = true
+				logger.LogDebug("  Found multi-line end marker: %s at line %d", languageStyle.MultiEnd, i)
+				break
+			}
+		}
+	} else {
+		// Handle single-line comment blocks (# or //)
+		var inBlock bool
+		singleLineMarker := languageStyle.Single
+
+		for i, line := range lines {
+			trimmedLine := strings.TrimSpace(line)
+
+			// Skip empty lines
+			if trimmedLine == "" {
+				continue
+			}
+
+			// If we're not in a comment block and this isn't a comment line, skip
+			if !strings.HasPrefix(trimmedLine, singleLineMarker) {
+				if inBlock {
+					// We've reached the end of the comment block
+					endIndex = i - 1
+					foundEnd = true
+					break
+				}
+				continue
+			}
+
+			// Look for the start of the license block (marked by ###### or similar)
+			if !inBlock && strings.Contains(trimmedLine, "######################################") {
+				startIndex = i
+				foundStart = true
+				inBlock = true
+				logger.LogDebug("  Found single-line block start at line %d", i)
+			}
+
+			// Look for the end of the license block
+			if inBlock && strings.Contains(trimmedLine, "######################################") {
+				// Don't break immediately - we want to capture this line
+				endIndex = i
+				foundEnd = true
+				logger.LogDebug("  Found single-line block end at line %d", i)
+			}
 		}
 	}
+
 	if !foundStart || !foundEnd {
 		return "", "", "", false
 	}
 
-	// Extract the header (first non-empty line after the start marker)
+	// Extract header (first non-empty line after start)
 	var headerLines []string
 	for i := startIndex + 1; i < endIndex; i++ {
 		line := strings.TrimSpace(lines[i])
@@ -245,14 +301,14 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 		if stripMarkers {
 			line = languageStyle.StripCommentMarkers(line)
 			line = strings.TrimSpace(line)
-			headerLines = append(headerLines, line)
 		} else {
-			headerLines = append(headerLines, lines[i])
+			line = lines[i]
 		}
+		headerLines = append(headerLines, line)
 		break
 	}
 
-	// Extract the footer (last non-empty line before the end marker)
+	// Extract footer (last non-empty line before end)
 	var footerLines []string
 	for i := endIndex - 1; i > startIndex; i-- {
 		line := strings.TrimSpace(lines[i])
@@ -262,14 +318,14 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 		if stripMarkers {
 			line = languageStyle.StripCommentMarkers(line)
 			line = strings.TrimSpace(line)
-			footerLines = append(footerLines, line)
 		} else {
-			footerLines = append(footerLines, lines[i])
+			line = lines[i]
 		}
+		footerLines = append(footerLines, line)
 		break
 	}
 
-	// Extract the body (everything between header and footer)
+	// Extract body (everything between header and footer)
 	var bodyLines []string
 	bodyStart := startIndex + 1
 	if len(headerLines) > 0 {
@@ -281,13 +337,12 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 	}
 
 	for i := bodyStart; i < bodyEnd; i++ {
-		line := lines[i]
 		if stripMarkers {
-			line = languageStyle.StripCommentMarkers(line)
+			line := languageStyle.StripCommentMarkers(lines[i])
 			line = strings.TrimSpace(line)
 			bodyLines = append(bodyLines, line)
 		} else {
-			bodyLines = append(bodyLines, line)
+			bodyLines = append(bodyLines, lines[i])
 		}
 	}
 
@@ -295,63 +350,8 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 	body = strings.Join(bodyLines, "\n")
 	footer = strings.Join(footerLines, "\n")
 
-	return header, body, footer, true
-}
-
-// extractComponentsWithMarkers attempts to extract components using Unicode markers.
-// This is a simpler implementation that looks specifically for MarkerStart and MarkerEnd.
-func extractComponentsWithMarkers(lines []string, shouldStrip bool) (header string, body string, footer string, success bool) {
-	startIdx := -1
-	endIdx := -1
-
-	// Find lines with markers
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Skips empty lines
-		if line == "" {
-			continue
-		}
-
-		if hasMarkers(line) {
-			if startIdx == -1 {
-				startIdx = i
-			} else if endIdx == -1 {
-				endIdx = i
-				break
-			}
-		}
-	}
-
-	// Must have both start and end markers
-	if startIdx == -1 || endIdx == -1 || startIdx >= endIdx {
-		return "", "", "", false
-	}
-
-	header = strings.TrimSpace(lines[startIdx])
-	footer = strings.TrimSpace(lines[endIdx])
-
-	// Extract body (everything between header and footer)
-	bodyLines := lines[startIdx+1 : endIdx]
-	// Remove leading and trailing empty lines from body
-	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[0]) == "" {
-		bodyLines = bodyLines[1:]
-	}
-	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[len(bodyLines)-1]) == "" {
-		bodyLines = bodyLines[:len(bodyLines)-1]
-	}
-	body = strings.TrimSpace(strings.Join(bodyLines, "\n"))
-
-	// Strip the Unicode markers if requested
-	if shouldStrip {
-		header = strings.TrimPrefix(strings.TrimSuffix(header, MarkerEnd), MarkerStart)
-		footer = strings.TrimPrefix(strings.TrimSuffix(footer, MarkerEnd), MarkerStart)
-	}
-
-	// Check if the content looks like a license
-	if !looksLikeLicense(body) {
-		return "", "", "", false
-	}
+	logger.LogDebug("  Extracted components - Header: %d lines, Body: %d lines, Footer: %d lines",
+		len(headerLines), len(bodyLines), len(footerLines))
 
 	return header, body, footer, true
 }

@@ -121,7 +121,7 @@ list lang: ensure-test-dir
 
 # Language-specific commands
 add lang: (run-command lang "add" "--log-level" "debug")
-check lang: (run-command lang "check")
+check lang: (run-command lang "check" "--log-level" "debug")
 update lang: (run-command lang "update" "--log-level" "debug")
 debug lang: (run-command lang "debug")
 remove lang: (run-command lang "remove" "--log-level" "debug")

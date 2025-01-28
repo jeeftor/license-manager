@@ -44,7 +44,7 @@ var checkCmd = &cobra.Command{
 Exit Codes:
   0: All files match
   1: At least 1 file is missing a license
-  2: Files have both content and header mismatch
+  2: Files have both content and header mismatchq
   3: Files have content mismatch
   4: Files have style mismatch
 `,
