@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"license-manager/internal/language"
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 )
 
@@ -15,7 +16,7 @@ type MockLanguageHandler struct {
 
 func NewMockLanguageHandler() *MockLanguageHandler {
 	return &MockLanguageHandler{
-		GenericHandler: language.NewGenericHandler(styles.HeaderFooterStyle{}),
+		GenericHandler: language.NewGenericHandler(nil, styles.HeaderFooterStyle{}),
 	}
 }
 
@@ -143,13 +144,13 @@ Unknown Footer Style`,
 			wantSuccess:  false,
 		},
 		{
-			name: "Empty content",
-			content: "",
+			name:        "Empty content",
+			content:     "",
 			wantSuccess: false,
 		},
 		{
-			name: "Single line",
-			content: "Just one line",
+			name:        "Single line",
+			content:     "Just one line",
 			wantSuccess: false,
 		},
 		{
@@ -204,7 +205,8 @@ Body content
 					MultiEnd:   "*/",
 				}
 			}
-			gotHeader, gotBody, gotFooter, gotSuccess := ExtractComponents(tt.content, tt.stripMarkers, style)
+			testLogger := logger.NewLogger(logger.InfoLevel)
+			gotHeader, gotBody, gotFooter, gotSuccess := ExtractComponents(testLogger, tt.content, tt.stripMarkers, style)
 			if gotSuccess != tt.wantSuccess {
 				t.Errorf("ExtractComponents() success = %v, want %v", gotSuccess, tt.wantSuccess)
 				return

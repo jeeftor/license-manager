@@ -41,7 +41,6 @@ var preCommitCmd = &cobra.Command{
 
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go", // default
-			PreferMulti:  cfgPreferMulti,
 
 			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 

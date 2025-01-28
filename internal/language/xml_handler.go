@@ -12,7 +12,7 @@ type XMLHandler struct {
 }
 
 func NewXMLHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *XMLHandler {
-	return &XMLHandler{GenericHandler: NewGenericHandler(logger, style)}
+	return &XMLHandler{GenericHandler: NewGenericHandler(logger, style, "xml")}
 }
 
 func (h *XMLHandler) PreservePreamble(content string) (string, string) {

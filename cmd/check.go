@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"license-manager/internal/force"
 	"license-manager/internal/logger"
 	"strings"
 
@@ -15,13 +16,13 @@ import (
 )
 
 var (
-	checkIgnoreFail bool
-	cfgLicense      string
-	cfgInputs       []string
-	cfgSkips        []string
-	cfgPresetStyle  string
-	cfgLogLevel     string
-	cfgPreferMulti  bool
+	checkIgnoreFail      bool
+	cfgLicense           string
+	cfgInputs            []string
+	cfgSkips             []string
+	cfgPresetStyle       string
+	cfgLogLevel          string
+	cfgForceCommentStyle force.ForceCommentStyle
 )
 
 // ExitError represents an error with an exit code
@@ -65,7 +66,6 @@ Exit Codes:
 			Inputs:      strings.Join(cfgInputs, ","),
 			Skips:       strings.Join(cfgSkips, ","),
 			HeaderStyle: cfgPresetStyle,
-			PreferMulti: cfgPreferMulti,
 			LogLevel:    logger.ParseLogLevel(cfgLogLevel),
 			IgnoreFail:  checkIgnoreFail,
 		}

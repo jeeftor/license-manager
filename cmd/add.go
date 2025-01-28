@@ -26,7 +26,6 @@ var addCmd = &cobra.Command{
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go", // default
-			PreferMulti:  cfgPreferMulti,
 
 			// Behavior flags
 			LogLevel: logger.ParseLogLevel(cfgLogLevel),

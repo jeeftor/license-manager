@@ -3,6 +3,7 @@ package processor
 import (
 	"fmt"
 	"github.com/fatih/color"
+	"license-manager/internal/force"
 	"license-manager/internal/language"
 	"license-manager/internal/license"
 	"license-manager/internal/logger"
@@ -37,7 +38,14 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 	// Get comment style for file type
 	ext := filepath.Ext(file)
 	commentStyle := styles.GetLanguageCommentStyle(ext)
-	commentStyle.PreferMulti = fp.config.PreferMulti
+
+	if fp.config.ForceCommentStyle == force.Single {
+		fp.logger.LogWarning("Overriding default comment style to %s", fp.config.ForceCommentStyle)
+		commentStyle.PreferMulti = false
+	} else if fp.config.ForceCommentStyle == force.Multi {
+		fp.logger.LogWarning("Overriding default comment style to %s", fp.config.ForceCommentStyle)
+		commentStyle.PreferMulti = true
+	}
 
 	fp.logger.LogInfo("Processing file: %s", file)
 	fp.logger.LogInfo("  Language: %s", commentStyle.Language)
@@ -135,9 +143,6 @@ func (fp *FileProcessor) Add() error {
 	style := styles.Get(fp.config.PresetStyle)
 
 	fp.logger.LogDebug("Using style: %s", style.Name)
-	if fp.config.PreferMulti {
-		fp.logger.LogDebug("Preferring multi-line comments where supported")
-	}
 
 	for _, file := range files {
 		content, err := fp.fileHandler.ReadFile(file)

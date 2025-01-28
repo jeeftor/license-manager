@@ -13,7 +13,7 @@ type CSSHandler struct {
 }
 
 func NewCSSHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *CSSHandler {
-	return &CSSHandler{GenericHandler: NewGenericHandler(logger, style)}
+	return &CSSHandler{GenericHandler: NewGenericHandler(logger, style, "css")}
 }
 
 func (h *CSSHandler) PreservePreamble(content string) (string, string) {

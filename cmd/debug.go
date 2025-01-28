@@ -29,7 +29,6 @@ var debugCmd = &cobra.Command{
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go",
-			PreferMulti:  cfgPreferMulti,
 
 			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 		}

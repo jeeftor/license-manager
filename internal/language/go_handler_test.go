@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 )
 
@@ -161,7 +162,8 @@ package main`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := NewGoHandler(styles.HeaderFooterStyle{})
+			testLogger := logger.NewLogger(logger.InfoLevel)
+			handler := NewGoHandler(testLogger, styles.HeaderFooterStyle{})
 			gotDirectives, gotEndIndex := handler.ScanBuildDirectives(tt.content)
 
 			// Compare directives
@@ -303,7 +305,8 @@ func main() {}`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := NewGoHandler(styles.HeaderFooterStyle{})
+			testLogger := logger.NewLogger(logger.InfoLevel)
+			handler := NewGoHandler(testLogger, styles.HeaderFooterStyle{})
 			gotPreamble, gotRest := handler.PreservePreamble(tt.content)
 
 			// Compare preamble
@@ -332,12 +335,13 @@ func TestGoHandler_ScanBuildDirectivesFromTemplates(t *testing.T) {
 		}
 
 		t.Run(file.Name(), func(t *testing.T) {
+			testLogger := logger.NewLogger(logger.InfoLevel)
 			content, err := os.ReadFile(filepath.Join(templateDir, file.Name()))
 			if err != nil {
 				t.Fatalf("Failed to read template file: %v", err)
 			}
 
-			handler := NewGoHandler(styles.HeaderFooterStyle{})
+			handler := NewGoHandler(testLogger, styles.HeaderFooterStyle{})
 			directives, endIndex := handler.ScanBuildDirectives(string(content))
 
 			// Log the results for inspection

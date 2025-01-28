@@ -110,9 +110,7 @@ func (m *LicenseManager) HasLicense(content string) bool {
 
 // AddLicense adds a license block to the content
 func (m *LicenseManager) AddLicense(content string, fileType string) (string, error) {
-	if m.logger != nil {
-		m.logger.LogVerbose("Adding license to content...")
-	}
+	m.logger.LogVerbose("Adding license to content...")
 
 	// Get language handler
 	handler := m.getLanguageHandler(fileType)
@@ -233,11 +231,11 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 	inEmptyComment := false
 	for _, line := range result {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "/*" {
+		if trimmed == m.commentStyle.MultiStart {
 			inEmptyComment = true
 			continue
 		}
-		if trimmed == "*/" && inEmptyComment {
+		if trimmed == m.commentStyle.MultiEnd && inEmptyComment {
 			inEmptyComment = false
 			continue
 		}
@@ -506,4 +504,11 @@ func truncateString(s string, n int) string {
 func looksLikeLicense(body string) bool {
 	// TO DO: implement this function
 	return true
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

@@ -2,9 +2,11 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"license-manager/internal/force"
 	"license-manager/internal/logger"
 	"os"
 	"strings"
@@ -16,6 +18,31 @@ import cc "github.com/ivanpirog/coloredcobra"
 const (
 	envPrefix = "LM"
 )
+
+type commentStyleFlag struct {
+	value *force.ForceCommentStyle
+}
+
+func (f *commentStyleFlag) String() string {
+	if f.value == nil {
+		return string(force.No) // default value
+	}
+	return string(*f.value)
+}
+
+func (f *commentStyleFlag) Set(s string) error {
+	switch force.ForceCommentStyle(s) {
+	case force.No, force.Single, force.Multi:
+		*f.value = force.ForceCommentStyle(s)
+		return nil
+	default:
+		return fmt.Errorf("must be one of no, single, or multi")
+	}
+}
+
+func (f *commentStyleFlag) Type() string {
+	return "commentStyle"
+}
 
 // Version information
 var (
@@ -154,7 +181,10 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgPresetStyle, "style", "hash", "Preset style for header/footer (run styles command for list)")
-	rootCmd.PersistentFlags().BoolVar(&cfgPreferMulti, "multi", true, "Prefer multi-line comments where supported")
+	rootCmd.PersistentFlags().Var(&commentStyleFlag{&cfgForceCommentStyle}, "comments",
+		"Force comment style (no|single|multi)")
+	// set default value
+	cfgForceCommentStyle = force.No
 
 	rootCmd.PersistentFlags().StringVar(&cfgLicense, "license", "", "Path to license text file")
 

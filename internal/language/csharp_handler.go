@@ -13,7 +13,7 @@ type CSharpHandler struct {
 }
 
 func NewCSharpHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *CSharpHandler {
-	return &CSharpHandler{GenericHandler: NewGenericHandler(logger, style)}
+	return &CSharpHandler{GenericHandler: NewGenericHandler(logger, style, "cs")}
 }
 
 func (h *CSharpHandler) PreservePreamble(content string) (string, string) {

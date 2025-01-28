@@ -124,7 +124,7 @@ add lang: (run-command lang "add" "--log-level" "debug")
 check lang: (run-command lang "check")
 update lang: (run-command lang "update" "--log-level" "debug")
 debug lang: (run-command lang "debug")
-remove lang: (run-command lang "remove")
+remove lang: (run-command lang "remove" "--log-level" "debug")
 modify lang: ensure-test-dir
     #!/usr/bin/env bash
     find {{test_data_dir}}/{{lang}} -type f -name "hello.*" 2>/dev/null | \
@@ -166,6 +166,15 @@ modify-all: ensure-test-dir
     for lang in {{languages}}; do
         just modify $lang
     done
+
+# Run all tests
+test:
+    go test -v ./...
+
+# Run all tests with coverage
+test-coverage:
+    go test -v -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out -o coverage.html
 
 # Pre-commit hook
 pre-commit:

@@ -3,6 +3,7 @@ package config
 
 import (
 	"license-manager/internal/errors"
+	"license-manager/internal/force"
 	"license-manager/internal/logger"
 	"license-manager/internal/processor"
 	"os"
@@ -22,10 +23,11 @@ type AppConfig struct {
 	Force       bool
 
 	// Style preferences
-	HeaderStyle  string
-	CommentStyle string
-	PreferMulti  bool
-	IgnoreFail   bool
+	HeaderStyle       string
+	CommentStyle      string
+	PreferMulti       *bool
+	IgnoreFail        bool
+	ForceCommentStyle force.ForceCommentStyle
 }
 
 // NewAppConfig returns default application config
@@ -56,10 +58,10 @@ func (c *AppConfig) ToProcessorConfig() (*processor.Config, error) {
 		Skip:        c.Skips,
 		Prompt:      c.Interactive,
 
-		PresetStyle: c.HeaderStyle,
-		PreferMulti: c.PreferMulti,
-		IgnoreFail:  c.IgnoreFail,
-		LogLevel:    c.LogLevel,
+		PresetStyle:       c.HeaderStyle,
+		ForceCommentStyle: c.ForceCommentStyle,
+		IgnoreFail:        c.IgnoreFail,
+		LogLevel:          c.LogLevel,
 	}, nil
 }
 

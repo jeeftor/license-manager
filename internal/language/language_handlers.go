@@ -19,14 +19,16 @@ type LanguageHandler interface {
 
 // GenericHandler provides default license formatting
 type GenericHandler struct {
-	style  styles.HeaderFooterStyle
-	logger *logger.Logger
+	style         styles.HeaderFooterStyle
+	logger        *logger.Logger
+	languageStyle styles.CommentLanguage
 }
 
-func NewGenericHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *GenericHandler {
+func NewGenericHandler(logger *logger.Logger, style styles.HeaderFooterStyle, extension string) *GenericHandler {
 	return &GenericHandler{
-		style:  style,
-		logger: logger,
+		style:         style,
+		logger:        logger,
+		languageStyle: styles.GetLanguageCommentStyle(extension),
 	}
 }
 
@@ -125,6 +127,6 @@ func GetLanguageHandler(logger *logger.Logger, fileType string, style styles.Hea
 	case "csharp":
 		return NewCSharpHandler(logger, style)
 	default:
-		return NewGenericHandler(logger, style)
+		return NewGenericHandler(logger, style, "GENERIC")
 	}
 }

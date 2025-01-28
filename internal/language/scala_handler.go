@@ -13,7 +13,7 @@ type ScalaHandler struct {
 }
 
 func NewScalaHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *ScalaHandler {
-	return &ScalaHandler{GenericHandler: NewGenericHandler(logger, style)}
+	return &ScalaHandler{GenericHandler: NewGenericHandler(logger, style, "scala")}
 }
 
 func (h *ScalaHandler) PreservePreamble(content string) (string, string) {

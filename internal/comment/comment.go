@@ -583,40 +583,39 @@ func FormatComment(text string, commentStyle styles.CommentLanguage, headerStyle
 	lines := strings.Split(text, "\n")
 	var result []string
 
-	// Add header
-	if commentStyle.MultiStart != "" {
+	if commentStyle.PreferMulti && commentStyle.MultiStart != "" {
+		// Multi line Comments
+		// Add header
 		result = append(result, commentStyle.MultiStart)
-		// Add marker to header
 		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Header+MarkerEnd)
-	} else {
-		// Add marker to header
-		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Header+MarkerEnd)
-	}
 
-	// Add body with proper comment prefixes
-	for _, line := range lines {
-		if commentStyle.MultiStart != "" {
+		// Add body
+		for _, line := range lines {
 			if line == "" {
 				result = append(result, commentStyle.MultiPrefix)
 			} else {
 				result = append(result, commentStyle.MultiPrefix+commentStyle.LinePrefix+line)
 			}
-		} else {
+		}
+
+		// Add footer
+		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Footer+MarkerEnd)
+		result = append(result, commentStyle.MultiEnd)
+	} else {
+		// Single Line Comments
+		// Add header
+		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Header+MarkerEnd)
+
+		// Add body
+		for _, line := range lines {
 			if line == "" {
 				result = append(result, commentStyle.Single)
 			} else {
 				result = append(result, commentStyle.Single+commentStyle.LinePrefix+line)
 			}
 		}
-	}
 
-	// Add footer
-	if commentStyle.MultiStart != "" {
-		// Add marker to footer
-		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Footer+MarkerEnd)
-		result = append(result, commentStyle.MultiEnd)
-	} else {
-		// Add marker to footer
+		// Add footer
 		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Footer+MarkerEnd)
 	}
 

@@ -12,7 +12,7 @@ type LuaHandler struct {
 }
 
 func NewLuaHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *LuaHandler {
-	return &LuaHandler{GenericHandler: NewGenericHandler(logger, style)}
+	return &LuaHandler{GenericHandler: NewGenericHandler(logger, style, "lua")}
 }
 
 func (h *LuaHandler) PreservePreamble(content string) (string, string) {
