@@ -181,129 +181,44 @@ func (m *LicenseManager) AddLicense(content string, fileType string) (string, er
 }
 
 // RemoveLicense removes the license block from the content
-func (m *LicenseManager) RemoveLicense(content string) (string, error) {
+func (m *LicenseManager) RemoveLicense(content string, fileType string) (string, error) {
+
 	m.logger.LogDebug("  Attempting to remove license block...")
-	m.logger.LogDebug("  Using comment style: %s", m.commentStyle.Language)
-
-	handler := m.getLanguageHandler(m.commentStyle.Language)
-	preamble, rest := handler.PreservePreamble(content)
-
-	if preamble != "" {
-		m.logger.LogDebug("  RemoveLicense::Found preamble (%d lines)", len(strings.Split(preamble, "\n")))
-		m.logger.LogDebug("  RemoveLicense::Processing remaining content...")
-	} else {
-		m.logger.LogDebug("  RemoveLicense::No preamble found")
-	}
-
-	header, body, footer, rest, success := language.ExtractComponents(m.logger, rest, true, m.commentStyle)
-	if !success {
-		if m.logger != nil {
-			m.logger.LogDebug("  RemoveLicense::No license block found to remove")
-		}
+	handler := m.getLanguageHandler(fileType)
+	_, rest := handler.PreservePreamble(content)
+	hasLicense, _ := m.HasLicense(rest)
+	if !hasLicense {
+		m.logger.LogDebug("  RemoveLicense::No license block detected in content")
 		return content, nil
 	}
 
-	m.logger.LogDebug("  RemoveLicense::Found license block:")
-	m.logger.LogDebug("  RemoveLicense::  Header: %s", truncateString(header, 50))
-	m.logger.LogDebug("  RemoveLicense::  Body length: %d lines", len(strings.Split(body, "\n")))
-	m.logger.LogDebug("  RemoveLicense::  Footer: %s", truncateString(footer, 50))
-	m.logger.LogDebug("  RemoveLicense::  Rest: %s", truncateString(rest, 50))
+	// Removal Logic - Can be inlined I think
+	extract, _ := handler.ExtractComponents(content)
 
-	if preamble != "" {
-		if rest != "" {
-			return preamble + "\n" + rest, nil
-		}
-		return preamble, nil
-	}
-	return rest, nil
+	// Remove existing license -> including a \n usually added after it
+	contentWithoutLicense := extract.Preamble + strings.TrimLeft(extract.Rest, "\n")
+	return contentWithoutLicense, nil
 }
 
-//
-//
-//
-//
-//
-//
-//
-//
-//	// Find the start and end of the license block
-//	lines := strings.Split(rest, "\n")
-//	var startLine, endLine int
-//	for i, line := range lines {
-//		if strings.TrimSpace(line) == strings.TrimSpace(header) {
-//			startLine = i
-//			break
-//		}
-//	}
-//	for i := len(lines) - 1; i >= 0; i-- {
-//		if strings.TrimSpace(lines[i]) == strings.TrimSpace(footer) {
-//			endLine = i
-//			break
-//		}
-//	}
-//
-//	if m.logger != nil {
-//		m.logger.LogInfo("  License block found at lines %d-%d", startLine, endLine)
-//	}
-//
-//	// Remove the license block and any surrounding empty lines
-//	result := append(lines[:startLine], lines[endLine+1:]...)
-//
-//	// Clean up empty comment blocks
-//	var cleanedResult []string
-//	inEmptyComment := false
-//	for _, line := range result {
-//		trimmed := strings.TrimSpace(line)
-//		if trimmed == m.commentStyle.MultiStart {
-//			inEmptyComment = true
-//			continue
-//		}
-//		if trimmed == m.commentStyle.MultiEnd && inEmptyComment {
-//			inEmptyComment = false
-//			continue
-//		}
-//		if !inEmptyComment && trimmed != "" {
-//			cleanedResult = append(cleanedResult, line)
-//		}
-//	}
-//
-//	// Remove leading empty lines
-//	for len(cleanedResult) > 0 && strings.TrimSpace(cleanedResult[0]) == "" {
-//		cleanedResult = cleanedResult[1:]
-//	}
-//
-//	newContent := strings.Join(cleanedResult, "\n")
-//	if preamble != "" {
-//		if m.logger != nil {
-//			m.logger.LogInfo("  Reconstructing content with preamble")
-//		}
-//		return preamble + "\n" + newContent, nil
-//	}
-//	return newContent, nil
-//}
-
 // UpdateLicense updates the license block in the content
-func (m *LicenseManager) UpdateLicense(content string) (string, error) {
-	handler := m.getLanguageHandler(m.commentStyle.Language)
+func (m *LicenseManager) UpdateLicense(content string, fileType string) (string, error) {
+
+	m.logger.LogDebug("Attempting to update license block...")
+	// Use the filetype to identify the correct langauge Handler
+	handler := m.getLanguageHandler(fileType)
+
+	// Determine whether there IS a license
 	_, rest := handler.PreservePreamble(content)
-
-	if m.logger != nil {
-		if rest != "" {
-			m.logger.LogInfo("  Found preamble when updating license")
-		}
-	}
-
 	hasLicense, _ := m.HasLicense(rest)
-	// Check for existing license
 	if !hasLicense {
 		return "", errors.NewLicenseError("content has no license to update", "")
 	}
 
-	// Remove the old license
-	contentWithoutLicense, err := m.RemoveLicense(content)
-	if err != nil {
-		return "", err
-	}
+	// Removal Logic - Can be inlined I think
+	extract, _ := handler.ExtractComponents(content)
+
+	// Remove existing license -> including a \n usually added after it
+	contentWithoutLicense := extract.Preamble + strings.TrimLeft(extract.Rest, "\n")
 
 	// Add the new license
 	return m.AddLicense(contentWithoutLicense, m.commentStyle.Language)

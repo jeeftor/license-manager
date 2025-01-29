@@ -242,8 +242,9 @@ func (fp *FileProcessor) Remove() error {
 			continue
 		}
 
-		manager, _ := fp.createManager(file)
-		newContent, err := manager.RemoveLicense(content)
+		manager, commentStyle := fp.createManager(file)
+
+		newContent, err := manager.RemoveLicense(content, commentStyle.Language)
 		if err != nil {
 			fp.stats["failed"]++
 			fp.logger.LogError("Failed to remove license from %s: %v", file, err)
@@ -308,7 +309,8 @@ func (fp *FileProcessor) Update() error {
 			continue
 		}
 
-		manager, _ := fp.createManager(file)
+		manager, commentStyle := fp.createManager(file)
+
 		status := manager.CheckLicenseStatus(content)
 
 		// Skip files with no license
@@ -320,7 +322,7 @@ func (fp *FileProcessor) Update() error {
 
 		// Update files with incorrect style or content
 		if status == license.StyleMismatch || status == license.ContentMismatch || status == license.ContentAndStyleMismatch {
-			newContent, err := manager.UpdateLicense(content)
+			newContent, err := manager.UpdateLicense(content, commentStyle.Language)
 			if err != nil {
 				fp.stats["failed"]++
 				fp.logger.LogError("Failed to update license in %s: %v", file, err)
