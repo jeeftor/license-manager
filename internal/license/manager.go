@@ -102,7 +102,23 @@ func (m *LicenseManager) HasLicense(content string) (bool, *language.ExtractedCo
 
 	if components.Header == components.Footer {
 		m.logger.LogInfo("  HasLicense::Header & Footer Match")
+	}
 
+	// Handle Special Cases
+	// TODO: Come up with a better way
+	if m.commentStyle.Language == "go" && strings.HasPrefix(components.Header, "#include") {
+		m.logger.LogInfo("  HasLicense::Detectedgi c-go style header... skipping")
+
+		preamble, rest := m.langHandler.PreservePreamble(content)
+
+		return false, &language.ExtractedComponents{
+			Preamble:         preamble,
+			Header:           "",
+			Body:             "",
+			Footer:           "",
+			Rest:             rest,
+			FullLicenseBlock: nil,
+		}
 	}
 
 	if success {

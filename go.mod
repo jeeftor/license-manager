@@ -1,4 +1,4 @@
-module license-manager
+module github.com/jeeftor/license-manager
 
 go 1.23
 
