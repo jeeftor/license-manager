@@ -196,7 +196,7 @@ func (m *LicenseManager) RemoveLicense(content string, fileType string) (string,
 	extract, _ := handler.ExtractComponents(content)
 
 	// Remove existing license -> including a \n usually added after it
-	contentWithoutLicense := extract.Preamble + strings.TrimLeft(extract.Rest, "\n")
+	contentWithoutLicense := extract.Preamble + "\n" + strings.TrimLeft(extract.Rest, "\n")
 	return contentWithoutLicense, nil
 }
 
