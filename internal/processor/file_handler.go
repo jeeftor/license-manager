@@ -46,7 +46,7 @@ func (fh *FileHandler) shouldSkip(path string) bool {
 	// Convert absolute path to relative path for matching
 	normalizedPath := filepath.ToSlash(path)
 	if strings.HasPrefix(normalizedPath, cwd) {
-		normalizedPath = normalizedPath[len(cwd)+1:] // +1 for the trailing slash
+		normalizedPath = normalizedPath[len(cwd)+1:]
 	}
 	if strings.HasPrefix(normalizedPath, "./") {
 		normalizedPath = normalizedPath[2:]
@@ -58,20 +58,24 @@ func (fh *FileHandler) shouldSkip(path string) bool {
 			continue
 		}
 
-		// Normalize pattern
+		// Normalize pattern but keep the ** globstar
 		pattern = filepath.ToSlash(pattern)
 		if strings.HasPrefix(pattern, "./") {
 			pattern = pattern[2:]
 		}
 
-		fh.logger.LogInfo("Checking skip pattern: %s against path: %s", pattern, normalizedPath)
+		// Make sure the pattern ends with /** if it's a directory pattern
+		if !strings.Contains(pattern, "*") {
+			pattern = strings.TrimSuffix(pattern, "/") + "/**"
+		}
+
 		matched, err := doublestar.Match(pattern, normalizedPath)
 		if err != nil {
 			fh.logger.LogError("Error matching skip pattern %s: %v", pattern, err)
 			continue
 		}
 		if matched {
-			fh.logger.LogInfo("Path %s matched skip pattern %s", normalizedPath, pattern)
+			fh.logger.LogDebug("Path %s matched skip pattern %s", normalizedPath, pattern)
 			return true
 		}
 	}
@@ -100,44 +104,44 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 		// Normalize pattern
 		p = filepath.ToSlash(p)
 
-		// Check if pattern is a direct file path (without glob patterns)
+		// Check if pattern is a direct file path
 		if !strings.Contains(p, "*") && !strings.Contains(p, "?") && !strings.Contains(p, "[") {
-			// Convert to absolute path if relative
 			absPath := p
 			if !filepath.IsAbs(p) {
 				absPath = filepath.Join(cwd, p)
 			}
-			//fh.logger.LogInfo("Checking direct file path: %s (abs: %s)", p, absPath)
+
+			// Check skip pattern BEFORE adding to allFiles
+			if fh.shouldSkip(absPath) {
+				fh.logger.LogDebug("Skipping file: %s", absPath)
+				continue
+			}
 
 			if info, err := os.Stat(absPath); err == nil && !info.IsDir() {
-				fh.logger.LogDebug("Found file: %s", absPath)
-				if isProcessableFile(absPath) && !fh.shouldSkip(absPath) {
+				if isProcessableFile(absPath) {
 					allFiles = append(allFiles, absPath)
-					fh.logger.LogDebug("Added file: %s", absPath)
-				} else {
-					fh.logger.LogDebug("File not processable or skipped: %s", absPath)
 				}
-			} else {
-				fh.logger.LogDebug("File not found or is directory: %s (err: %v)", absPath, err)
 			}
 			continue
 		}
 
 		// Handle glob patterns
-		fh.logger.LogInfo("Checking glob pattern: %s", p)
 		matches, err := doublestar.Glob(p)
 		if err != nil {
 			fh.logger.LogError("Invalid glob pattern %s: %v", p, err)
 			continue
 		}
-		fh.logger.LogInfo("Found %d matches for pattern %s", len(matches), p)
 
-		// Process each match
 		for _, match := range matches {
-			// Convert to absolute path
 			absMatch := match
 			if !filepath.IsAbs(match) {
 				absMatch = filepath.Join(cwd, match)
+			}
+
+			// Check skip pattern BEFORE processing
+			if fh.shouldSkip(absMatch) {
+				fh.logger.LogDebug("Skipping matched path: %s", absMatch)
+				continue
 			}
 
 			info, err := os.Stat(absMatch)
@@ -147,14 +151,17 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 			}
 
 			if info.IsDir() {
-				// Walk directory
 				err := filepath.WalkDir(absMatch, func(path string, d fs.DirEntry, err error) error {
 					if err != nil {
-						fh.logger.LogError("Error walking directory %s: %v", path, err)
 						return nil
 					}
 
-					if !d.IsDir() && isProcessableFile(path) && !fh.shouldSkip(path) {
+					// Check skip pattern for each walked file
+					if fh.shouldSkip(path) {
+						return filepath.SkipDir
+					}
+
+					if !d.IsDir() && isProcessableFile(path) {
 						allFiles = append(allFiles, path)
 					}
 					return nil
@@ -162,14 +169,10 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 				if err != nil {
 					fh.logger.LogError("Error walking directory %s: %v", absMatch, err)
 				}
-			} else if isProcessableFile(absMatch) && !fh.shouldSkip(absMatch) {
+			} else if isProcessableFile(absMatch) {
 				allFiles = append(allFiles, absMatch)
 			}
 		}
-	}
-
-	if len(allFiles) == 0 {
-		return nil, errors.NewFileError("no matching files found", pattern, "find")
 	}
 
 	// Remove duplicates while preserving order
@@ -180,6 +183,10 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 			seen[f] = true
 			uniqueFiles = append(uniqueFiles, f)
 		}
+	}
+
+	if len(uniqueFiles) == 0 {
+		return nil, errors.NewFileError("no matching files found", pattern, "find")
 	}
 
 	return uniqueFiles, nil
