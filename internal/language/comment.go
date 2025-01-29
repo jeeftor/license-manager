@@ -1,9 +1,8 @@
-package comment
+package language
 
 import (
 	"strings"
 
-	"license-manager/internal/language"
 	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 )
@@ -27,7 +26,7 @@ type Comment struct {
 	footer          string
 	hfStyle         styles.HeaderFooterStyle
 	CommentLanguage styles.CommentLanguage
-	langHandler     language.LanguageHandler
+	langHandler     LanguageHandler
 }
 
 func (c *Comment) String() string {
@@ -638,7 +637,7 @@ type BuildDirective struct {
 
 // ExtractBuildDirectives extracts all build directives from the given content.
 // It handles both //go: style directives and // + build style directives.
-func ExtractBuildDirectives(content string, langHandler language.LanguageHandler) []BuildDirective {
+func ExtractBuildDirectives(content string, langHandler LanguageHandler) []BuildDirective {
 	var directives []BuildDirective
 
 	// Use language handler to get build directives
@@ -687,7 +686,7 @@ func addMarkers(text string) string {
 	return MarkerStart + text + MarkerEnd
 }
 
-func NewComment(style styles.CommentLanguage, hfStyle styles.HeaderFooterStyle, body string, langHandler language.LanguageHandler) *Comment {
+func NewComment(style styles.CommentLanguage, hfStyle styles.HeaderFooterStyle, body string, langHandler LanguageHandler) *Comment {
 	return &Comment{
 		style:       style,
 		body:        body,

@@ -1,7 +1,6 @@
 package license
 
 import (
-	"license-manager/internal/comment"
 	"license-manager/internal/errors"
 	"license-manager/internal/language"
 	"license-manager/internal/logger"
@@ -45,11 +44,11 @@ func (s Status) String() string {
 
 // LicenseManager handles license operations
 type LicenseManager struct {
-	template     string
-	commentStyle styles.CommentLanguage
-	headerStyle  styles.HeaderFooterStyle
-	langHandler  language.LanguageHandler
-	logger       *logger.Logger
+	licenseTemplate string
+	commentStyle    styles.CommentLanguage
+	headerStyle     styles.HeaderFooterStyle
+	langHandler     language.LanguageHandler
+	logger          *logger.Logger
 }
 
 // NewLicenseManager creates a new manager
@@ -59,11 +58,11 @@ func NewLicenseManager(logger *logger.Logger, licenseTemplate, fileExtension str
 	langHandler := language.GetLanguageHandler(logger, fileExtension, headerStyle)
 
 	manager := &LicenseManager{
-		template:     licenseTemplate,
-		langHandler:  langHandler,
-		headerStyle:  headerStyle,
-		commentStyle: commentStyle,
-		logger:       logger,
+		licenseTemplate: licenseTemplate,
+		langHandler:     langHandler,
+		headerStyle:     headerStyle,
+		commentStyle:    commentStyle,
+		logger:          logger,
 	}
 
 	return manager
@@ -140,7 +139,7 @@ func (m *LicenseManager) AddLicense(content string, fileType string) (string, er
 	}
 
 	// Format license block with comment style
-	licenseBlock := m.formatLicenseBlock(m.template)
+	licenseBlock := m.formatLicenseBlock(m.licenseTemplate)
 
 	// Scan for build directives
 	directives, endIndex := handler.ScanBuildDirectives(rest)
@@ -196,7 +195,7 @@ func (m *LicenseManager) RemoveLicense(content string) (string, error) {
 		m.logger.LogDebug("  RemoveLicense::No preamble found")
 	}
 
-	header, body, footer, rest, success := comment.ExtractComponents(m.logger, rest, true, m.commentStyle)
+	header, body, footer, rest, success := language.ExtractComponents(m.logger, rest, true, m.commentStyle)
 	if !success {
 		if m.logger != nil {
 			m.logger.LogDebug("  RemoveLicense::No license block found to remove")
@@ -340,7 +339,7 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 		// Mismatch of headers - but if license ist he same
 		m.logger.LogInfo("Style mismatch: expected [%s], found [%s]", m.headerStyle.Name, detectedStyle.Name)
 
-		lb := handler.FormatLicense(m.template, m.commentStyle, m.headerStyle)
+		lb := handler.FormatLicense(m.licenseTemplate, m.commentStyle, m.headerStyle)
 		if extract.Body == lb.Body {
 			// We body match w/out same headers
 			return StyleMismatch
@@ -350,7 +349,12 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	}
 
 	// Compare license content
-	expectedBlock := handler.FormatLicense(m.template, m.commentStyle, detectedStyle)
+	block2 := m.FormatLicenseForFile(m.licenseTemplate)
+
+	expectedBlock := handler.FormatLicense(m.licenseTemplate, m.commentStyle, detectedStyle)
+	if block2 == extract.Body {
+		return FullMatch
+	}
 
 	if expectedBlock.Body == extract.Body {
 		m.logger.LogInfo("Result: License matches expected content exactly")
@@ -406,7 +410,7 @@ func (m *LicenseManager) logDiff(expected, current string) {
 //
 //	// Format both licenses with the detected style
 //	currentLicense := rest
-//	expectedLicense := handler.FormatLicense(m.template, m.commentStyle, detectedStyle)
+//	expectedLicense := handler.FormatLicense(m.licenseTemplate, m.commentStyle, detectedStyle)
 //
 //	// Extract both licenses without stripping markers for accurate comparison
 //	_, currentBody, _, _, _ := comment.ExtractComponents(m.logger, currentLicense, false, m.commentStyle)
@@ -424,7 +428,7 @@ func (m *LicenseManager) FormatLicenseForFile(text string) string {
 
 // formatLicenseBlock formats the license text with the appropriate comment style
 func (m *LicenseManager) formatLicenseBlock(text string) string {
-	return comment.FormatComment(text, m.commentStyle, m.headerStyle)
+	return language.FormatComment(text, m.commentStyle, m.headerStyle)
 }
 
 func (m *LicenseManager) DetectHeaderAndFooterStyle(header, footer string) styles.HeaderFooterStyle {

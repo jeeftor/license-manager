@@ -151,26 +151,6 @@ func (fp *FileProcessor) Add() error {
 
 		manager, commentStyle := fp.createManager(file)
 
-		// Get the appropriate language handler and check for preamble
-		//handler := language.GetLanguageHandler(fp.logger, commentStyle.Language, style)
-
-		// Does it have a license
-		//
-		//
-		//
-		//preamble, rest := handler.PreservePreamble(content)
-		//
-		//if preamble != "" {
-		//	fp.logger.LogInfo("  Found preamble:")
-		//	for _, line := range strings.Split(strings.TrimSpace(preamble), "\n") {
-		//		if line != "" {
-		//			fp.logger.LogInfo("    %s", line)
-		//		}
-		//	}
-		//} else {
-		//	fp.logger.LogInfo("  No preamble found")
-		//}
-
 		hasLicense, extract := manager.HasLicense(content)
 		if hasLicense {
 			fp.stats["existing"]++

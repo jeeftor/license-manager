@@ -206,7 +206,7 @@ Body content
 				}
 			}
 			testLogger := logger.NewLogger(logger.InfoLevel)
-			gotHeader, gotBody, gotFooter, gotSuccess := ExtractComponents(testLogger, tt.content, tt.stripMarkers, style)
+			gotHeader, gotBody, gotFooter, gotSuccess := language.ExtractComponents(testLogger, tt.content, tt.stripMarkers, style)
 			if gotSuccess != tt.wantSuccess {
 				t.Errorf("ExtractComponents() success = %v, want %v", gotSuccess, tt.wantSuccess)
 				return
@@ -359,7 +359,7 @@ License Footer
 	mockHandler := NewMockLanguageHandler()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComment(tt.style, tt.hfStyle, tt.body, mockHandler)
+			c := language.NewComment(tt.style, tt.hfStyle, tt.body, mockHandler)
 			got := c.String()
 			// Normalize line endings for comparison
 			got = strings.ReplaceAll(got, "\r\n", "\n")
@@ -374,7 +374,7 @@ License Footer
 
 func TestComment_Clone(t *testing.T) {
 	mockHandler := NewMockLanguageHandler()
-	original := NewComment(
+	original := language.NewComment(
 		styles.CommentLanguage{
 			Single: "//",
 		},

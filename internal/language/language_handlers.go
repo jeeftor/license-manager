@@ -4,6 +4,7 @@ import (
 	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
+	"unicode"
 )
 
 // LanguageHandler defines the interface for language-specific license formatting
@@ -127,7 +128,6 @@ func (ce *CommentExtractor) extractSingleLineComments(lines []string) (header st
 	return "", nil, "", -1, false
 }
 
-// extractMultiLineComments handles extraction from multi-line comment blocks
 func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header string, body []string, footer string, endIndex int, success bool) {
 	if ce.style.MultiStart == "" || ce.style.MultiEnd == "" {
 		return "", nil, "", -1, false
@@ -135,14 +135,17 @@ func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header str
 
 	var startIndex int
 	var foundStart, headerFound bool
-	var bodyLines []string
+	var rawBodyLines []string     // Original lines with comment markers
+	var trimmedBodyLines []string // Lines with markers stripped
 
 	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
+		// Leave left-space - its important.
+		trimmed := strings.TrimRightFunc(line, unicode.IsSpace)
 
 		if trimmed == "" {
 			if headerFound {
-				bodyLines = append(bodyLines, "")
+				rawBodyLines = append(rawBodyLines, line)       // Keep original empty line
+				trimmedBodyLines = append(trimmedBodyLines, "") // Clean empty line
 			}
 			continue
 		}
@@ -160,15 +163,19 @@ func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header str
 
 		// Check for end marker
 		if strings.HasSuffix(trimmed, ce.style.MultiEnd) {
-			if len(bodyLines) > 0 {
+			if len(rawBodyLines) > 0 {
 				// Use last non-empty line as footer
-				footer = bodyLines[len(bodyLines)-1]
-				bodyLines = bodyLines[:len(bodyLines)-1]
+				footer = rawBodyLines[len(rawBodyLines)-1]
+				rawBodyLines = rawBodyLines[:len(rawBodyLines)-1]
+				trimmedBodyLines = trimmedBodyLines[:len(trimmedBodyLines)-1]
 			}
-			return header, bodyLines, footer, i, true
+			return header, trimmedBodyLines, footer, i, true
 		}
 
-		// Strip comment markers and prefixes
+		// Keep original line
+		rawBodyLines = append(rawBodyLines, line)
+
+		// Strip comment markers and prefixes for trimmed version
 		content := trimmed
 		if ce.style.MultiPrefix != "" {
 			content = strings.TrimPrefix(content, ce.style.MultiPrefix)
@@ -177,17 +184,19 @@ func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header str
 			content = strings.TrimPrefix(content, ce.style.LinePrefix)
 		}
 		content = strings.TrimSpace(content)
+		trimmedBodyLines = append(trimmedBodyLines, content)
 
 		if !headerFound {
-			header = content
+			header = content // Use trimmed version for header
 			headerFound = true
 			if ce.logger != nil {
 				ce.logger.LogDebug("Found license header: %s", content)
 			}
+			// Remove the header line from both arrays
+			rawBodyLines = rawBodyLines[:len(rawBodyLines)-1]
+			trimmedBodyLines = trimmedBodyLines[:len(trimmedBodyLines)-1]
 			continue
 		}
-
-		bodyLines = append(bodyLines, content)
 	}
 
 	return "", nil, "", -1, false
@@ -293,95 +302,152 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 }
 
 func (h *GenericHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock {
-	header := strings.TrimSpace(style.Header)
-	footer := strings.TrimSpace(style.Footer)
+	// Use FormatComment to do the heavy lifting
+	formatted := FormatComment(license, commentStyle, style)
 
-	var result []string
+	// Extract the parts we need for the FullLicenseBlock
+	lines := strings.Split(formatted, "\n")
 	var headerFormatted, bodyFormatted, footerFormatted string
 
-	if commentStyle.PreferMulti && commentStyle.MultiStart != "" {
-		// Start the block
-		result = append(result, commentStyle.MultiStart)
-
-		// Handle header
-		if header != "" {
-			headerLine := commentStyle.MultiPrefix + commentStyle.LinePrefix + header
-			result = append(result, headerLine)
-			headerFormatted = header
+	if len(lines) > 0 {
+		// Find header (first line with markers)
+		for _, line := range lines {
+			if hasMarkers(line) {
+				headerFormatted = strings.TrimSpace(stripMarkers(line))
+				break
+			}
 		}
 
-		// Handle body
+		// Find footer (last line with markers)
+		for i := len(lines) - 1; i >= 0; i-- {
+			if hasMarkers(lines[i]) {
+				footerFormatted = strings.TrimSpace(stripMarkers(lines[i]))
+				break
+			}
+		}
+
+		// Body is everything that isn't header/footer
 		var bodyLines []string
-		for _, line := range strings.Split(license, "\n") {
-			if line == "" {
-				result = append(result, commentStyle.MultiPrefix)
-				bodyLines = append(bodyLines, "")
-			} else {
-				result = append(result, commentStyle.MultiPrefix+commentStyle.LinePrefix+line)
-				bodyLines = append(bodyLines, line)
+		inBody := false
+		for _, line := range lines {
+			if hasMarkers(line) {
+				if !inBody {
+					inBody = true
+					continue
+				}
+				break
+			}
+			if inBody {
+				bodyLines = append(bodyLines, stripMarkers(line))
 			}
 		}
 		bodyFormatted = strings.Join(bodyLines, "\n")
-
-		// Handle footer
-		if footer != "" {
-			footerLine := commentStyle.MultiPrefix + commentStyle.LinePrefix + footer
-			result = append(result, footerLine)
-			footerFormatted = footer
-		}
-
-		// Close the block
-		result = append(result, commentStyle.MultiEnd)
-
-	} else if commentStyle.Single != "" {
-		// Handle header
-		if header != "" {
-			headerLine := commentStyle.Single + commentStyle.LinePrefix + header
-			result = append(result, headerLine)
-			headerFormatted = header
-		}
-
-		// Handle body
-		var bodyLines []string
-		for _, line := range strings.Split(license, "\n") {
-			if line == "" {
-				result = append(result, commentStyle.Single)
-				bodyLines = append(bodyLines, "")
-			} else {
-				result = append(result, commentStyle.Single+commentStyle.LinePrefix+line)
-				bodyLines = append(bodyLines, line)
-			}
-		}
-		bodyFormatted = strings.Join(bodyLines, "\n")
-
-		// Handle footer
-		if footer != "" {
-			footerLine := commentStyle.Single + commentStyle.LinePrefix + footer
-			result = append(result, footerLine)
-			footerFormatted = footer
-		}
-
-	} else {
-		// No comment style, store raw text
-		if header != "" {
-			result = append(result, header)
-			headerFormatted = header
-		}
-		result = append(result, license)
-		bodyFormatted = license
-		if footer != "" {
-			result = append(result, footer)
-			footerFormatted = footer
-		}
 	}
 
 	return FullLicenseBlock{
-		String: strings.Join(result, "\n"),
+		String: formatted,
 		Body:   bodyFormatted,
 		Header: headerFormatted,
 		Footer: footerFormatted,
 	}
 }
+
+func stripMarkers(text string) string {
+	text = strings.ReplaceAll(text, MarkerStart, "")
+	text = strings.ReplaceAll(text, MarkerEnd, "")
+	return text
+}
+
+//func (h *GenericHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock {
+//	header := strings.TrimSpace(style.Header)
+//	footer := strings.TrimSpace(style.Footer)
+//
+//	var result []string
+//	var headerFormatted, bodyFormatted, footerFormatted string
+//
+//	if commentStyle.PreferMulti && commentStyle.MultiStart != "" {
+//		// Start the block
+//		result = append(result, commentStyle.MultiStart)
+//
+//		// Handle header
+//		if header != "" {
+//			headerLine := commentStyle.MultiPrefix + commentStyle.LinePrefix + header
+//			result = append(result, headerLine)
+//			headerFormatted = header
+//		}
+//
+//		// Handle body
+//		var bodyLines []string
+//		for _, line := range strings.Split(license, "\n") {
+//			if line == "" {
+//				result = append(result, commentStyle.MultiPrefix)
+//				bodyLines = append(bodyLines, "")
+//			} else {
+//				result = append(result, commentStyle.MultiPrefix+commentStyle.LinePrefix+line)
+//				bodyLines = append(bodyLines, line)
+//			}
+//		}
+//		bodyFormatted = strings.Join(bodyLines, "\n")
+//
+//		// Handle footer
+//		if footer != "" {
+//			footerLine := commentStyle.MultiPrefix + commentStyle.LinePrefix + footer
+//			result = append(result, footerLine)
+//			footerFormatted = footer
+//		}
+//
+//		// Close the block
+//		result = append(result, commentStyle.MultiEnd)
+//
+//	} else if commentStyle.Single != "" {
+//		// Handle header
+//		if header != "" {
+//			headerLine := commentStyle.Single + commentStyle.LinePrefix + header
+//			result = append(result, headerLine)
+//			headerFormatted = header
+//		}
+//
+//		// Handle body
+//		var bodyLines []string
+//		for _, line := range strings.Split(license, "\n") {
+//			if line == "" {
+//				result = append(result, commentStyle.Single)
+//				bodyLines = append(bodyLines, "")
+//			} else {
+//				result = append(result, commentStyle.Single+commentStyle.LinePrefix+line)
+//				bodyLines = append(bodyLines, line)
+//			}
+//		}
+//		bodyFormatted = strings.Join(bodyLines, "\n")
+//
+//		// Handle footer
+//		if footer != "" {
+//			footerLine := commentStyle.Single + commentStyle.LinePrefix + footer
+//			result = append(result, footerLine)
+//			footerFormatted = footer
+//		}
+//
+//	} else {
+//		// No comment style, store raw text
+//		if header != "" {
+//			result = append(result, header)
+//			headerFormatted = header
+//		}
+//		result = append(result, license)
+//		bodyFormatted = license
+//		if footer != "" {
+//			result = append(result, footer)
+//			footerFormatted = footer
+//		}
+//	}
+//
+//	return FullLicenseBlock{
+//		String: strings.Join(result, "\n"),
+//		Body:   bodyFormatted,
+//		Header: headerFormatted,
+//		Footer: footerFormatted,
+//	}
+//}
 
 func (h *GenericHandler) PreservePreamble(content string) (string, string) {
 	return "", content
