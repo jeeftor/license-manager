@@ -3,10 +3,10 @@ package processor
 import (
 	"fmt"
 	"github.com/fatih/color"
-	"license-manager/internal/force"
-	"license-manager/internal/license"
-	"license-manager/internal/logger"
-	"license-manager/internal/styles"
+	"github.com/jeeftor/license-manager/internal/force"
+	"github.com/jeeftor/license-manager/internal/license"
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/styles"
 	"path/filepath"
 	"strings"
 )

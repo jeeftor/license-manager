@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"license-manager/internal/styles"
+	"github.com/jeeftor/license-manager/internal/styles"
 )
 
 var stylesCmd = &cobra.Command{

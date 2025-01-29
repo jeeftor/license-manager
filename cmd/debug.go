@@ -2,15 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"license-manager/internal/language"
-	"license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/language"
+	"github.com/jeeftor/license-manager/internal/logger"
 	"os"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"license-manager/internal/config"
-	"license-manager/internal/styles"
+	"github.com/jeeftor/license-manager/internal/config"
+	"github.com/jeeftor/license-manager/internal/styles"
 )
 
 var debugCmd = &cobra.Command{

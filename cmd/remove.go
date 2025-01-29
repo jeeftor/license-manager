@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"license-manager/internal/config"
-	"license-manager/internal/logger"
-	"license-manager/internal/processor"
+	"github.com/jeeftor/license-manager/internal/config"
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/processor"
 )
 
 var removeCmd = &cobra.Command{

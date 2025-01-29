@@ -1,8 +1,8 @@
 package language
 
 import (
-	"license-manager/internal/logger"
-	"license-manager/internal/styles"
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/styles"
 	"regexp"
 	"strings"
 )

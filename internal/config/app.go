@@ -2,10 +2,10 @@
 package config
 
 import (
-	"license-manager/internal/errors"
-	"license-manager/internal/force"
-	"license-manager/internal/logger"
-	"license-manager/internal/processor"
+	"github.com/jeeftor/license-manager/internal/errors"
+	"github.com/jeeftor/license-manager/internal/force"
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/processor"
 	"os"
 	"path/filepath"
 )

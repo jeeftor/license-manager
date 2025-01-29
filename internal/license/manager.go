@@ -1,10 +1,10 @@
 package license
 
 import (
-	"license-manager/internal/errors"
-	"license-manager/internal/language"
-	"license-manager/internal/logger"
-	"license-manager/internal/styles"
+	"github.com/jeeftor/license-manager/internal/errors"
+	"github.com/jeeftor/license-manager/internal/language"
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/styles"
 	"reflect"
 	"strings"
 )

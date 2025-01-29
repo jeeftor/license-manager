@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/logger"
 
 	"github.com/spf13/cobra"
 )

@@ -2,15 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"license-manager/internal/force"
-	"license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/force"
+	"github.com/jeeftor/license-manager/internal/logger"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"license-manager/internal/config"
-	"license-manager/internal/license"
-	"license-manager/internal/processor"
+	"github.com/jeeftor/license-manager/internal/config"
+	"github.com/jeeftor/license-manager/internal/license"
+	"github.com/jeeftor/license-manager/internal/processor"
 
 	cc "github.com/ivanpirog/coloredcobra"
 )

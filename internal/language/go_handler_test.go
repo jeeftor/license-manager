@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"license-manager/internal/logger"
-	"license-manager/internal/styles"
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/styles"
 )
 
 func TestGoHandler_ScanBuildDirectives(t *testing.T) {

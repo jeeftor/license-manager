@@ -3,7 +3,7 @@ package main
 
 import (
 	"fmt"
-	"license-manager/cmd"
+	"github.com/jeeftor/license-manager/cmd"
 	"os"
 )
 

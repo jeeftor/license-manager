@@ -2,8 +2,8 @@
 package processor
 
 import (
-	"license-manager/internal/force"
-	"license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/force"
+	"github.com/jeeftor/license-manager/internal/logger"
 )
 
 // Config holds the configuration for the file processor

@@ -2,7 +2,7 @@
 package processor
 
 import (
-	"license-manager/internal/license"
+	"github.com/jeeftor/license-manager/internal/license"
 )
 
 // CheckError represents an error during license checking
