@@ -4,7 +4,6 @@ import (
 	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
-	"unicode"
 )
 
 // LanguageHandler defines the interface for language-specific license formatting
@@ -139,8 +138,7 @@ func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header str
 	var trimmedBodyLines []string // Lines with markers stripped
 
 	for i, line := range lines {
-		// Leave left-space - its important.
-		trimmed := strings.TrimRightFunc(line, unicode.IsSpace)
+		trimmed := strings.TrimSpace(line)
 
 		if trimmed == "" {
 			if headerFound {
@@ -151,21 +149,29 @@ func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header str
 		}
 
 		if !foundStart {
-			if strings.HasPrefix(trimmed, ce.style.MultiStart) {
+			if strings.HasPrefix(trimmed, strings.TrimSpace(ce.style.MultiStart)) {
 				startIndex = i
 				foundStart = true
-				if ce.logger != nil {
-					ce.logger.LogDebug("Found multi-line comment start at line %d", startIndex)
-				}
+				ce.logger.LogDebug("Found multi-line comment start at line %d", startIndex)
+
 			}
 			continue
 		}
 
 		// Check for end marker
-		if strings.HasSuffix(trimmed, ce.style.MultiEnd) {
+		if strings.HasSuffix(trimmed, strings.TrimSpace(ce.style.MultiEnd)) {
+			// Trim any suffix we might have
+			trimmed = strings.TrimSuffix(trimmed, strings.TrimSpace(ce.style.MultiEnd))
 			if len(rawBodyLines) > 0 {
 				// Use last non-empty line as footer
 				footer = rawBodyLines[len(rawBodyLines)-1]
+
+				// Trim the footer
+				footer = strings.TrimPrefix(footer, strings.TrimSpace(ce.style.LinePrefix))
+				footer = strings.TrimPrefix(footer, strings.TrimSpace(ce.style.MultiPrefix))
+
+				ce.logger.LogDebug("Found multi-line comment end at line %d", startIndex)
+				ce.logger.LogDebug("Footer: %s", footer)
 				rawBodyLines = rawBodyLines[:len(rawBodyLines)-1]
 				trimmedBodyLines = trimmedBodyLines[:len(trimmedBodyLines)-1]
 			}
@@ -178,10 +184,10 @@ func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header str
 		// Strip comment markers and prefixes for trimmed version
 		content := trimmed
 		if ce.style.MultiPrefix != "" {
-			content = strings.TrimPrefix(content, ce.style.MultiPrefix)
+			content = strings.TrimPrefix(content, strings.TrimSpace(ce.style.MultiPrefix))
 		}
 		if ce.style.LinePrefix != "" {
-			content = strings.TrimPrefix(content, ce.style.LinePrefix)
+			content = strings.TrimPrefix(content, strings.TrimSpace(ce.style.LinePrefix))
 		}
 		content = strings.TrimSpace(content)
 		trimmedBodyLines = append(trimmedBodyLines, content)
