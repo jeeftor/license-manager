@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"regexp"
 	"strings"
@@ -11,8 +12,10 @@ type RustHandler struct {
 	*GenericHandler
 }
 
-func NewRustHandler(style styles.HeaderFooterStyle) *RustHandler {
-	return &RustHandler{GenericHandler: NewGenericHandler(style)}
+func NewRustHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *RustHandler {
+	h := &RustHandler{GenericHandler: NewGenericHandler(logger, style, ".rs")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *RustHandler) PreservePreamble(content string) (string, string) {

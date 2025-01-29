@@ -1,23 +1,16 @@
-package comment
+package language
 
 import (
 	"strings"
 
-	"license-manager/internal/language"
 	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 )
 
 var log *logger.Logger
 
-// SetVerbose enables or disables verbose logging for the comment package
-func SetVerbose(verbose bool) {
-	log = logger.NewLogger(verbose)
-}
-
-func init() {
-	// Initialize with default (non-verbose) logging
-	log = logger.NewLogger(false)
+func SetLogger(logger *logger.Logger) {
+	log = logger
 }
 
 const (
@@ -33,7 +26,7 @@ type Comment struct {
 	footer          string
 	hfStyle         styles.HeaderFooterStyle
 	CommentLanguage styles.CommentLanguage
-	langHandler     language.LanguageHandler
+	langHandler     LanguageHandler
 }
 
 func (c *Comment) String() string {
@@ -204,84 +197,135 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 	return strings.TrimSpace(strings.Join(processedLines, "\n"))
 }
 
-// ExtractComponents extracts the header, body, and footer from a license block
-func ExtractComponents(content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer string, success bool) {
+// ExtractComponents extracts the header, body, footer, and remaining content from a license block.
+// It handles both multi-line comment blocks (like /* ... */) and single-line comment blocks (like # or //).
+//
+// Parameters:
+//   - logger: Logger instance for debug output
+//   - content: The full content of the file
+//   - stripMarkers: Whether to remove comment markers from the extracted content
+//   - languageStyle: The comment style rules for the specific language
+//
+// Returns:
+//   - header: The first line after the comment start (usually contains license identifier)
+//   - body: The main content of the license
+//   - footer: The last line before the comment end (usually contains a closing marker)
+//   - rest: Any remaining content after the license block
+//   - success: Whether the extraction was successful
+func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer, rest string, success bool) {
+
 	if content == "" {
-		return "", "", "", false
+		return "", "", "", "", false
 	}
 
-	// Split into lines for processing
 	lines := strings.Split(content, "\n")
 	if len(lines) == 0 {
-		return "", "", "", false
+		return "", "", "", "", false
 	}
 
-	// Find the start and end of the license block
 	var startIndex, endIndex int
 	var foundStart, foundEnd bool
 
-	//for i, line := range lines {
-	//	line = strings.TrimSpace(line)
-	//	if line == "" {
-	//		continue
-	//	}
-	//
-	//	// Look for start markers using language style
-	//	if !foundStart && languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
-	//		startIndex = i
-	//		foundStart = true
-	//		continue
-	//	}
-	//
-	//	// Look for end markers
-	//	if foundStart && !foundEnd && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
-	//		endIndex = i
-	//		foundEnd = true
-	//		break
-	//	}
-	//}
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
+	// Handle multi-line comment blocks (/* ... */)
+	if languageStyle.MultiStart != "" {
+		for i, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
 
-		if !foundStart && languageStyle.MultiStart != "" && strings.HasPrefix(line, languageStyle.MultiStart) {
-			startIndex = i
-			foundStart = true
-		} else if foundStart && languageStyle.MultiEnd != "" && strings.HasSuffix(line, languageStyle.MultiEnd) {
-			endIndex = i
-			foundEnd = true
-			break
+			if !foundStart && strings.HasPrefix(line, languageStyle.MultiStart) {
+				startIndex = i
+				foundStart = true
+				logger.LogDebug("  Found multi-line start marker: %s at line %d", languageStyle.MultiStart, i)
+			} else if foundStart && strings.HasSuffix(line, languageStyle.MultiEnd) {
+				endIndex = i
+				foundEnd = true
+				logger.LogDebug("  Found multi-line end marker: %s at line %d", languageStyle.MultiEnd, i)
+				break
+			}
+		}
+	} else {
+		// Handle single-line comment blocks (# or //)
+		var inBlock bool
+		singleLineMarker := languageStyle.Single
+
+		for i, line := range lines {
+			trimmedLine := strings.TrimSpace(line)
+
+			// Skip empty lines
+			if trimmedLine == "" {
+				continue
+			}
+
+			// If we're not in a comment block and this isn't a comment line, skip
+			if !strings.HasPrefix(trimmedLine, singleLineMarker) {
+				if inBlock {
+					// We've reached the end of the comment block
+					endIndex = i - 1
+					foundEnd = true
+					break
+				}
+				continue
+			}
+
+			// Look for the start of the license block (marked by ###### or similar)
+			if !inBlock && strings.Contains(trimmedLine, "######################################") {
+				startIndex = i
+				foundStart = true
+				inBlock = true
+				logger.LogDebug("  Found single-line block start at line %d", i)
+			}
+
+			// Look for the end of the license block
+			if inBlock && strings.Contains(trimmedLine, "######################################") {
+				// Don't break immediately - we want to capture this line
+				endIndex = i
+				foundEnd = true
+				logger.LogDebug("  Found single-line block end at line %d", i)
+			}
 		}
 	}
+
 	if !foundStart || !foundEnd {
-		return "", "", "", false
+		return "", "", "", "", false
 	}
 
-	// Extract the header (first non-empty line after the start marker)
+	// Extract header (first non-empty line after start)
 	var headerLines []string
 	for i := startIndex + 1; i < endIndex; i++ {
 		line := strings.TrimSpace(lines[i])
 		if line == "" {
 			continue
 		}
-		headerLines = append(headerLines, lines[i])
+		if stripMarkers {
+			line = languageStyle.StripCommentMarkers(line)
+			line = strings.TrimSpace(line)
+		} else {
+			line = lines[i]
+		}
+		headerLines = append(headerLines, line)
 		break
 	}
 
-	// Extract the footer (last non-empty line before the end marker)
+	// Extract footer (last non-empty line before end)
 	var footerLines []string
 	for i := endIndex - 1; i > startIndex; i-- {
 		line := strings.TrimSpace(lines[i])
 		if line == "" {
 			continue
 		}
-		footerLines = append(footerLines, lines[i])
+		if stripMarkers {
+			line = languageStyle.StripCommentMarkers(line)
+			line = strings.TrimSpace(line)
+		} else {
+			line = lines[i]
+		}
+		footerLines = append(footerLines, line)
 		break
 	}
 
-	// Extract the body (everything between header and footer)
+	// Extract body (everything between header and footer)
 	var bodyLines []string
 	bodyStart := startIndex + 1
 	if len(headerLines) > 0 {
@@ -293,81 +337,30 @@ func ExtractComponents(content string, stripMarkers bool, languageStyle styles.C
 	}
 
 	for i := bodyStart; i < bodyEnd; i++ {
-		line := lines[i]
 		if stripMarkers {
-			line = strings.TrimSpace(lines[i])
-			line = strings.TrimPrefix(line, languageStyle.LinePrefix)
-			line = strings.TrimPrefix(line, "*")
-			line = strings.TrimPrefix(line, " *")
+			line := languageStyle.StripCommentMarkers(lines[i])
 			line = strings.TrimSpace(line)
+			bodyLines = append(bodyLines, line)
+		} else {
+			bodyLines = append(bodyLines, lines[i])
 		}
-		bodyLines = append(bodyLines, line)
+	}
+
+	// Extract rest (everything after the license block)
+	var restLines []string
+	if endIndex < len(lines)-1 {
+		restLines = lines[endIndex+1:]
 	}
 
 	header = strings.Join(headerLines, "\n")
-
 	body = strings.Join(bodyLines, "\n")
 	footer = strings.Join(footerLines, "\n")
+	rest = strings.Join(restLines, "\n")
 
-	return header, body, footer, true
-}
+	logger.LogDebug("  Extracted components - Header: %d lines, Body: %d lines, Footer: %d lines, Rest: %d lines",
+		len(headerLines), len(bodyLines), len(footerLines), len(restLines))
 
-// extractComponentsWithMarkers attempts to extract components using Unicode markers.
-// This is a simpler implementation that looks specifically for MarkerStart and MarkerEnd.
-func extractComponentsWithMarkers(lines []string, shouldStrip bool) (header string, body string, footer string, success bool) {
-	startIdx := -1
-	endIdx := -1
-
-	// Find lines with markers
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Skips empty lines
-		if line == "" {
-			continue
-		}
-
-		if hasMarkers(line) {
-			if startIdx == -1 {
-				startIdx = i
-			} else if endIdx == -1 {
-				endIdx = i
-				break
-			}
-		}
-	}
-
-	// Must have both start and end markers
-	if startIdx == -1 || endIdx == -1 || startIdx >= endIdx {
-		return "", "", "", false
-	}
-
-	header = strings.TrimSpace(lines[startIdx])
-	footer = strings.TrimSpace(lines[endIdx])
-
-	// Extract body (everything between header and footer)
-	bodyLines := lines[startIdx+1 : endIdx]
-	// Remove leading and trailing empty lines from body
-	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[0]) == "" {
-		bodyLines = bodyLines[1:]
-	}
-	for len(bodyLines) > 0 && strings.TrimSpace(bodyLines[len(bodyLines)-1]) == "" {
-		bodyLines = bodyLines[:len(bodyLines)-1]
-	}
-	body = strings.TrimSpace(strings.Join(bodyLines, "\n"))
-
-	// Strip the Unicode markers if requested
-	if shouldStrip {
-		header = strings.TrimPrefix(strings.TrimSuffix(header, MarkerEnd), MarkerStart)
-		footer = strings.TrimPrefix(strings.TrimSuffix(footer, MarkerEnd), MarkerStart)
-	}
-
-	// Check if the content looks like a license
-	if !looksLikeLicense(body) {
-		return "", "", "", false
-	}
-
-	return header, body, footer, true
+	return header, body, footer, rest, true
 }
 
 // extractComponentsWithoutMarkers attempts to extract components using comment syntax and style inference.
@@ -597,40 +590,39 @@ func FormatComment(text string, commentStyle styles.CommentLanguage, headerStyle
 	lines := strings.Split(text, "\n")
 	var result []string
 
-	// Add header
-	if commentStyle.MultiStart != "" {
+	if commentStyle.PreferMulti && commentStyle.MultiStart != "" {
+		// Multi line Comments
+		// Add header
 		result = append(result, commentStyle.MultiStart)
-		// Add marker to header
 		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Header+MarkerEnd)
-	} else {
-		// Add marker to header
-		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Header+MarkerEnd)
-	}
 
-	// Add body with proper comment prefixes
-	for _, line := range lines {
-		if commentStyle.MultiStart != "" {
+		// Add body
+		for _, line := range lines {
 			if line == "" {
 				result = append(result, commentStyle.MultiPrefix)
 			} else {
 				result = append(result, commentStyle.MultiPrefix+commentStyle.LinePrefix+line)
 			}
-		} else {
+		}
+
+		// Add footer
+		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Footer+MarkerEnd)
+		result = append(result, commentStyle.MultiEnd)
+	} else {
+		// Single Line Comments
+		// Add header
+		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Header+MarkerEnd)
+
+		// Add body
+		for _, line := range lines {
 			if line == "" {
 				result = append(result, commentStyle.Single)
 			} else {
 				result = append(result, commentStyle.Single+commentStyle.LinePrefix+line)
 			}
 		}
-	}
 
-	// Add footer
-	if commentStyle.MultiStart != "" {
-		// Add marker to footer
-		result = append(result, commentStyle.MultiPrefix+MarkerStart+headerStyle.Footer+MarkerEnd)
-		result = append(result, commentStyle.MultiEnd)
-	} else {
-		// Add marker to footer
+		// Add footer
 		result = append(result, commentStyle.Single+MarkerStart+headerStyle.Footer+MarkerEnd)
 	}
 
@@ -645,7 +637,7 @@ type BuildDirective struct {
 
 // ExtractBuildDirectives extracts all build directives from the given content.
 // It handles both //go: style directives and // + build style directives.
-func ExtractBuildDirectives(content string, langHandler language.LanguageHandler) []BuildDirective {
+func ExtractBuildDirectives(content string, langHandler LanguageHandler) []BuildDirective {
 	var directives []BuildDirective
 
 	// Use language handler to get build directives
@@ -694,7 +686,7 @@ func addMarkers(text string) string {
 	return MarkerStart + text + MarkerEnd
 }
 
-func NewComment(style styles.CommentLanguage, hfStyle styles.HeaderFooterStyle, body string, langHandler language.LanguageHandler) *Comment {
+func NewComment(style styles.CommentLanguage, hfStyle styles.HeaderFooterStyle, body string, langHandler LanguageHandler) *Comment {
 	return &Comment{
 		style:       style,
 		body:        body,
@@ -721,28 +713,8 @@ func (c *Comment) SetBody(body string) {
 	c.body = body
 }
 
-//func (c *Comment) SetStyle(style styles.CommentLanguage) {
-//	c.style = style
-//}
-
 func (c *Comment) SetHeaderFooterStyle(hfStyle styles.HeaderFooterStyle) {
 	c.hfStyle = hfStyle
 	c.header = hfStyle.Header
 	c.footer = hfStyle.Footer
 }
-
-//func (c *Comment) GetStyle() styles.CommentLanguage {
-//	return c.style
-//}
-//
-//func (c *Comment) GetHeader() string {
-//	return c.header
-//}
-//
-//func (c *Comment) GetFooter() string {
-//	return c.footer
-//}
-//
-//func (c *Comment) GetBody() string {
-//	return c.body
-//}

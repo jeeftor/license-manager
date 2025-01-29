@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,10 @@ type YAMLHandler struct {
 	*GenericHandler
 }
 
-func NewYAMLHandler(style styles.HeaderFooterStyle) *YAMLHandler {
-	return &YAMLHandler{GenericHandler: NewGenericHandler(style)}
+func NewYAMLHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *YAMLHandler {
+	h := &YAMLHandler{GenericHandler: NewGenericHandler(logger, style, ".yml")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *YAMLHandler) PreservePreamble(content string) (string, string) {

@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"strings"
 
 	"license-manager/internal/styles"
@@ -11,8 +12,10 @@ type SwiftHandler struct {
 	*GenericHandler
 }
 
-func NewSwiftHandler(style styles.HeaderFooterStyle) *SwiftHandler {
-	return &SwiftHandler{GenericHandler: NewGenericHandler(style)}
+func NewSwiftHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *SwiftHandler {
+	h := &SwiftHandler{GenericHandler: NewGenericHandler(logger, style, "swift")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *SwiftHandler) PreservePreamble(content string) (string, string) {

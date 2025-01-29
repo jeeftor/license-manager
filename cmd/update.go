@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"license-manager/internal/config"
+	"license-manager/internal/logger"
 	"license-manager/internal/processor"
 )
 
@@ -25,10 +26,9 @@ var updateCmd = &cobra.Command{
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go", // default
-			PreferMulti:  cfgPreferMulti,
 
 			// Behavior flags
-			Verbose: cfgVerbose,
+			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 
 			Force:      false,
 			IgnoreFail: false,

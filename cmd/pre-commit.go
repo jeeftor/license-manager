@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"license-manager/internal/logger"
 	"os/exec"
 	"strings"
 
@@ -40,9 +41,9 @@ var preCommitCmd = &cobra.Command{
 
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go", // default
-			PreferMulti:  cfgPreferMulti,
 
-			Verbose:     cfgVerbose,
+			LogLevel: logger.ParseLogLevel(cfgLogLevel),
+
 			Interactive: false, // Typically want non-interactive in pre-commit
 			Force:       false,
 			IgnoreFail:  false, // We want to fail if license checks fail
@@ -83,5 +84,4 @@ func init() {
 
 	// Reuse existing flags from check command, but with pre-commit specific defaults
 	preCommitCmd.Flags().StringVar(&cfgLicense, "license", "./LICENSE", "Path to license file")
-	preCommitCmd.Flags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
 }

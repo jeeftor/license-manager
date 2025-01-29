@@ -138,13 +138,12 @@ license-manager check --license LICENSE.txt --input "**/*.go"
 
 ### Command Options
 
-- `--license`: Path to the license template file (required for add/update/check)
-- `--input`: Glob pattern for input files (e.g., "**/*.go" for all Go files)
-- `--skip`: Glob pattern for files to skip
-- `--prompt`: Enable interactive mode to confirm each change
-- `--dry-run`: Preview changes without applying them
-- `--verbose`: Enable detailed logging
-- `--preset-style`: Choose a predefined header/footer style
+- `--license` _string_      Path to license text file (required for add/update/check)
+- `--input` _strings_      Input file patterns (can be comma-separated or multiple flags)
+- `--skip` _strings_       Patterns to skip (can be comma-separated or multiple flags)
+- `--style` _string_       Preset style for header/footer (default "hash")
+- `--comments` _string_    Force comment style (no|single|multi)
+- `--log-level` _string_   Log level (debug|info|notice|warn|error) (default "notice")
 
 ### Examples
 

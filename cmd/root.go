@@ -2,9 +2,11 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"license-manager/internal/force"
 	"license-manager/internal/logger"
 	"os"
 	"strings"
@@ -16,6 +18,31 @@ import cc "github.com/ivanpirog/coloredcobra"
 const (
 	envPrefix = "LM"
 )
+
+type commentStyleFlag struct {
+	value *force.ForceCommentStyle
+}
+
+func (f *commentStyleFlag) String() string {
+	if f.value == nil {
+		return string(force.No) // default value
+	}
+	return string(*f.value)
+}
+
+func (f *commentStyleFlag) Set(s string) error {
+	switch force.ForceCommentStyle(s) {
+	case force.No, force.Single, force.Multi:
+		*f.value = force.ForceCommentStyle(s)
+		return nil
+	default:
+		return fmt.Errorf("must be one of no, single, or multi")
+	}
+}
+
+func (f *commentStyleFlag) Type() string {
+	return "commentStyle"
+}
 
 // Version information
 var (
@@ -60,19 +87,6 @@ var logo = "" +
 	purple4.Sprint(`   ▐▌  ▐▌▐▌ ▐▌▐▌  ▐▌▐▌ ▐▌▝▚▄▞▘▐▙▄▄▖▐▌ ▐▌`) + "\n" +
 	versionColor.Sprint(versionString)
 
-//var (
-//	cfgLicense      string
-//	cfgInputs       []string
-//	cfgSkips        []string
-//	cfgPrompt       bool
-//	cfgDryRun       bool
-//	cfgVerbose      bool   // Add verbose flag
-//	cfgPresetStyle  string // header/footer style
-//	cfgPreferMulti  bool   // prefer multi-line comments where supported
-//	checkIgnoreFail bool   // Added for check command
-//
-//)
-
 var rootCmd = &cobra.Command{
 	Use:   "license-manager",
 	Short: color.CyanString("A tool to manage license headers in source files"),
@@ -114,6 +128,7 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
+
 	rootCmd.SetHelpTemplate(helpTemplate)
 
 	// Configure help command
@@ -155,7 +170,7 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 		if exitErr, ok := err.(*ExitError); ok {
 			os.Exit(exitErr.Code)
 		}
-		log := logger.NewLogger(cfgVerbose)
+		log := logger.NewLogger(logger.ParseLogLevel(cfgLogLevel))
 		log.LogError("Error: %v", err)
 		os.Exit(1)
 	}
@@ -166,16 +181,18 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgPresetStyle, "style", "hash", "Preset style for header/footer (run styles command for list)")
-	rootCmd.PersistentFlags().BoolVar(&cfgPreferMulti, "multi", true, "Prefer multi-line comments where supported")
+	rootCmd.PersistentFlags().Var(&commentStyleFlag{&cfgForceCommentStyle}, "comments",
+		"Force comment style (no|single|multi)")
+	// set default value
+	cfgForceCommentStyle = force.No
 
 	rootCmd.PersistentFlags().StringVar(&cfgLicense, "license", "", "Path to license text file")
 
 	rootCmd.PersistentFlags().StringSliceVar(&cfgInputs, "input", []string{}, "Inputs file patterns")
 	rootCmd.PersistentFlags().StringSliceVar(&cfgSkips, "skip", []string{}, "Patterns to skip")
 
-	//rootCmd.PersistentFlags().BoolVar(&cfgPrompt, "prompt", false, "Prompt before processing each file")
-	//rootCmd.PersistentFlags().BoolVar(&cfgDryRun, "dry-run", false, "Show which files would be processed without making changes")
-	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Enable verbose output")
+	rootCmd.PersistentFlags().StringVar(&cfgLogLevel, "log-level", "notice", "Log level (debug, info, notice, warn, error)")
+
 }
 
 func initConfig() {
@@ -187,21 +204,14 @@ func initConfig() {
 	if viper.IsSet("license") {
 		cfgLicense = viper.GetString("license")
 	}
-	//if viper.IsSet("style") {
-	//	cfgPresetStyle = viper.GetString("style")
-	//}
-	//if viper.IsSet("multi") {
-	//	cfgPreferMulti = viper.GetBool("multi")
-	//}
-	//if viper.IsSet("prompt") {
-	//	cfgPrompt = viper.GetBool("prompt")
-	//}
-	//if viper.IsSet("dry-run") {
-	//	cfgDryRun = viper.GetBool("dry-run")
-	//}
-	//if viper.IsSet("verbose") {
-	//	cfgVerbose = viper.GetBool("verbose")
-	//}
+
+	if viper.IsSet("log-level") {
+		cfgLogLevel = viper.GetString("log-level")
+	}
+	if viper.IsSet("style") {
+		cfgPresetStyle = viper.GetString("style")
+	}
+
 }
 
 func ProcessPatterns(patterns []string) string {

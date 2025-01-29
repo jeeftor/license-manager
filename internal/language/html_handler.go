@@ -1,6 +1,7 @@
 package language
 
 import (
+	"license-manager/internal/logger"
 	"license-manager/internal/styles"
 	"strings"
 )
@@ -10,8 +11,10 @@ type HTMLHandler struct {
 	*GenericHandler
 }
 
-func NewHTMLHandler(style styles.HeaderFooterStyle) *HTMLHandler {
-	return &HTMLHandler{GenericHandler: NewGenericHandler(style)}
+func NewHTMLHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *HTMLHandler {
+	h := &HTMLHandler{GenericHandler: NewGenericHandler(logger, style, "html")}
+	h.GenericHandler.subclassHandler = h
+	return h
 }
 
 func (h *HTMLHandler) PreservePreamble(content string) (string, string) {

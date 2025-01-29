@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"license-manager/internal/force"
+	"license-manager/internal/logger"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -14,13 +16,13 @@ import (
 )
 
 var (
-	checkIgnoreFail bool
-	cfgLicense      string
-	cfgInputs       []string
-	cfgSkips        []string
-	cfgPresetStyle  string
-	cfgPreferMulti  bool
-	cfgVerbose      bool
+	checkIgnoreFail      bool
+	cfgLicense           string
+	cfgInputs            []string
+	cfgSkips             []string
+	cfgPresetStyle       string
+	cfgLogLevel          string
+	cfgForceCommentStyle force.ForceCommentStyle
 )
 
 // ExitError represents an error with an exit code
@@ -42,7 +44,7 @@ var checkCmd = &cobra.Command{
 Exit Codes:
   0: All files match
   1: At least 1 file is missing a license
-  2: Files have both content and header mismatch
+  2: Files have both content and header mismatchq
   3: Files have content mismatch
   4: Files have style mismatch
 `,
@@ -64,8 +66,7 @@ Exit Codes:
 			Inputs:      strings.Join(cfgInputs, ","),
 			Skips:       strings.Join(cfgSkips, ","),
 			HeaderStyle: cfgPresetStyle,
-			PreferMulti: cfgPreferMulti,
-			Verbose:     cfgVerbose,
+			LogLevel:    logger.ParseLogLevel(cfgLogLevel),
 			IgnoreFail:  checkIgnoreFail,
 		}
 
@@ -128,9 +129,9 @@ Exit Codes:
 				Code: 5, // Keep this as a constant since it's not part of the Status enum
 			}
 		}
-		if cfgVerbose {
-			fmt.Printf("Exit code: 0\n")
-		}
+		//if cfgVerbose {
+		//fmt.Printf("Exit code: 0\n")
+		//}
 		return nil
 	},
 }

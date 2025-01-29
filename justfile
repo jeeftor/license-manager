@@ -89,7 +89,8 @@ run-command lang cmd *FLAGS: ensure-test-dir
 
     echo "Running {{cmd}} for {{lang}} files... [$patterns]"
 
-    for pattern in "$patterns"; do
+    # Split patterns on spaces and process each one
+    echo "$patterns" | tr ' ' '\n' | while read -r pattern; do
         echo "Looking for files matching: [{{test_data_dir}}/{{lang}}/**/$pattern]"
         echo "Command: find {{test_data_dir}}/{{lang}} -type f -name \"$pattern\" 2>/dev/null"
         files=$(find {{test_data_dir}}/{{lang}} -type f -name "$pattern" 2>/dev/null)
@@ -102,12 +103,28 @@ run-command lang cmd *FLAGS: ensure-test-dir
         fi
     done
 
+list lang: ensure-test-dir
+    #!/usr/bin/env bash
+    patterns="$(just get-patterns {{lang}})"
+    echo "Listing files for {{lang}}... [patterns: $patterns]"
+
+    echo "$patterns" | tr ' ' '\n' | while read -r pattern; do
+        echo "Looking for pattern: $pattern"
+        files=$(find {{test_data_dir}}/{{lang}} -type f -name "$pattern" 2>/dev/null)
+        if [ -n "$files" ]; then
+            echo "Found:"
+            echo "$files" | sed 's/^/  /'
+        else
+            echo "No files found matching $pattern"
+        fi
+    done
+
 # Language-specific commands
-add lang: (run-command lang "add" "--verbose")
-check lang: (run-command lang "check")
-update lang: (run-command lang "update" "--verbose")
+add lang: (run-command lang "add" "--log-level" "debug")
+check lang: (run-command lang "check" "--log-level" "debug")
+update lang: (run-command lang "update" "--log-level" "debug" "--license" "./templates/licenses/dev.txt")
 debug lang: (run-command lang "debug")
-remove lang: (run-command lang "remove")
+remove lang: (run-command lang "remove" "--log-level" "debug")
 modify lang: ensure-test-dir
     #!/usr/bin/env bash
     find {{test_data_dir}}/{{lang}} -type f -name "hello.*" 2>/dev/null | \
@@ -149,6 +166,15 @@ modify-all: ensure-test-dir
     for lang in {{languages}}; do
         just modify $lang
     done
+
+# Run all tests
+test:
+    go test -v ./...
+
+# Run all tests with coverage
+test-coverage:
+    go test -v -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out -o coverage.html
 
 # Pre-commit hook
 pre-commit:

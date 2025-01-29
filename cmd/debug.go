@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"license-manager/internal/comment"
+	"license-manager/internal/language"
+	"license-manager/internal/logger"
 	"os"
 	"strings"
 
@@ -28,10 +29,8 @@ var debugCmd = &cobra.Command{
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go",
-			PreferMulti:  cfgPreferMulti,
 
-			// Debug needs verbose output
-			Verbose: true,
+			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 		}
 
 		// Read the input file
@@ -61,8 +60,8 @@ var debugCmd = &cobra.Command{
 		// Show the actual file contents with markers visible
 		fmt.Println("Actual file contents:")
 		fmt.Println("--------------------")
-		debugContent := strings.ReplaceAll(string(content), comment.MarkerStart, color.New(color.FgRed).Sprint("[START]"))
-		debugContent = strings.ReplaceAll(debugContent, comment.MarkerEnd, color.New(color.FgRed).Sprint("[END]"))
+		debugContent := strings.ReplaceAll(string(content), language.MarkerStart, color.New(color.FgRed).Sprint("[START]"))
+		debugContent = strings.ReplaceAll(debugContent, language.MarkerEnd, color.New(color.FgRed).Sprint("[END]"))
 		fmt.Println(debugContent)
 
 		return nil
