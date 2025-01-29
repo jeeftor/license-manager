@@ -51,71 +51,79 @@ func NewCommentExtractor(logger *logger.Logger, style styles.CommentLanguage) *C
 	}
 }
 
-// extractSingleLineComments handles extraction from single-line comment blocks
 func (ce *CommentExtractor) extractSingleLineComments(lines []string) (header string, body []string, footer string, endIndex int, success bool) {
 	if ce.style.Single == "" {
 		return "", nil, "", -1, false
 	}
 
-	var headerFound, inBody bool
-	var bodyLines []string
 	marker := ce.style.Single
 
+	// Look for header style in first non-empty comment
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
-			if inBody {
-				bodyLines = append(bodyLines, "")
-			}
 			continue
 		}
 
+		// If first non-empty line isn't a comment, no license block exists
 		if !strings.HasPrefix(trimmed, marker) {
-			if inBody {
-				// End of comment block
-				return header, bodyLines, footer, i - 1, true
-			}
-			continue
+			return "", nil, "", -1, false
 		}
 
-		// Strip comment marker and any line prefix
+		// Strip marker and spaces
 		content := strings.TrimPrefix(trimmed, marker)
 		if ce.style.LinePrefix != "" {
 			content = strings.TrimPrefix(content, ce.style.LinePrefix)
 		}
 		content = strings.TrimSpace(content)
 
-		if !headerFound {
+		// Try to infer header style
+		match := styles.Infer(content)
+		if match.Score > 0 && match.IsHeader {
 			header = content
-			headerFound = true
-			inBody = true
+			endIndex = i
 			if ce.logger != nil {
-				ce.logger.LogDebug("Found license header: %s", content)
+				ce.logger.LogDebug("Found header style: score %.2f", match.Score)
 			}
+		} else {
+			// First comment line isn't a header - no license block
+			return "", nil, "", -1, false
+		}
+		break
+	}
+
+	// Collect body and look for any valid footer style
+	var bodyLines []string
+	for i := endIndex + 1; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if trimmed == "" {
+			bodyLines = append(bodyLines, "")
 			continue
 		}
 
-		// Check for footer pattern
-		if looksLikeFooter(content) {
+		// If hit non-comment line, we're done - no footer found
+		if !strings.HasPrefix(trimmed, marker) {
+			return "", nil, "", -1, false
+		}
+
+		// Strip marker and spaces
+		content := strings.TrimPrefix(trimmed, marker)
+		if ce.style.LinePrefix != "" {
+			content = strings.TrimPrefix(content, ce.style.LinePrefix)
+		}
+		content = strings.TrimSpace(content)
+
+		// Look for any valid footer style
+		match := styles.Infer(content)
+		if match.Score > 0 && match.IsFooter {
 			footer = content
-			if ce.logger != nil {
-				ce.logger.LogDebug("Found license footer: %s", content)
-			}
 			return header, bodyLines, footer, i, true
 		}
 
-		if inBody {
-			bodyLines = append(bodyLines, content)
-		}
+		bodyLines = append(bodyLines, content)
 	}
 
-	// If we reach here and were in a comment block, use last non-empty line as footer
-	if inBody && len(bodyLines) > 0 {
-		footer = bodyLines[len(bodyLines)-1]
-		bodyLines = bodyLines[:len(bodyLines)-1]
-		return header, bodyLines, footer, len(lines) - 1, true
-	}
-
+	// If we hit the end without finding a footer, it's not valid
 	return "", nil, "", -1, false
 }
 
@@ -185,12 +193,6 @@ func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header str
 	return "", nil, "", -1, false
 }
 
-// This is a workaround due to how Go does inheritence so we dont' have to implement everything in subclasses
-//type SubclassHandler interface {
-//	PreservePreamble(content string) (string, string)
-//	FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock
-//}
-
 // GenericHandler provides default license formatting
 type GenericHandler struct {
 	style         styles.HeaderFooterStyle
@@ -239,6 +241,7 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 		header, bodyLines, footer, endIndex, success := extractor.extractMultiLineComments(remainingLines)
 		components.Header = header
 		components.Footer = footer
+
 		if success {
 			components.Body = strings.Join(bodyLines, "\n")
 			if endIndex < len(remainingLines)-1 {
@@ -248,7 +251,8 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 			components.FullLicenseBlock = &lb
 
 			return components, true
-
+		} else {
+			h.logger.LogDebug("Multi-line extraction failed -- trying single-line")
 		}
 	}
 

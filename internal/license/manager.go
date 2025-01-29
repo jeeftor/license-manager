@@ -311,13 +311,16 @@ func (m *LicenseManager) UpdateLicense(content string) (string, error) {
 }
 
 func (m *LicenseManager) CheckLicenseStatus(content string) Status {
-	m.logger.LogInfo("Checking license status...")
-	m.logger.LogInfo("Using comment style: %s", m.commentStyle.Language)
 
-	// Extract preamble (e.g. shebang lines)
-	handler := m.getLanguageHandler(m.commentStyle.Language)
+	handler := m.langHandler
+	actualType := reflect.TypeOf(handler)
+	m.logger.LogInfo("CheckLicenseStatus::Handler type: %v", actualType)
+	m.logger.LogInfo("CheckLicenseStatus:Checking license status...")
+	m.logger.LogInfo("CheckLicenseStatus:Using comment style: %s", m.commentStyle.Language)
 
 	extract, success := handler.ExtractComponents(content)
+
+	//extract, success := handler.ExtractComponents(content)
 
 	if extract.Preamble != "" {
 		m.logger.LogInfo("Found preamble 📝️ (%d lines)", len(strings.Split(extract.Preamble, "\n")))

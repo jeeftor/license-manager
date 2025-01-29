@@ -58,6 +58,7 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 
 		tempManager := license.NewLicenseManager(fp.logger, "", ext, styles.Get(fp.config.PresetStyle), commentStyle)
 		success, components := tempManager.HasLicense(content)
+		//TODO: Why do we make 2 managers???
 
 		if success {
 			// If we found a license, detect its headerFooterStyle for logging purposes
