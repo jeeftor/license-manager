@@ -1,8 +1,6 @@
 module github.com/jeeftor/license-manager
 
-go 1.23
-
-toolchain go1.23.5
+go 1.22.0
 
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
