@@ -3,8 +3,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/jeeftor/license-manager/cmd"
 	"os"
+
+	"github.com/jeeftor/license-manager/cmd"
 )
 
 func main() {

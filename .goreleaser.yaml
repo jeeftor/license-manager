@@ -16,7 +16,7 @@ builds:
       goarch:
           - amd64
           - arm64
-      main: .
+      main: ./cmd/license-manager
       ldflags:
           - >-
             -s -w  -X github.com/jeeftor/license-manager/cmd.version={{.Version}}  -X github.com/jeeftor/license-manager/cmd.commit={{.ShortCommit}}  -X
