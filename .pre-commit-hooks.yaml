@@ -1,8 +1,8 @@
 ---
     - id: license-manager
-      name: License Manager
+      name: License Manager (check)
       description: Checks license headers in staged files
-      entry: license-manager pre-commit --log-level warning
+      entry: license-manager pre-commit --log-level notice
       language: golang
       types: [file] # This enables the hook to receive files
       pass_filenames: true # Changed to true since we want pre-commit to pass files
