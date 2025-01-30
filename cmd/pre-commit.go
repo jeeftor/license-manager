@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/jeeftor/license-manager/internal/logger"
 	"os/exec"
 	"strings"
+
+	"github.com/jeeftor/license-manager/internal/logger"
 
 	"github.com/jeeftor/license-manager/internal/config"
 	"github.com/jeeftor/license-manager/internal/processor"
@@ -42,7 +43,7 @@ var preCommitCmd = &cobra.Command{
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go", // default
 
-			LogLevel: logger.ParseLogLevel(cfgLogLevel),
+			LogLevel: logger.DebugLevel,
 
 			Interactive: false, // Typically want non-interactive in pre-commit
 			Force:       false,
