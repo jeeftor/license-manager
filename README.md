@@ -1,4 +1,7 @@
 # License Manager
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jeeftor/license-manager)](https://goreportcard.com/report/github.com/jeeftor/license-manager)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/jeeftor/license-manager)
 ![GitHub commits since latest release](https://img.shields.io/github/commits-since/jeeftor/license-manager/latest)
@@ -29,27 +32,15 @@ A CLI tool for managing license headers in source code files. This tool helps yo
 
 ### Fully Tested Languages
 This is a list of languages that have been ~fully~ mostly tested.
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=cpp.text&label=cpp)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=csharp.text&label=csharp)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=css.text&label=css)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=go.text&label=go)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=html.text&label=html)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=ini.text&label=ini)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=java.text&label=java)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=javascript.text&label=javascript)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=kotlin.text&label=kotlin)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=markdown.text&label=markdown)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=php.text&label=php)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=python.text&label=python)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=ruby.text&label=ruby)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=rust.text&label=rust)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=scala.text&label=scala)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=shell.text&label=shell)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=swift.text&label=swift)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=toml.text&label=toml)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=typescript.text&label=typescript)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=xml.text&label=xml)
-- ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=yaml.text&label=yaml)
+
+
+| ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=cpp.text&label=cpp) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=csharp.text&label=csharp) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=css.text&label=css) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=go.text&label=go) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=html.text&label=html) |
+|----------|---------|---------|---------|---------|
+| ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=ini.text&label=ini) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=java.text&label=java) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=javascript.text&label=javascript) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=kotlin.text&label=kotlin) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=markdown.text&label=markdown) |
+| ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=php.text&label=php) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=python.text&label=python) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=ruby.text&label=ruby) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=rust.text&label=rust) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=scala.text&label=scala) |
+| ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=shell.text&label=shell) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=swift.text&label=swift) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=toml.text&label=toml) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=typescript.text&label=typescript) | ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=xml.text&label=xml) |
+| ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjeeftor%2Ff639b71257cceeb283a30cba77ee17c9%2Fraw%2Fintegration-status.json&query=yaml.text&label=yaml) |         |         |         |         |
+
 
 ## Installation
 
@@ -58,10 +49,6 @@ The following details CLI based installation. License manager can also be used a
 # License Manager
 
 A CLI tool for managing license headers in source code files. This tool helps you add, remove, update, and check license headers across your codebase with ease and precision. It utilizes non-printing Unicode character to mark the start & end of the License comment such that you can easier update or remove the license information.
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/jeeftor/license-manager)](https://goreportcard.com/report/github.com/jeeftor/license-manager)
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 
 ## Installation
