@@ -459,8 +459,10 @@ func GetLanguageHandler(logger *logger.Logger,
 		return NewSwiftHandler(logger, style)
 	case "csharp", "cs":
 		return NewCSharpHandler(logger, style)
+	case "java":
+		return NewJavaHandler(logger, style)
 	default:
-		logger.LogWarning("Unknown file type for language handler: %s", fileType)
+		logger.LogWarning("Unknown ☠️ file type for language handler: %s", fileType)
 		return NewGenericHandler(logger, style, "GENERIC")
 	}
 }
