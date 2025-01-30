@@ -72,7 +72,10 @@ func (fp *FileProcessor) createLicenseManager(file string) (*license.LicenseMana
 	success, components := lm.HasLicense(content)
 	if success {
 		// Detect header and footer style since we found a license block
-		headerFooterStyle := lm.DetectHeaderAndFooterStyle(components.Header, components.Footer)
+		headerFooterStyle, foundMatch := lm.DetectHeaderAndFooterStyle(components.Header, components.Footer)
+		if !foundMatch {
+			return lm, commentStyle, nil
+		}
 		fp.logger.LogInfo("  Detected style: %s", headerFooterStyle.Name)
 		// Update manager's style if no style was explicitly configured
 		if fp.config.PresetStyle == "" {

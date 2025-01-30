@@ -271,8 +271,13 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	}
 
 	// Detect and validate style
-	detectedStyle := m.DetectHeaderAndFooterStyle(actualExtract.Header, actualExtract.Footer)
-	m.logger.LogInfo("Detected style: %s", detectedStyle.Name)
+	detectedStyle, foundHeaderMatch := m.DetectHeaderAndFooterStyle(actualExtract.Header, actualExtract.Footer)
+
+	if foundHeaderMatch {
+		m.logger.LogInfo("Detected style: %s", detectedStyle.Name)
+	} else {
+		return NoLicense
+	}
 
 	// Use the detected style + the license template to generate the expected styles - and start comparing
 	expectedLicenseText := language.FormatComment(m.licenseTemplate, m.commentStyle, m.headerStyle)
@@ -347,7 +352,7 @@ func (m *LicenseManager) formatLicenseBlock(text string) string {
 	return language.FormatComment(text, m.commentStyle, m.headerStyle)
 }
 
-func (m *LicenseManager) DetectHeaderAndFooterStyle(header, footer string) styles.HeaderFooterStyle {
+func (m *LicenseManager) DetectHeaderAndFooterStyle(header, footer string) (styles.HeaderFooterStyle, bool) {
 	// Try to match against known styles
 	headerMatch := styles.Infer(header)
 	footerMatch := styles.Infer(footer)
@@ -357,16 +362,16 @@ func (m *LicenseManager) DetectHeaderAndFooterStyle(header, footer string) style
 
 	// If both header and footer match the same style with high confidence, use that style
 	if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 && headerMatch.Style.Name == footerMatch.Style.Name {
-		return headerMatch.Style
+		return headerMatch.Style, true
 	}
 
 	// If just the header matches with high confidence, use that style
 	if headerMatch.Score > 0.8 {
-		return headerMatch.Style
+		return headerMatch.Style, true
 	}
 
 	// Otherwise return current style
-	return m.headerStyle
+	return m.headerStyle, false
 }
 
 func (m *LicenseManager) detectHeaderStyle(components language.ExtractedComponents) styles.HeaderFooterStyle {
