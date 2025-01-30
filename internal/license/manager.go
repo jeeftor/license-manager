@@ -44,17 +44,21 @@ func (s Status) String() string {
 
 // LicenseManager handles license operations
 type LicenseManager struct {
-	licenseTemplate string
-	commentStyle    styles.CommentLanguage
-	headerStyle     styles.HeaderFooterStyle
-	langHandler     language.LanguageHandler
-	logger          *logger.Logger
+	licenseTemplate   string
+	commentStyle      styles.CommentLanguage
+	headerStyle       styles.HeaderFooterStyle
+	langHandler       language.LanguageHandler
+	logger            *logger.Logger
+	InitialComponents *language.ExtractedComponents
+	HasInitialLicense bool // did we detect a license at startup of the manager
+	//todo: Should we rename this variable later
+	FileContent string
 }
 
 // NewLicenseManager creates a new manager
 func NewLicenseManager(logger *logger.Logger, licenseTemplate, fileExtension string, headerStyle styles.HeaderFooterStyle, commentStyle styles.CommentLanguage) *LicenseManager {
 
-	// Determin Language Handler
+	// Determine Language Handler
 	langHandler := language.GetLanguageHandler(logger, fileExtension, headerStyle)
 
 	manager := &LicenseManager{
@@ -67,18 +71,6 @@ func NewLicenseManager(logger *logger.Logger, licenseTemplate, fileExtension str
 
 	return manager
 }
-
-//// SetCommentStyle sets the comment style
-//func (m *LicenseManager) SetCommentStyle(style styles.CommentLanguage) {
-//	m.commentStyle = style
-//	m.SetLanguageHandler(language.GetLanguageHandler(m.logger, m.commentStyle.Language, m.headerStyle))
-//
-//}
-
-//// SetLanguageHandler sets the language handler
-//func (m *LicenseManager) SetLanguageHandler(handler language.LanguageHandler) {
-//	m.langHandler = handler
-//}
 
 // getLanguageHandler returns a configured language handler
 func (m *LicenseManager) getLanguageHandler(fileType string) language.LanguageHandler {
@@ -98,7 +90,12 @@ func (m *LicenseManager) HasLicense(content string) (bool, *language.ExtractedCo
 	m.logger.LogInfo("  HasLicense::Checking for existing license block...")
 	m.logger.LogInfo("  HasLicense::Using comment style: %s", m.commentStyle.Language)
 
+	//components, success := m.langHandler.ExtractComponents(content)
 	components, success := m.langHandler.ExtractComponents(content)
+
+	// Store results for later use
+	m.InitialComponents = &components
+	m.HasInitialLicense = success
 
 	if components.Header == components.Footer {
 		m.logger.LogInfo("  HasLicense::Header & Footer Match")
@@ -107,11 +104,10 @@ func (m *LicenseManager) HasLicense(content string) (bool, *language.ExtractedCo
 	// Handle Special Cases
 	// TODO: Come up with a better way
 	if m.commentStyle.Language == "go" && strings.HasPrefix(components.Header, "#include") {
-		m.logger.LogInfo("  HasLicense::Detectedgi c-go style header... skipping")
+		m.logger.LogInfo("  HasLicense::Detected c-go style header... skipping")
 
 		preamble, rest := m.langHandler.PreservePreamble(content)
-
-		return false, &language.ExtractedComponents{
+		m.InitialComponents = &language.ExtractedComponents{
 			Preamble:         preamble,
 			Header:           "",
 			Body:             "",
@@ -119,6 +115,10 @@ func (m *LicenseManager) HasLicense(content string) (bool, *language.ExtractedCo
 			Rest:             rest,
 			FullLicenseBlock: nil,
 		}
+		m.HasInitialLicense = false
+
+		return false, m.InitialComponents
+
 	}
 
 	if success {
@@ -252,6 +252,16 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 
 	if actualExtract.Preamble != "" {
 		m.logger.LogInfo("Found preamble 📝️ (%d lines)", len(strings.Split(actualExtract.Preamble, "\n")))
+	}
+
+	if m.InitialComponents != nil {
+		actualExtract = *m.InitialComponents
+		success = m.HasInitialLicense
+	} else {
+		// Only extract if we don't have stored results
+		actualExtract, success = handler.ExtractComponents(content)
+		m.InitialComponents = &actualExtract
+		m.HasInitialLicense = success
 	}
 
 	// Extract license components
@@ -388,6 +398,14 @@ func (m *LicenseManager) detectHeaderStyle(components language.ExtractedComponen
 // GetHeaderStyle returns the current header style
 func (m *LicenseManager) GetHeaderStyle() styles.HeaderFooterStyle {
 	return m.headerStyle
+}
+
+func (m *LicenseManager) SetHeaderStyle(style styles.HeaderFooterStyle) {
+	m.headerStyle = style
+}
+
+func (m *LicenseManager) SetFileContent(content string) {
+	m.FileContent = content
 }
 
 // helper function to truncate strings for logging

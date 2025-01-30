@@ -32,8 +32,7 @@ func NewFileProcessor(cfg *Config) *FileProcessor {
 	}
 }
 
-// createManager creates and configures a license manager for a given file
-func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, styles.CommentLanguage) {
+func (fp *FileProcessor) createLicenseManager(file string) (*license.LicenseManager, styles.CommentLanguage, error) {
 	// Get comment headerFooterStyle for file type
 	ext := filepath.Ext(file)
 	commentStyle := styles.GetLanguageCommentStyle(ext)
@@ -50,38 +49,44 @@ func (fp *FileProcessor) createManager(file string) (*license.LicenseManager, st
 	fp.logger.LogInfo("  Language: %s", commentStyle.Language)
 	fp.logger.LogInfo("  Comment headerFooterStyle: %s", describeCommentStyle(commentStyle))
 
-	// Try to detect headerFooterStyle from existing file content
+	// Create single manager with the actual license text
+	lm := license.NewLicenseManager(
+		fp.logger,
+		fp.config.LicenseText,
+		ext,
+		styles.Get(fp.config.PresetStyle),
+		commentStyle,
+	)
+
+	// Read content into return structure
 	content, err := fp.fileHandler.ReadFile(file)
-	var headerFooterStyle styles.HeaderFooterStyle
-	if err == nil {
-		// Create a temporary manager with default headerFooterStyle to detect existing headerFooterStyle
+	if err != nil {
+		fp.logger.LogInfo("  Using configured style: %s", fp.config.PresetStyle)
+		return lm, commentStyle, err
+	}
 
-		tempManager := license.NewLicenseManager(fp.logger, "", ext, styles.Get(fp.config.PresetStyle), commentStyle)
-		success, components := tempManager.HasLicense(content)
-		//TODO: Why do we make 2 managers???
+	// Set content
+	lm.SetFileContent(content)
 
-		if success {
-			// If we found a license, detect its headerFooterStyle for logging purposes
-
-			headerFooterStyle = tempManager.DetectHeaderAndFooterStyle(components.Header, components.Footer)
-			fp.logger.LogInfo("  Detected headerFooterStyle: %s", headerFooterStyle.Name)
-			// Always use the configured headerFooterStyle for checking
-			headerFooterStyle = styles.Get(fp.config.PresetStyle)
+	// Scan for existing license code in the content
+	success, components := lm.HasLicense(content)
+	if success {
+		// Detect header and footer style since we found a license block
+		headerFooterStyle := lm.DetectHeaderAndFooterStyle(components.Header, components.Footer)
+		fp.logger.LogInfo("  Detected style: %s", headerFooterStyle.Name)
+		// Update manager's style if no style was explicitly configured
+		if fp.config.PresetStyle == "" {
+			lm.SetHeaderStyle(headerFooterStyle)
+			fp.logger.LogInfo("  Using detected style: %s", headerFooterStyle.Name)
 		} else {
-			// If no license found, use configured headerFooterStyle
-			headerFooterStyle = styles.Get(fp.config.PresetStyle)
-			fp.logger.LogInfo("  Using configured headerFooterStyle: %s", headerFooterStyle.Name)
-
+			fp.logger.LogInfo("  Using configured style: %s", fp.config.PresetStyle)
 		}
 	} else {
-		// If can't read file, use configured headerFooterStyle
-		headerFooterStyle = styles.Get(fp.config.PresetStyle)
-		fp.logger.LogInfo("  Using configured headerFooterStyle: %s", headerFooterStyle.Name)
+		// No license block detected.
+		fp.logger.LogInfo("  Using configured style: %s", fp.config.PresetStyle)
 	}
-	// Create and configure manager
-	manager := license.NewLicenseManager(fp.logger, fp.config.LicenseText, ext, headerFooterStyle, commentStyle)
 
-	return manager, commentStyle
+	return lm, commentStyle, nil
 }
 
 // resetStats resets the operation statistics
@@ -149,7 +154,7 @@ func (fp *FileProcessor) Add() error {
 			continue
 		}
 
-		manager, commentStyle := fp.createManager(file)
+		manager, commentStyle, _ := fp.createLicenseManager(file)
 
 		hasLicense, extract := manager.HasLicense(content)
 		if hasLicense {
@@ -244,7 +249,7 @@ func (fp *FileProcessor) Remove() error {
 			continue
 		}
 
-		manager, commentStyle := fp.createManager(file)
+		manager, commentStyle, _ := fp.createLicenseManager(file)
 
 		newContent, err := manager.RemoveLicense(content, commentStyle.Language)
 		if err != nil {
@@ -311,7 +316,7 @@ func (fp *FileProcessor) Update() error {
 			continue
 		}
 
-		manager, commentStyle := fp.createManager(file)
+		manager, commentStyle, _ := fp.createLicenseManager(file)
 
 		status := manager.CheckLicenseStatus(content)
 
@@ -404,13 +409,13 @@ func (fp *FileProcessor) Check() error {
 			relPath = rel
 		}
 
-		manager, _ := fp.createManager(file)
-		content, err := fp.fileHandler.ReadFile(file)
+		manager, _, err := fp.createLicenseManager(file)
 		if err != nil {
 			fp.stats["failed"]++
 			fp.logger.LogError("Failed to read %s: %v", relPath, err)
 			return NewCheckError(license.NoLicense, fmt.Sprintf("failed to read file: %v", err))
 		}
+		content := manager.FileContent
 
 		status := manager.CheckLicenseStatus(content)
 		if status != license.FullMatch {
