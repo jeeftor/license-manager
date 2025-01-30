@@ -429,7 +429,7 @@ func GetLanguageHandler(logger *logger.Logger,
 		return NewJavaScriptHandler(logger, style)
 	case "ts", "tsx":
 		return NewTypeScriptHandler(logger, style)
-	case "yaml":
+	case "yaml", "yml":
 		return NewYAMLHandler(logger, style)
 	case "python", "py":
 		return NewPythonHandler(logger, style)
@@ -445,19 +445,19 @@ func GetLanguageHandler(logger *logger.Logger,
 		return NewRustHandler(logger, style)
 	case "shell", "sh", "bash":
 		return NewShebangHandler(logger, style)
-	case "kotlin":
+	case "kotlin", "kt":
 		return NewKotlinHandler(logger, style)
 	case "scala":
 		return NewScalaHandler(logger, style)
 	case "css":
 		return NewCSSHandler(logger, style)
-	case "xml", "html":
+	case "xml", "html", "htm":
 		return NewXMLHandler(logger, style)
 	case "ini", "toml":
 		return NewINIHandler(logger, style)
 	case "swift":
 		return NewSwiftHandler(logger, style)
-	case "csharp":
+	case "csharp", "cs":
 		return NewCSharpHandler(logger, style)
 	default:
 		logger.LogWarning("Unknown file type for language handler: %s", fileType)

@@ -1,5 +1,5 @@
 # Core variables
-go_cmd := "go run main.go"
+go_cmd := "go run cmd/license-manager/main.go"
 license_path := "./LICENSE"
 test_data_dir := "./test_data"
 
