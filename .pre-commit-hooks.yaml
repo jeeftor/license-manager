@@ -2,12 +2,12 @@
     - id: license-manager
       name: License Manager
       description: Checks license headers in staged files
-      entry: license-manager pre-commit
+      entry: license-manager pre-commit --log-level warning
       language: golang
       types: [file] # This enables the hook to receive files
       pass_filenames: true # Changed to true since we want pre-commit to pass files
       require_serial: true
-      stages: [commit]
+      stages: [pre-commit]
       minimum_pre_commit_version: 3.0.0
 
     - id: license-manager-debug
@@ -18,5 +18,5 @@
       types: [file]
       pass_filenames: true
       require_serial: true
-      stages: [commit]
+      stages: [pre-commit]
       minimum_pre_commit_version: 3.0.0
