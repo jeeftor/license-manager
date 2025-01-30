@@ -115,7 +115,7 @@ go build
 license-manager add --license LICENSE.txt --input "**/*.go"
 
 # Remove license headers
-license-manager remove --input "**/*.go"
+license-manager remove --input "**/*.go" --input "**/*.py" --skip "./vendor/**" --skip "./venv/**"
 
 # Update existing license headers
 license-manager update --license NEW_LICENSE.txt --input "**/*.go"
