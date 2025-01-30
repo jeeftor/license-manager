@@ -1,6 +1,6 @@
 ---
-    - id: license-manager
-      name: License Manager (check)
+    - id: verify
+      name: License Manager - Check
       description: Checks license headers in staged files
       entry: license-manager pre-commit --log-level notice
       language: golang
@@ -10,31 +10,8 @@
       stages: [pre-commit]
       minimum_pre_commit_version: 3.0.0
 
-
-    - id: license-manager-add-missing
-      name: License Manager (Add missing Licenses)
-      description: Adds missing licenses to files
-      entry: license-manager pre-commit --log-level=notice --add
-      language: golang
-      types: [file]
-      pass_filenames: true
-      require_serial: true
-      stages: [pre-commit]
-      minimum_pre_commit_version: 3.0.0
-
-    - id: license-manager-update
-      name: License Manager (Update existing licenses)
-      description: Updates existing license blocks
-      entry: license-manager pre-commit --log-level=notice --update
-      language: golang
-      types: [file]
-      pass_filenames: true
-      require_serial: true
-      stages: [pre-commit]
-      minimum_pre_commit_version: 3.0.0
-
-    - id: license-manager-debug
-      name: License Manager (Debug Mode)
+    - id: verify-debug
+      name: License Manager - Check (Debug mode)
       description: Checks license headers in staged files with debug logging
       entry: license-manager pre-commit --log-level=debug
       language: golang
@@ -44,8 +21,32 @@
       stages: [pre-commit]
       minimum_pre_commit_version: 3.0.0
 
-    - id: license-manager-version
-      name: License Manager (Version)
+    - id: add-missing
+      name: License Manager - Add missing Licenses
+      description: Adds missing licenses to files
+      entry: license-manager pre-commit --log-level=notice --add
+      language: golang
+      types: [file]
+      pass_filenames: true
+      require_serial: true
+      stages: [pre-commit]
+      minimum_pre_commit_version: 3.0.0
+
+    - id: update
+      name: License Manager - Update existing licenses
+      description: Updates existing license blocks
+      entry: license-manager pre-commit --log-level=notice --update
+      language: golang
+      types: [file]
+      pass_filenames: true
+      require_serial: true
+      stages: [pre-commit]
+      minimum_pre_commit_version: 3.0.0
+
+
+
+    - id: version
+      name: License Manager - Print version info
       description: Checks license headers in staged files with debug logging
       entry: license-manager version
       language: golang
