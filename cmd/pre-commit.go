@@ -79,13 +79,6 @@ repos:
 				return err
 			}
 		}
-		//if addFlag && updateFlag {
-		//	return fmt.Errorf("cannot specify both --add and --update flags")
-		//} else if addFlag {
-		//	return p.Add()  // You'll need to implement this method
-		//} else if updateFlag {
-		//	return p.Update()  // You'll need to implement this method
-		//}
 
 		return p.Check()
 	},
