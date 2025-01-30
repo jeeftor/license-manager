@@ -68,6 +68,7 @@ Exit Codes:
 			HeaderStyle: cfgPresetStyle,
 			LogLevel:    logger.ParseLogLevel(cfgLogLevel),
 			IgnoreFail:  checkIgnoreFail,
+			IsPreCommit: false,
 		}
 
 		cc.Init(&cc.Config{

@@ -9,7 +9,7 @@ import (
 )
 
 func runCommand(args ...string) (string, string, error) {
-	cmdArgs := append([]string{"run", "main.go"}, args...)
+	cmdArgs := append([]string{"run", "cmd/license-manager/main.go"}, args...)
 	cmd := exec.Command("go", cmdArgs...)
 	cmd.Dir = projectRoot
 	var stdout, stderr bytes.Buffer

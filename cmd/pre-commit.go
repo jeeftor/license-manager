@@ -14,8 +14,9 @@ import (
 var (
 	licensePath string
 	logLevel    string
+	addFlag     bool
+	updateFlag  bool
 )
-
 var preCommitCmd = &cobra.Command{
 	Use:   "pre-commit [files...]",
 	Short: "Run license checks on specified files",
@@ -56,6 +57,7 @@ repos:
 			Interactive:  false,
 			Force:        false,
 			IgnoreFail:   false,
+			IsPreCommit:  true,
 		}
 
 		procCfg, err := appCfg.ToProcessorConfig()
@@ -64,6 +66,27 @@ repos:
 		}
 
 		p := processor.NewFileProcessor(procCfg)
+		if addFlag {
+			err := p.Add()
+			if err != nil {
+				return err
+			}
+		}
+
+		if updateFlag {
+			err := p.Update()
+			if err != nil {
+				return err
+			}
+		}
+		//if addFlag && updateFlag {
+		//	return fmt.Errorf("cannot specify both --add and --update flags")
+		//} else if addFlag {
+		//	return p.Add()  // You'll need to implement this method
+		//} else if updateFlag {
+		//	return p.Update()  // You'll need to implement this method
+		//}
+
 		return p.Check()
 	},
 }
@@ -72,4 +95,7 @@ func init() {
 	rootCmd.AddCommand(preCommitCmd)
 	preCommitCmd.Flags().StringVar(&licensePath, "license", "./LICENSE", "Path to license file")
 	preCommitCmd.Flags().StringVar(&logLevel, "log-level", "info", "Logging level (debug, info, warn, error)")
+
+	preCommitCmd.Flags().BoolVar(&addFlag, "add", false, "Add license headers to files")
+	preCommitCmd.Flags().BoolVar(&updateFlag, "update", false, "Update existing license headers")
 }

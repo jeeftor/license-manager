@@ -154,7 +154,9 @@ func (fp *FileProcessor) Add() error {
 		hasLicense, extract := manager.HasLicense(content)
 		if hasLicense {
 			fp.stats["existing"]++
-			fp.logger.LogWarning("License already exists in %s", file)
+			if !fp.config.IsPreCommit {
+				fp.logger.LogWarning("License already exists in %s", file)
+			}
 			continue
 		}
 

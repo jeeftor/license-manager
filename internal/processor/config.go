@@ -20,4 +20,6 @@ type Config struct {
 	LogLevel          logger.LogLevel
 	IgnoreFail        bool // Whether to return success even if checks fail
 	ForceCommentStyle force.ForceCommentStyle
+
+	IsPreCommit bool
 }

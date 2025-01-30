@@ -28,6 +28,7 @@ type AppConfig struct {
 	PreferMulti       *bool
 	IgnoreFail        bool
 	ForceCommentStyle force.ForceCommentStyle
+	IsPreCommit       bool
 }
 
 // NewAppConfig returns default application config
@@ -62,6 +63,7 @@ func (c *AppConfig) ToProcessorConfig() (*processor.Config, error) {
 		ForceCommentStyle: c.ForceCommentStyle,
 		IgnoreFail:        c.IgnoreFail,
 		LogLevel:          c.LogLevel,
+		IsPreCommit:       c.IsPreCommit,
 	}, nil
 }
 

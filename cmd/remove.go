@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/jeeftor/license-manager/internal/config"
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/processor"
+	"github.com/spf13/cobra"
 )
 
 var removeCmd = &cobra.Command{
@@ -25,8 +25,9 @@ var removeCmd = &cobra.Command{
 			// Behavior flags
 			LogLevel: logger.ParseLogLevel(cfgLogLevel),
 
-			Force:      false,
-			IgnoreFail: false,
+			Force:       false,
+			IgnoreFail:  false,
+			IsPreCommit: false,
 		}
 
 		procCfg, err := appCfg.ToProcessorConfig()

@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/spf13/cobra"
 	"github.com/jeeftor/license-manager/internal/config"
 	"github.com/jeeftor/license-manager/internal/styles"
+	"github.com/spf13/cobra"
 )
 
 var debugCmd = &cobra.Command{
@@ -30,7 +30,8 @@ var debugCmd = &cobra.Command{
 			HeaderStyle:  cfgPresetStyle,
 			CommentStyle: "go",
 
-			LogLevel: logger.ParseLogLevel(cfgLogLevel),
+			LogLevel:    logger.ParseLogLevel(cfgLogLevel),
+			IsPreCommit: false,
 		}
 
 		// Read the input file
