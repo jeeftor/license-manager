@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"os"
+	"path/filepath"
 	"runtime"
 )
 
@@ -23,6 +25,7 @@ var versionCmd = &cobra.Command{
 		osArchColor := color.New(color.FgMagenta)
 		goVersionColor := color.New(color.FgRed)
 		whiteColor := color.New(color.FgWhite)
+		pathColor := color.New(color.FgBlue)
 
 		whiteColor.Printf("Version: ")
 		versionColor.Printf("%s\n", buildVersion)
@@ -38,6 +41,15 @@ var versionCmd = &cobra.Command{
 
 		whiteColor.Printf("Go:      ")
 		goVersionColor.Printf("%s\n", runtime.Version())
+
+		exe, err := os.Executable()
+		exePath := "Unknown"
+		if err == nil {
+			exePath, _ = filepath.Abs(exe)
+		}
+
+		whiteColor.Printf("Binary:  ")
+		pathColor.Printf("%s\n", exePath)
 
 	},
 }
