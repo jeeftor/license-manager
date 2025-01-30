@@ -49,6 +49,12 @@ func (fp *FileProcessor) createLicenseManager(file string) (*license.LicenseMana
 	fp.logger.LogInfo("  Language: %s", commentStyle.Language)
 	fp.logger.LogInfo("  Comment headerFooterStyle: %s", describeCommentStyle(commentStyle))
 
+	// Read File content
+	content, err := fp.fileHandler.ReadFile(file)
+	if err != nil {
+		return nil, commentStyle, err
+	}
+
 	// Create single manager with the actual license text
 	lm := license.NewLicenseManager(
 		fp.logger,
@@ -58,34 +64,21 @@ func (fp *FileProcessor) createLicenseManager(file string) (*license.LicenseMana
 		commentStyle,
 	)
 
-	// Read content into return structure
-	content, err := fp.fileHandler.ReadFile(file)
-	if err != nil {
-		fp.logger.LogInfo("  Using configured style: %s", fp.config.PresetStyle)
-		return lm, commentStyle, err
-	}
-
-	// Set content
+	// Set License Mangaer content
 	lm.SetFileContent(content)
 
-	// Scan for existing license code in the content
-	success, components := lm.HasLicense(content)
-	if success {
-		// Detect header and footer style since we found a license block
-		headerFooterStyle, foundMatch := lm.DetectHeaderAndFooterStyle(components.Header, components.Footer)
-		if !foundMatch {
-			return lm, commentStyle, nil
-		}
-		fp.logger.LogInfo("  Detected style: %s", headerFooterStyle.Name)
-		// Update manager's style if no style was explicitly configured
+	// Scan for license stuff
+	analysis := lm.SearchForLicense(content)
+
+	if analysis.HasLicense && analysis.IsStyleMatch {
+		// Update style if none was explicitly configured
 		if fp.config.PresetStyle == "" {
-			lm.SetHeaderStyle(headerFooterStyle)
-			fp.logger.LogInfo("  Using detected style: %s", headerFooterStyle.Name)
+			lm.SetHeaderStyle(analysis.Style)
+			fp.logger.LogInfo("  Using detected style: %s", analysis.Style.Name)
 		} else {
 			fp.logger.LogInfo("  Using configured style: %s", fp.config.PresetStyle)
 		}
 	} else {
-		// No license block detected.
 		fp.logger.LogInfo("  Using configured style: %s", fp.config.PresetStyle)
 	}
 
@@ -109,58 +102,104 @@ func (fp *FileProcessor) resetStats() {
 	}
 }
 
-// Add adds license headers to files
-func (fp *FileProcessor) Add() error {
-	fp.resetStats()
-
-	files, err := fp.fileHandler.FindFiles(fp.config.Input)
-	if err != nil {
-		return err
+// describeCommentStyle returns a human-readable description of the comment style
+func describeCommentStyle(cs styles.CommentLanguage) string {
+	var parts []string
+	if cs.MultiStart != "" {
+		parts = append(parts, fmt.Sprintf("multi-line (%s...%s)", cs.MultiStart, cs.MultiEnd))
 	}
+	if cs.Single != "" {
+		parts = append(parts, fmt.Sprintf("single-line (%s)", cs.Single))
+	}
+	if cs.MultiPrefix != "" {
+		parts = append(parts, fmt.Sprintf("prefix: %q", cs.MultiPrefix))
+	}
+	if len(parts) == 0 {
+		return "unknown"
+	}
+	return strings.Join(parts, ", ")
+}
 
-	// Print scanning message with patterns
+// logInputPatterns logs the input scan patterns
+func (fp *FileProcessor) logInputPatterns(fileCount int) {
 	var debugMsg strings.Builder
-	debugMsg.WriteString(fmt.Sprintf(" Scanning %d inputs ", len(files)))
+	debugMsg.WriteString(fmt.Sprintf(" Scanning %d inputs ", fileCount))
 	for _, pattern := range strings.Split(fp.config.Input, ",") {
 		pattern = strings.TrimSpace(pattern)
 		if pattern != "" {
-			coloredPattern := color.New(color.FgHiCyan).Sprint(pattern) // or any other color like "debug", "notice", etc
+			coloredPattern := color.New(color.FgHiCyan).Sprint(pattern)
 			debugMsg.WriteString(fmt.Sprintf("%s ", coloredPattern))
 		}
 	}
-
-	// Log the entire message at once
 	fp.logger.LogDebug("%s", debugMsg.String())
-	// Handle skip patterns
+
+	// Handle skip patterns if any
 	if fp.config.Skip != "" {
 		var skipMsg strings.Builder
 		skipMsg.WriteString("Skip Patterns:\n")
 		for _, pattern := range strings.Split(fp.config.Skip, ",") {
 			pattern = strings.TrimSpace(pattern)
 			if pattern != "" {
-				coloredPattern := color.New(color.FgYellow).Sprint(pattern) // Using yellow for skip patterns
+				coloredPattern := color.New(color.FgYellow).Sprint(pattern)
 				skipMsg.WriteString(fmt.Sprintf("      %s\n", coloredPattern))
 			}
 		}
 		fp.logger.LogInfo(skipMsg.String())
 	}
+}
 
-	style := styles.Get(fp.config.PresetStyle)
+// confirmAction checks if an action should proceed based on dry-run and prompt settings
+func (fp *FileProcessor) confirmAction(action, file string) bool {
+	if fp.config.DryRun {
+		fp.logger.LogInfo("Would %s license in %s", action, file)
+		return false
+	}
 
-	fp.logger.LogDebug("Using style: %s", style.Name)
+	if fp.config.Prompt && !fp.logger.Prompt(
+		fp.logger.LogQuestion("%s license in %s?", action, file)) {
+		fp.stats["skipped"]++
+		fp.logger.LogInfo("Skipping %s", file)
+		return false
+	}
+
+	return true
+}
+
+// handleFileError logs file errors and updates stats
+func (fp *FileProcessor) handleFileError(file, operation string, err error) bool {
+	fp.stats["failed"]++
+	fp.logger.LogError("Failed to %s %s: %v", operation, file, err)
+	return false
+}
+
+// prepareOperation sets up common operation requirements
+func (fp *FileProcessor) prepareOperation() ([]string, error) {
+	fp.resetStats()
+
+	files, err := fp.fileHandler.FindFiles(fp.config.Input)
+	if err != nil {
+		return nil, err
+	}
+
+	fp.logInputPatterns(len(files))
+	return files, nil
+}
+
+// Add adds license headers to files
+func (fp *FileProcessor) Add() error {
+	files, err := fp.prepareOperation()
+	if err != nil {
+		return err
+	}
 
 	for _, file := range files {
-		content, err := fp.fileHandler.ReadFile(file)
+		manager, commentStyle, err := fp.createLicenseManager(file)
 		if err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to read file %s: %v", file, err)
+			fp.handleFileError(file, "process", err)
 			continue
 		}
 
-		manager, commentStyle, _ := fp.createLicenseManager(file)
-
-		hasLicense, extract := manager.HasLicense(content)
-		if hasLicense {
+		if manager.HasInitialLicense {
 			fp.stats["existing"]++
 			if !fp.config.IsPreCommit {
 				fp.logger.LogWarning("License already exists in %s", file)
@@ -168,17 +207,14 @@ func (fp *FileProcessor) Add() error {
 			continue
 		}
 
-		// Use rest instead of content to add license after preamble
-		newContent, err := manager.AddLicense(extract.Rest, commentStyle.Language)
+		newContent, err := manager.AddLicense(manager.InitialComponents.Rest, commentStyle.Language)
 		if err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to add license to %s: %v", file, err)
+			fp.handleFileError(file, "add license to", err)
 			continue
 		}
 
-		// Recombine preamble with the licensed content
-		if extract.Preamble != "" {
-			newContent = extract.Preamble + "\n" + newContent
+		if manager.InitialComponents.Preamble != "" {
+			newContent = manager.InitialComponents.Preamble + "\n" + newContent
 		}
 
 		// Debug the actual comment being added in verbose mode
@@ -188,21 +224,12 @@ func (fp *FileProcessor) Add() error {
 			fp.logger.LogInfo("    %s", line)
 		}
 
-		if fp.config.DryRun {
-			fp.logger.LogInfo("Would add license to %s", file)
-			continue
-		}
-
-		if fp.config.Prompt && !fp.logger.Prompt(
-			fp.logger.LogQuestion("Add license to %s?", file)) {
-			fp.stats["skipped"]++
-			fp.logger.LogInfo("Skipping %s", file)
+		if !fp.confirmAction("add", file) {
 			continue
 		}
 
 		if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to write file %s: %v", file, err)
+			fp.handleFileError(file, "write", err)
 			continue
 		}
 
@@ -210,82 +237,51 @@ func (fp *FileProcessor) Add() error {
 		fp.logger.LogSuccess("Added license to %s", file)
 	}
 
-	//fp.logger.PrintStats(fp.stats, "Added")
 	return nil
 }
 
 // Remove removes license headers from files
 func (fp *FileProcessor) Remove() error {
-	fp.resetStats()
-
-	files, err := fp.fileHandler.FindFiles(fp.config.Input)
+	files, err := fp.prepareOperation()
 	if err != nil {
 		return err
 	}
 
-	// Print scanning message with patterns
-	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-	fp.logger.LogInfo("Input Patterns:")
-	for _, pattern := range strings.Split(fp.config.Input, ",") {
-		pattern = strings.TrimSpace(pattern)
-		if pattern != "" {
-			fp.logger.LogInfo("  %s", pattern)
-		}
-	}
-	if fp.config.Skip != "" {
-		fp.logger.LogInfo("Skips Patterns:")
-		for _, pattern := range strings.Split(fp.config.Skip, ",") {
-			pattern = strings.TrimSpace(pattern)
-			if pattern != "" {
-				fp.logger.LogInfo("  %s", pattern)
-			}
-		}
-	}
-
-	fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
-
 	for _, file := range files {
-		content, err := fp.fileHandler.ReadFile(file)
+		manager, commentStyle, err := fp.createLicenseManager(file)
 		if err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to read file %s: %v", file, err)
+			fp.handleFileError(file, "process", err)
 			continue
 		}
 
-		manager, commentStyle, _ := fp.createLicenseManager(file)
+		if !manager.HasInitialLicense {
+			fp.stats["skipped"]++
+			fp.logger.LogInfo("No license found in %s", file)
+			continue
+		}
 
-		newContent, err := manager.RemoveLicense(content, commentStyle.Language)
+		newContent, err := manager.RemoveLicense(manager.FileContent, commentStyle.Language)
 		if err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to remove license from %s: %v", file, err)
+			fp.handleFileError(file, "remove license from", err)
 			continue
 		}
 
-		if newContent == content {
-			fp.stats["skipped"]++
-			fp.logger.LogInfo("Skipping %s", file)
+		if newContent == manager.FileContent {
+			fp.stats["unchanged"]++
+			fp.logger.LogInfo("No changes needed for %s", file)
 			continue
 		}
 
-		if fp.config.DryRun {
-			fp.logger.LogInfo("Would remove license from %s", file)
-			continue
-		}
-
-		if fp.config.Prompt && !fp.logger.Prompt(
-			fp.logger.LogQuestion("Remove license from %s?", file)) {
-			fp.stats["skipped"]++
-			fp.logger.LogInfo("Skipping %s", file)
+		if !fp.confirmAction("remove", file) {
 			continue
 		}
 
 		if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to write file %s: %v", file, err)
+			fp.handleFileError(file, "write", err)
 			continue
 		}
 
-		fp.stats["added"]++
+		fp.stats["removed"]++
 		fp.logger.LogSuccess("Removed license from %s", file)
 	}
 
@@ -295,111 +291,59 @@ func (fp *FileProcessor) Remove() error {
 
 // Update updates license headers in files
 func (fp *FileProcessor) Update() error {
-	fp.resetStats()
-
-	files, err := fp.fileHandler.FindFiles(fp.config.Input)
+	files, err := fp.prepareOperation()
 	if err != nil {
 		return err
 	}
 
-	// Print scanning message with patterns
-	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-	fp.logger.LogInfo("Inputs Patterns: %s", fp.config.Input)
-	if fp.config.Skip != "" {
-		fp.logger.LogInfo("Skips Patterns: %s", fp.config.Skip)
-	}
-
-	fp.logger.LogInfo("Using style: %s", styles.Get(fp.config.PresetStyle).Name)
-
 	for _, file := range files {
-		content, err := fp.fileHandler.ReadFile(file)
+		manager, commentStyle, err := fp.createLicenseManager(file)
 		if err != nil {
-			fp.stats["failed"]++
-			fp.logger.LogError("Failed to read file %s: %v", file, err)
+			fp.handleFileError(file, "process", err)
 			continue
 		}
 
-		manager, commentStyle, _ := fp.createLicenseManager(file)
-
-		status := manager.CheckLicenseStatus(content)
-
-		// Skip files with no license
+		status := manager.CheckLicenseStatus(manager.FileContent)
 		if status == license.NoLicense {
 			fp.stats["skipped"]++
 			fp.logger.LogInfo("Skipping %s (no license)", file)
 			continue
 		}
 
-		// Update files with incorrect style or content
-		if status == license.StyleMismatch || status == license.ContentMismatch || status == license.ContentAndStyleMismatch {
-			newContent, err := manager.UpdateLicense(content, commentStyle.Language)
-			if err != nil {
-				fp.stats["failed"]++
-				fp.logger.LogError("Failed to update license in %s: %v", file, err)
-				continue
-			}
-
-			if newContent == content {
-				fp.stats["unchanged"]++
-				fp.logger.LogInfo("License is up-to-date in %s", file)
-				continue
-			}
-
-			if fp.config.DryRun {
-				fp.logger.LogInfo("Would update license in %s", file)
-				continue
-			}
-
-			if fp.config.Prompt && !fp.logger.Prompt(
-				fp.logger.LogQuestion("Update license in %s?", file)) {
-				fp.stats["skipped"]++
-				fp.logger.LogInfo("Skipping %s", file)
-				continue
-			}
-
-			if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
-				fp.stats["failed"]++
-				fp.logger.LogError("Failed to write file %s: %v", file, err)
-				continue
-			}
-
-			fp.stats["added"]++
-			fp.logger.LogSuccess("Updated license in %s", file)
-		} else {
+		if status == license.FullMatch {
 			fp.stats["unchanged"]++
 			fp.logger.LogInfo("License is up-to-date in %s", file)
+			continue
 		}
+
+		newContent, err := manager.UpdateLicense(manager.FileContent, commentStyle.Language)
+		if err != nil {
+			fp.handleFileError(file, "update license in", err)
+			continue
+		}
+
+		if !fp.confirmAction("update", file) {
+			continue
+		}
+
+		if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
+			fp.handleFileError(file, "write", err)
+			continue
+		}
+
+		fp.stats["updated"]++
+		fp.logger.LogSuccess("Updated license in %s", file)
 	}
 
 	fp.logger.PrintStats(fp.stats, "Updated")
 	return nil
 }
 
+// Check verifies license headers in files
 func (fp *FileProcessor) Check() error {
-	fp.resetStats()
-
-	files, err := fp.fileHandler.FindFiles(fp.config.Input)
+	files, err := fp.prepareOperation()
 	if err != nil {
 		return err
-	}
-
-	// Print scanning message with patterns
-	fp.logger.LogInfo("Scanning %d Directories:", len(files))
-	fp.logger.LogInfo("Input Patterns:")
-	for _, pattern := range strings.Split(fp.config.Input, ",") {
-		pattern = strings.TrimSpace(pattern)
-		if pattern != "" {
-			fp.logger.LogInfo("  %s", pattern)
-		}
-	}
-	if fp.config.Skip != "" {
-		fp.logger.LogInfo("Skips Patterns:")
-		for _, pattern := range strings.Split(fp.config.Skip, ",") {
-			pattern = strings.TrimSpace(pattern)
-			if pattern != "" {
-				fp.logger.LogInfo("  %s", pattern)
-			}
-		}
 	}
 
 	hasNoLicense := false
@@ -415,12 +359,11 @@ func (fp *FileProcessor) Check() error {
 		manager, _, err := fp.createLicenseManager(file)
 		if err != nil {
 			fp.stats["failed"]++
-			fp.logger.LogError("Failed to read %s: %v", relPath, err)
-			return NewCheckError(license.NoLicense, fmt.Sprintf("failed to read file: %v", err))
+			fp.logger.LogError("Failed to process %s: %v", relPath, err)
+			return NewCheckError(license.NoLicense, fmt.Sprintf("failed to process file: %v", err))
 		}
-		content := manager.FileContent
 
-		status := manager.CheckLicenseStatus(content)
+		status := manager.CheckLicenseStatus(manager.FileContent)
 		if status != license.FullMatch {
 			fp.stats["failed"]++
 			switch status {
@@ -443,9 +386,9 @@ func (fp *FileProcessor) Check() error {
 			}
 			continue
 		}
+
 		fp.stats["passed"]++
 		fp.logger.LogSuccess("%s: License OK", relPath)
-
 	}
 
 	if hasNoLicense {
@@ -461,23 +404,6 @@ func (fp *FileProcessor) Check() error {
 		return NewCheckError(license.StyleMismatch, "license check failed: some files have style mismatches")
 	}
 
+	fp.logger.PrintStats(fp.stats, "Checked")
 	return nil
-}
-
-// describeCommentStyle returns a human-readable description of the comment style
-func describeCommentStyle(cs styles.CommentLanguage) string {
-	var parts []string
-	if cs.MultiStart != "" {
-		parts = append(parts, fmt.Sprintf("multi-line (%s...%s)", cs.MultiStart, cs.MultiEnd))
-	}
-	if cs.Single != "" {
-		parts = append(parts, fmt.Sprintf("single-line (%s)", cs.Single))
-	}
-	if cs.MultiPrefix != "" {
-		parts = append(parts, fmt.Sprintf("prefix: %q", cs.MultiPrefix))
-	}
-	if len(parts) == 0 {
-		return "unknown"
-	}
-	return strings.Join(parts, ", ")
 }

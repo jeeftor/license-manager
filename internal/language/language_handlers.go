@@ -229,6 +229,31 @@ func NewGenericHandler(logger *logger.Logger, style styles.HeaderFooterStyle, ex
 	return h
 }
 
+func (h *GenericHandler) validateComponents(header, footer string) bool {
+	if header == "" {
+		return false
+	}
+
+	// Try to match against known styles
+	headerMatch := styles.Infer(header)
+	footerMatch := styles.Infer(footer)
+
+	h.logger.LogDebug("Header match: [%s] (score: %.2f)", headerMatch.Style.Name, headerMatch.Score)
+	h.logger.LogDebug("Footer match: [%s] (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
+
+	// Require high confidence match for the header at minimum
+	if headerMatch.Score <= 0.8 {
+		return false
+	}
+
+	// If we have a footer, it should match the header style with high confidence
+	if footer != "" && (footerMatch.Score <= 0.8 || headerMatch.Style.Name != footerMatch.Style.Name) {
+		return false
+	}
+
+	return true
+}
+
 func (h *GenericHandler) ExtractComponents(content string) (components ExtractedComponents, success bool) {
 	components = ExtractedComponents{
 		Preamble:         "",
@@ -257,7 +282,7 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 		components.Header = header
 		components.Footer = footer
 
-		if success {
+		if success && h.validateComponents(header, footer) {
 			components.Body = strings.Join(bodyLines, "\n")
 			if endIndex < len(remainingLines)-1 {
 				components.Rest = strings.Join(remainingLines[endIndex+1:], "\n")
@@ -276,7 +301,7 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 		header, bodyLines, footer, endIndex, success := extractor.extractSingleLineComments(remainingLines)
 		components.Header = header
 		components.Footer = footer
-		if success {
+		if success && h.validateComponents(header, footer) {
 			components.Body = strings.Join(bodyLines, "\n")
 			if endIndex < len(remainingLines)-1 {
 				components.Rest = strings.Join(remainingLines[endIndex+1:], "\n")
@@ -292,7 +317,7 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 		header, bodyLines, footer, endIndex, success := extractor.extractMultiLineComments(remainingLines)
 		components.Header = header
 		components.Footer = footer
-		if success {
+		if success && h.validateComponents(header, footer) {
 			components.Body = strings.Join(bodyLines, "\n")
 			if endIndex < len(remainingLines)-1 {
 				components.Rest = strings.Join(remainingLines[endIndex+1:], "\n")

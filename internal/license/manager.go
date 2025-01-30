@@ -72,6 +72,95 @@ func NewLicenseManager(logger *logger.Logger, licenseTemplate, fileExtension str
 	return manager
 }
 
+type ScanResults struct {
+	HasLicense   bool
+	Components   *language.ExtractedComponents
+	Style        styles.HeaderFooterStyle
+	IsStyleMatch bool
+}
+
+func (m *LicenseManager) SearchForLicense(content string) ScanResults {
+	actualType := reflect.TypeOf(m.langHandler)
+	m.logger.LogInfo("  SearchForLicense::Handler type: %v", actualType)
+	m.logger.LogInfo("  SearchForLicense::Analyzing license block...")
+	m.logger.LogInfo("  SearchForLicense::Using comment style: %s", m.commentStyle.Language)
+
+	components, success := m.langHandler.ExtractComponents(content)
+
+	// Handle special case for c-go style headers first
+	if m.commentStyle.Language == "go" && strings.HasPrefix(components.Header, "#include") {
+		m.logger.LogInfo("  SearchForLicense::Detected c-go style header... skipping")
+
+		// Preserve preamble handling for C-Go files
+		//preamble, rest := m.langHandler.PreservePreamble(content)
+		components = language.ExtractedComponents{
+			Preamble:         components.Preamble,
+			Header:           "",
+			Body:             "",
+			Footer:           "",
+			Rest:             components.Header + components.Body + components.Footer + components.Body,
+			FullLicenseBlock: nil,
+		}
+
+		// Store results and return early
+		m.InitialComponents = &components
+		m.HasInitialLicense = false
+
+		return ScanResults{
+			HasLicense:   false,
+			Components:   &components,
+			Style:        m.headerStyle,
+			IsStyleMatch: false,
+		}
+	}
+
+	// Store results for later use (maintaining backward compatibility)
+	m.InitialComponents = &components
+	m.HasInitialLicense = success
+
+	analysis := ScanResults{
+		HasLicense:   success,
+		Components:   &components,
+		Style:        m.headerStyle, // default to current style
+		IsStyleMatch: false,
+	}
+
+	// Handle special case for c-go style headers
+	if m.commentStyle.Language == "go" && strings.HasPrefix(components.Header, "#include") {
+		m.logger.LogInfo("  SearchForLicense::Detected c-go style header... skipping")
+		analysis.HasLicense = false
+		return analysis
+	}
+
+	if !success {
+		m.logger.LogInfo("  SearchForLicense::No license block detected")
+		return analysis
+	}
+
+	// If we found a license, detect its style
+	if components.Header != "" {
+		// Try to match against known styles
+		headerMatch := styles.Infer(components.Header)
+		footerMatch := styles.Infer(components.Footer)
+
+		m.logger.LogInfo("Header match: [%s] (score: %.2f)", headerMatch.Style.Name, headerMatch.Score)
+		m.logger.LogInfo("Footer match: [%s] (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
+
+		// If both header and footer match with high confidence
+		if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 &&
+			headerMatch.Style.Name == footerMatch.Style.Name {
+			analysis.Style = headerMatch.Style
+			analysis.IsStyleMatch = true
+		} else if headerMatch.Score > 0.8 {
+			// If just header matches with high confidence
+			analysis.Style = headerMatch.Style
+			analysis.IsStyleMatch = true
+		}
+	}
+
+	return analysis
+}
+
 // getLanguageHandler returns a configured language handler
 func (m *LicenseManager) getLanguageHandler(fileType string) language.LanguageHandler {
 	if m.langHandler != nil {
