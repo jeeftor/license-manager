@@ -89,10 +89,6 @@ jobs:
               with:
                   files: |-
                       *.xml
-                      *.json
+#                      *.json
                   json_test_case_results: true # This enables writing out all test case results to JSON
                   report_individual_runs: true
-
-
-            - name: Conclusion
-              run: echo "Conclusion is ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}"
