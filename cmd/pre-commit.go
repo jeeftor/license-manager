@@ -31,10 +31,10 @@ To specify a different license file, update your .pre-commit-config.yaml:
 
 repos:
   - repo: https://github.com/jeeftor/license-manager
-    rev: v%s
+    rev: vX.X.X
     hooks:
       - id: license-manager
-        args: [--license, path/to/your/LICENSE]`, licensePath, buildVersion)
+        args: [--license, path/to/your/LICENSE]`, licensePath)
 		}
 
 		// Use files passed directly as arguments
