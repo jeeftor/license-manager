@@ -21,6 +21,7 @@ builds:
           - >-
             -s -w  -X github.com/jeeftor/license-manager/cmd.version={{.Version}}  -X github.com/jeeftor/license-manager/cmd.commit={{.ShortCommit}}  -X
             github.com/jeeftor/license-manager/cmd.date={{.Date}}
+            -X github.com/jeeftor/license-manager/cmd.defaultPreCommitTemplate={{.Version}}
       binary: license-manager
 
 archives:
