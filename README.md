@@ -105,7 +105,7 @@ You can also download the .deb package directly from the [releases page](https:/
 If you prefer to install using Go:
 
 ```bash
-go install github.com/jeeftor/license-manager@latest
+go install github.com/jeeftor/license-manager/cmd/license-manager@latest
 ```
 
 ### From Source
