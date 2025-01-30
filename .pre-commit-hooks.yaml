@@ -20,3 +20,14 @@
       require_serial: true
       stages: [pre-commit]
       minimum_pre_commit_version: 3.0.0
+
+    - id: license-manager-version
+      name: License Manager (Version)
+      description: Checks license headers in staged files with debug logging
+      entry: license-manager version
+      language: golang
+      types: [file]
+      pass_filenames: true
+      require_serial: true
+      stages: [pre-commit]
+      minimum_pre_commit_version: 3.0.0
