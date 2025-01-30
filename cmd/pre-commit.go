@@ -37,7 +37,7 @@ repos:
     rev: v%s
     hooks:
       - id: license-manager
-        args: [--license=path/to/your/LICENSE]`, licensePath, defaultPreCommitTemplate)
+        args: [--license, path/to/your/LICENSE]`, licensePath, defaultPreCommitTemplate)
 		}
 
 		// Use files passed directly as arguments
