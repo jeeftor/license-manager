@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"runtime"
 )
@@ -13,14 +14,31 @@ var versionCmd = &cobra.Command{
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, args []string) {
 		if shortOutput {
-			fmt.Println(version)
+			fmt.Println(buildVersion)
 			return
 		}
-		fmt.Printf("Version:    %s\n", version)
-		fmt.Printf("Built:      %s\n", date)
-		fmt.Printf("Git commit: %s\n", commit)
-		fmt.Printf("OS/Arch:    %s/%s\n", runtime.GOOS, runtime.GOARCH)
-		fmt.Printf("Go version: %s\n", runtime.Version())
+		versionColor := color.New(color.FgCyan, color.Bold)
+		buildColor := color.New(color.FgYellow)
+		commitColor := color.New(color.FgGreen)
+		osArchColor := color.New(color.FgMagenta)
+		goVersionColor := color.New(color.FgRed)
+		whiteColor := color.New(color.FgWhite)
+
+		whiteColor.Printf("Version: ")
+		versionColor.Printf("%s\n", buildVersion)
+
+		whiteColor.Printf("Built:   ")
+		buildColor.Printf("%s\n", GetFormattedBuildTime())
+
+		whiteColor.Printf("Commit:  ")
+		commitColor.Printf("%s\n", buildCommit)
+
+		whiteColor.Printf("OS/Arch: ")
+		osArchColor.Printf("%s/%s\n", runtime.GOOS, runtime.GOARCH)
+
+		whiteColor.Printf("Go:      ")
+		goVersionColor.Printf("%s\n", runtime.Version())
+
 	},
 }
 

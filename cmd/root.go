@@ -4,13 +4,12 @@ package cmd
 import (
 	"fmt"
 	"github.com/fatih/color"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/jeeftor/license-manager/internal/force"
 	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"strings"
-	"time"
 )
 
 import cc "github.com/ivanpirog/coloredcobra"
@@ -44,18 +43,6 @@ func (f *commentStyleFlag) Type() string {
 	return "commentStyle"
 }
 
-// Version information
-var (
-	version = "dev" // Will be overwritten at build time
-	date    = func() string {
-		if version == "dev" {
-			return time.Now().Format("2006-01-02")
-		}
-		return "unknown"
-	}()
-	commit = ""
-)
-
 var (
 	// Blue gradient (51, 45, 39, 33)
 	blue1 = color.RGB(87, 207, 255) // 51
@@ -69,12 +56,11 @@ var (
 	purple3 = color.RGB(199, 159, 255) // 171
 	purple4 = color.RGB(191, 147, 255) // 165
 
-	// Version color
+	// buildVersion color
 	versionColor = color.RGB(85, 85, 85) // 242 gray
 )
 
-// Build the version string
-var versionString = version + " (" + date + " " + commit + ")"
+var versionString = GetVersionString()
 
 var logo = "" +
 	blue1.Sprint(`▗▖   ▗▄▄▄▖ ▗▄▄▖▗▄▄▄▖▗▖  ▗▖ ▗▄▄▖▗▄▄▄▖`) + "\n" +

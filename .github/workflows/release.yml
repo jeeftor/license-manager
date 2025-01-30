@@ -115,3 +115,8 @@ jobs:
               env:
                   # Use the GitHub App token for both operations
                   GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+            - name: Print Version Info
+              run: |
+                  echo "GitHub Ref: ${{ github.ref }}"
+                  echo "GitHub Ref Name: ${{ github.ref_name }}"
+                  echo "Version to be released: ${GITHUB_REF#refs/tags/v}"

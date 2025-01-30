@@ -14,9 +14,6 @@ import (
 var (
 	licensePath string
 	logLevel    string
-
-	// set by go relsear at build time
-	defaultPreCommitTemplate string
 )
 
 var preCommitCmd = &cobra.Command{
@@ -37,7 +34,7 @@ repos:
     rev: v%s
     hooks:
       - id: license-manager
-        args: [--license, path/to/your/LICENSE]`, licensePath, defaultPreCommitTemplate)
+        args: [--license, path/to/your/LICENSE]`, licensePath, buildVersion)
 		}
 
 		// Use files passed directly as arguments
@@ -45,6 +42,8 @@ repos:
 			fmt.Println("No files to check")
 			return nil
 		}
+
+		//TODO: Print out all the files we received
 
 		// Rest of your existing code...
 		appCfg := config.AppConfig{

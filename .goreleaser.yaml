@@ -19,9 +19,9 @@ builds:
       main: ./cmd/license-manager
       ldflags:
           - >-
-            -s -w  -X github.com/jeeftor/license-manager/cmd.version={{.Version}}  -X github.com/jeeftor/license-manager/cmd.commit={{.ShortCommit}}  -X
-            github.com/jeeftor/license-manager/cmd.date={{.Date}}
-            -X github.com/jeeftor/license-manager/cmd.defaultPreCommitTemplate={{.Version}}
+            -s -w   -X github.com/jeeftor/license-manager/cmd.buildVersion={{.Version}}   -X github.com/jeeftor/license-manager/cmd.buildCommit={{.ShortCommit}}   -X
+            github.com/jeeftor/license-manager/cmd.buildTime={{.Timestamp}}
+#
       binary: license-manager
 
 archives:
