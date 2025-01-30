@@ -425,9 +425,9 @@ func GetLanguageHandler(logger *logger.Logger,
 	switch strings.TrimPrefix(strings.ToLower(fileType), ".") {
 	case "go":
 		return NewGoHandler(logger, style)
-	case "js", "jsx":
+	case "js":
 		return NewJavaScriptHandler(logger, style)
-	case "ts", "tsx":
+	case "ts":
 		return NewTypeScriptHandler(logger, style)
 	case "yaml", "yml":
 		return NewYAMLHandler(logger, style)

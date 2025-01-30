@@ -15,11 +15,11 @@ type CommentLanguage struct {
 
 // LanguageExtensions Common comment styles for different file extensions
 var LanguageExtensions = map[string]CommentLanguage{
-	".rb":    {Language: "ruby", Single: "#", MultiStart: "=begin", MultiEnd: "=end", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
-	".js":    {Language: "javascript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
-	".jsx":   {Language: "javascript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
-	".ts":    {Language: "typescript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
-	".tsx":   {Language: "typescript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	".rb": {Language: "ruby", Single: "#", MultiStart: "=begin", MultiEnd: "=end", MultiPrefix: "", LinePrefix: " ", PreferMulti: false},
+	".js": {Language: "javascript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	//".jsx": {Language: "javascript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	".ts": {Language: "typescript", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
+	//".tsx":   {Language: "typescript", Single: "//", MultiStart: "{/*", MultiEnd: "*/}", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
 	".py":    {Language: "python", Single: "#", MultiStart: "'''", MultiEnd: "'''", MultiPrefix: "", LinePrefix: " ", PreferMulti: true},
 	".go":    {Language: "go", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
 	".java":  {Language: "java", Single: "//", MultiStart: "/*", MultiEnd: "*/", MultiPrefix: " *", LinePrefix: " ", PreferMulti: true},
