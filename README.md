@@ -53,6 +53,8 @@ This is a list of languages that have been ~fully~ mostly tested.
 
 ## Installation
 
+The following details CLI based installation. License manager can also be used as a [docs/pre-commit.md](docs/pre-commit.md) hook.
+
 # License Manager
 
 A CLI tool for managing license headers in source code files. This tool helps you add, remove, update, and check license headers across your codebase with ease and precision. It utilizes non-printing Unicode character to mark the start & end of the License comment such that you can easier update or remove the license information.
