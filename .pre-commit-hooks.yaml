@@ -1,0 +1,11 @@
+---
+    - id: license-manager
+      name: license manager
+      description: Checks license headers in staged files
+      entry: license-manager pre-commit
+      language: golang
+  # Remove types filter since it handles all files
+      pass_filenames: false # Important: Set to false since we get files ourselves
+      require_serial: true # Recommended for git operations
+      stages: [commit] # Explicitly state this runs at commit time
+      minimum_pre_commit_version: 3.0.0

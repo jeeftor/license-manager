@@ -22,7 +22,7 @@ var preCommitCmd = &cobra.Command{
 		cmd.SilenceUsage = true
 
 		// Get staged Go files
-		stagedFiles, err := getStagedGoFiles()
+		stagedFiles, err := getStagedFiles()
 		if err != nil {
 			return fmt.Errorf("failed to get staged files: %v", err)
 		}
@@ -59,24 +59,24 @@ var preCommitCmd = &cobra.Command{
 	},
 }
 
-// getStagedGoFiles retrieves the list of staged Go files
-func getStagedGoFiles() ([]string, error) {
-	// Use git command to get staged Go files
+// getStagedFiles retrieves the list of all staged files
+func getStagedFiles() ([]string, error) {
+	// Use git command to get staged files
 	cmd := exec.Command("git", "diff", "--cached", "--name-only", "--diff-filter=ACM")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
 
-	// Split and filter for Go files
-	var stagedGoFiles []string
+	// Split into files, removing empty lines
+	var stagedFiles []string
 	for _, file := range strings.Split(string(output), "\n") {
-		if strings.TrimSpace(file) != "" && strings.HasSuffix(file, ".go") {
-			stagedGoFiles = append(stagedGoFiles, file)
+		if strings.TrimSpace(file) != "" {
+			stagedFiles = append(stagedFiles, file)
 		}
 	}
 
-	return stagedGoFiles, nil
+	return stagedFiles, nil
 }
 
 func init() {
