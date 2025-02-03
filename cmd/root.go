@@ -3,16 +3,17 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/jeeftor/license-manager/internal/force"
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"strings"
-)
 
-import cc "github.com/ivanpirog/coloredcobra"
+	cc "github.com/ivanpirog/coloredcobra"
+)
 
 const (
 	envPrefix = "LM"
@@ -76,11 +77,19 @@ var logo = "" +
 var rootCmd = &cobra.Command{
 	Use:   "license-manager",
 	Short: color.CyanString("A tool to manage license headers in source files"),
-	Long: logo + "\n\n" + color.BlueString("license-manager") + color.WhiteString(`is a CLI tool that helps manage license headers in source files.
+	Long: logo + "\n\n" + color.BlueString(
+		"license-manager",
+	) + color.WhiteString(
+		`is a CLI tool that helps manage license headers in source files.
 It can add, remove, update, and check license headers in multiple files using patterns.
 
-`) + color.YellowString("Environment variables:") + `
-  ` + color.CyanString("LM_LICENSE") + `   Path to license text file
+`,
+	) + color.YellowString(
+		"Environment variables:",
+	) + `
+  ` + color.CyanString(
+		"LM_LICENSE",
+	) + `   Path to license text file
 `,
 }
 
@@ -166,7 +175,8 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgPresetStyle, "style", "hash", "Preset style for header/footer (run styles command for list)")
+	rootCmd.PersistentFlags().
+		StringVar(&cfgPresetStyle, "style", "hash", "Preset style for header/footer (run styles command for list)")
 	rootCmd.PersistentFlags().Var(&commentStyleFlag{&cfgForceCommentStyle}, "comments",
 		"Force comment style (no|single|multi)")
 	// set default value
@@ -174,11 +184,12 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgLicense, "license", "", "Path to license text file")
 
-	rootCmd.PersistentFlags().StringSliceVar(&cfgInputs, "input", []string{}, "Inputs file patterns")
+	rootCmd.PersistentFlags().
+		StringSliceVar(&cfgInputs, "input", []string{}, "Inputs file patterns")
 	rootCmd.PersistentFlags().StringSliceVar(&cfgSkips, "skip", []string{}, "Patterns to skip")
 
-	rootCmd.PersistentFlags().StringVar(&cfgLogLevel, "log-level", "notice", "Log level (debug, info, notice, warn, error)")
-
+	rootCmd.PersistentFlags().
+		StringVar(&cfgLogLevel, "log-level", "notice", "Log level (debug, info, notice, warn, error)")
 }
 
 func initConfig() {
@@ -197,7 +208,6 @@ func initConfig() {
 	if viper.IsSet("style") {
 		cfgPresetStyle = viper.GetString("style")
 	}
-
 }
 
 func ProcessPatterns(patterns []string) string {

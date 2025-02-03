@@ -1,9 +1,10 @@
 package language
 
 import (
+	"strings"
+
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"strings"
 )
 
 // XMLHandler implements XML-specific license handling
@@ -48,7 +49,11 @@ func (h *XMLHandler) PreservePreamble(content string) (string, string) {
 	return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 }
 
-func (h *XMLHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock {
+func (h *XMLHandler) FormatLicense(
+	license string,
+	commentStyle styles.CommentLanguage,
+	style styles.HeaderFooterStyle,
+) FullLicenseBlock {
 	header := strings.TrimSpace(style.Header)
 	footer := strings.TrimSpace(style.Footer)
 

@@ -1,8 +1,9 @@
 package language
 
 import (
-	"github.com/jeeftor/license-manager/internal/logger"
 	"strings"
+
+	"github.com/jeeftor/license-manager/internal/logger"
 
 	"github.com/jeeftor/license-manager/internal/styles"
 )

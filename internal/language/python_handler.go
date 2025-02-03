@@ -1,9 +1,10 @@
 package language
 
 import (
+	"strings"
+
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"strings"
 )
 
 // PythonHandler implements Python-specific license handling
@@ -62,7 +63,12 @@ func (h *PythonHandler) PreservePreamble(content string) (string, string) {
 
 	return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 }
-func (h *PythonHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock {
+
+func (h *PythonHandler) FormatLicense(
+	license string,
+	commentStyle styles.CommentLanguage,
+	style styles.HeaderFooterStyle,
+) FullLicenseBlock {
 	// First try to detect if there's already a comment style
 	lines := strings.Split(license, "\n")
 	hasTripleQuotes := false

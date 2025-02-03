@@ -73,8 +73,14 @@ func TestInfer(t *testing.T) {
 			}
 
 			// Check score within threshold
-			if diff := got.Score - tt.wantScore; diff < -tt.scoreThreshold || diff > tt.scoreThreshold {
-				t.Errorf("Infer() score = %v, want %v (±%v)", got.Score, tt.wantScore, tt.scoreThreshold)
+			if diff := got.Score - tt.wantScore; diff < -tt.scoreThreshold ||
+				diff > tt.scoreThreshold {
+				t.Errorf(
+					"Infer() score = %v, want %v (±%v)",
+					got.Score,
+					tt.wantScore,
+					tt.scoreThreshold,
+				)
 			}
 
 			// Check header/footer flags

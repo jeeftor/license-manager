@@ -110,19 +110,40 @@ go build
 
 ### Basic Commands
 
+The basic arguments required are to include 1 or more `--input`s to give a pattern of files to add licenses to and a `--license` file. Additionally you may want to include one or more `--skip` patterns to ensure you aren't adding licenses say to your `./vendor` directory.
+
+Here are some basic examples
+
 ```bash
-# Add license headers
-license-manager add --license LICENSE.txt --input "**/*.go"
+# Add license headers to go and python files - ignoring a .venv directory
+license-manager add --license LICENSE.txt --input "**/*.go" --input "**/*.py" --skip "./venv/**"
 
 # Remove license headers
 license-manager remove --input "**/*.go" --input "**/*.py" --skip "./vendor/**" --skip "./venv/**"
 
-# Update existing license headers
-license-manager update --license NEW_LICENSE.txt --input "**/*.go"
+# Update existing license headers to use a new license and the swords style
+license-manager update --license NEW_LICENSE.txt --input "**/*.go" --style swords
 
 # Check license headers
 license-manager check --license LICENSE.txt --input "**/*.go"
 ```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| add | Add license headers to files |
+| build-test-data | Generate test files for all supported languages |
+| check | Check license headers in files (this can also be used as a [pre-commit](./docs/pre-commit.md) hook)|
+| completion | Generate the autocompletion script for the specified shell |
+| debug | Debug license markers in files |
+| help | Help about any command |
+| pre-commit | Run license checks on specified files |
+| remove | Remove license headers from files |
+| styles | List available license header styles |
+| update | Update license headers in files |
+| version | Print version information |
+
 
 ### Command Options
 

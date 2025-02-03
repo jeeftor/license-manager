@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/jeeftor/license-manager/internal/force"
 	"github.com/jeeftor/license-manager/internal/logger"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -139,5 +140,6 @@ Exit Codes:
 
 func init() {
 	rootCmd.AddCommand(checkCmd)
-	checkCmd.Flags().BoolVar(&checkIgnoreFail, "ignore-fail", false, "Return exit code 0 even if checks fail")
+	checkCmd.Flags().
+		BoolVar(&checkIgnoreFail, "ignore-fail", false, "Return exit code 0 even if checks fail")
 }

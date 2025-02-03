@@ -1,12 +1,13 @@
 package license
 
 import (
+	"reflect"
+	"strings"
+
 	"github.com/jeeftor/license-manager/internal/errors"
 	"github.com/jeeftor/license-manager/internal/language"
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"reflect"
-	"strings"
 )
 
 // Status represents the status of a license check
@@ -56,7 +57,12 @@ type LicenseManager struct {
 }
 
 // NewLicenseManager creates a new manager
-func NewLicenseManager(logger *logger.Logger, licenseTemplate, fileExtension string, headerStyle styles.HeaderFooterStyle, commentStyle styles.CommentLanguage) *LicenseManager {
+func NewLicenseManager(
+	logger *logger.Logger,
+	licenseTemplate, fileExtension string,
+	headerStyle styles.HeaderFooterStyle,
+	commentStyle styles.CommentLanguage,
+) *LicenseManager {
 
 	// Determine Language Handler
 	langHandler := language.GetLanguageHandler(logger, fileExtension, headerStyle)
@@ -143,8 +149,16 @@ func (m *LicenseManager) SearchForLicense(content string) ScanResults {
 		headerMatch := styles.Infer(components.Header)
 		footerMatch := styles.Infer(components.Footer)
 
-		m.logger.LogInfo("Header match: [%s] (score: %.2f)", headerMatch.Style.Name, headerMatch.Score)
-		m.logger.LogInfo("Footer match: [%s] (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
+		m.logger.LogInfo(
+			"Header match: [%s] (score: %.2f)",
+			headerMatch.Style.Name,
+			headerMatch.Score,
+		)
+		m.logger.LogInfo(
+			"Footer match: [%s] (score: %.2f)",
+			footerMatch.Style.Name,
+			footerMatch.Score,
+		)
 
 		// If both header and footer match with high confidence
 		if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 &&
@@ -340,7 +354,10 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	actualExtract, success := handler.ExtractComponents(content)
 
 	if actualExtract.Preamble != "" {
-		m.logger.LogInfo("Found preamble 📝️ (%d lines)", len(strings.Split(actualExtract.Preamble, "\n")))
+		m.logger.LogInfo(
+			"Found preamble 📝️ (%d lines)",
+			len(strings.Split(actualExtract.Preamble, "\n")),
+		)
 	}
 
 	if m.InitialComponents != nil {
@@ -360,7 +377,10 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	}
 
 	// Detect and validate style
-	detectedStyle, foundHeaderMatch := m.DetectHeaderAndFooterStyle(actualExtract.Header, actualExtract.Footer)
+	detectedStyle, foundHeaderMatch := m.DetectHeaderAndFooterStyle(
+		actualExtract.Header,
+		actualExtract.Footer,
+	)
 
 	if foundHeaderMatch {
 		m.logger.LogInfo("Detected style: %s", detectedStyle.Name)
@@ -378,7 +398,11 @@ func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 	// If headers don't match
 	if m.headerStyle.Name != "" && m.headerStyle.Name != detectedStyle.Name {
 		// Mismatch of headers - but if license ist he same
-		m.logger.LogInfo("Style mismatch: expected [%s], found [%s]", m.headerStyle.Name, detectedStyle.Name)
+		m.logger.LogInfo(
+			"Style mismatch: expected [%s], found [%s]",
+			m.headerStyle.Name,
+			detectedStyle.Name,
+		)
 
 		if actualBody == expectedBody {
 			// We body match w/out same headers
@@ -441,7 +465,9 @@ func (m *LicenseManager) formatLicenseBlock(text string) string {
 	return language.FormatComment(text, m.commentStyle, m.headerStyle)
 }
 
-func (m *LicenseManager) DetectHeaderAndFooterStyle(header, footer string) (styles.HeaderFooterStyle, bool) {
+func (m *LicenseManager) DetectHeaderAndFooterStyle(
+	header, footer string,
+) (styles.HeaderFooterStyle, bool) {
 	// Try to match against known styles
 	headerMatch := styles.Infer(header)
 	footerMatch := styles.Infer(footer)
@@ -450,7 +476,8 @@ func (m *LicenseManager) DetectHeaderAndFooterStyle(header, footer string) (styl
 	m.logger.LogInfo("Footer match: [%s] (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
 
 	// If both header and footer match the same style with high confidence, use that style
-	if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 && headerMatch.Style.Name == footerMatch.Style.Name {
+	if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 &&
+		headerMatch.Style.Name == footerMatch.Style.Name {
 		return headerMatch.Style, true
 	}
 
@@ -463,7 +490,9 @@ func (m *LicenseManager) DetectHeaderAndFooterStyle(header, footer string) (styl
 	return m.headerStyle, false
 }
 
-func (m *LicenseManager) detectHeaderStyle(components language.ExtractedComponents) styles.HeaderFooterStyle {
+func (m *LicenseManager) detectHeaderStyle(
+	components language.ExtractedComponents,
+) styles.HeaderFooterStyle {
 
 	m.logger.LogInfo("Trying to detect style from header: %q", components.Header)
 	m.logger.LogInfo("Trying to detect style from footer: %q", components.Footer)
@@ -476,7 +505,8 @@ func (m *LicenseManager) detectHeaderStyle(components language.ExtractedComponen
 	m.logger.LogInfo("Footer match: [%s] (score: %.2f)", footerMatch.Style.Name, footerMatch.Score)
 
 	// If both header and footer match the same style with high confidence, use that style
-	if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 && headerMatch.Style.Name == footerMatch.Style.Name {
+	if headerMatch.Score > 0.8 && footerMatch.Score > 0.8 &&
+		headerMatch.Style.Name == footerMatch.Style.Name {
 		return headerMatch.Style
 	}
 

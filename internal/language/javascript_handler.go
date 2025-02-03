@@ -1,9 +1,10 @@
 package language
 
 import (
+	"strings"
+
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"strings"
 )
 
 //
@@ -33,7 +34,10 @@ type JavaScriptHandler struct {
 	*GenericHandler
 }
 
-func NewJavaScriptHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *JavaScriptHandler {
+func NewJavaScriptHandler(
+	logger *logger.Logger,
+	style styles.HeaderFooterStyle,
+) *JavaScriptHandler {
 	h := &JavaScriptHandler{GenericHandler: NewGenericHandler(logger, style, ".js")}
 	h.GenericHandler.subclassHandler = h
 	return h

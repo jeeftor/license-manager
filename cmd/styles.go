@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/fatih/color"
-	"github.com/spf13/cobra"
 	"github.com/jeeftor/license-manager/internal/styles"
+	"github.com/spf13/cobra"
 )
 
 var stylesCmd = &cobra.Command{

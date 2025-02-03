@@ -28,9 +28,14 @@ repos:
 ```
 
 
+
+
+
 ### Language-Specific Configuration
 
 Process only specific file types and exclude certain directories:
+
+Using a custom `mit.txt` as a license file
 
 ```yaml
 repos:
@@ -42,6 +47,21 @@ repos:
         types_or: [go, python, javascript]
         args: [--license, ./mit.txt]
 ```
+
+Using the standard `LICENSE` but with a `swords` style
+
+```yaml
+repos:
+  - repo: https://github.com/jeeftor/license-manager
+    rev: v0.3.3
+    hooks:
+      - id: verify
+        exclude: ^vendor/|/vendor/|node_modules/
+        types_or: [go, python, javascript]
+        args: [--style, swords]
+```
+
+
 
 ### License Check - Debug Configuration
 
@@ -63,7 +83,7 @@ Automatically add licenses to new files:
 repos:
   - repo: https://github.com/jeeftor/license-manager
     rev: v0.3.3
-        hooks:
+    hooks:
       - id: add-missing
         args: [--license, ./license.txt]
         types_or: [go, python, java, javascript]

@@ -87,7 +87,8 @@ repos:
 func init() {
 	rootCmd.AddCommand(preCommitCmd)
 	preCommitCmd.Flags().StringVar(&licensePath, "license", "./LICENSE", "Path to license file")
-	preCommitCmd.Flags().StringVar(&logLevel, "log-level", "info", "Logging level (debug, info, warn, error)")
+	preCommitCmd.Flags().
+		StringVar(&logLevel, "log-level", "info", "Logging level (debug, info, warn, error)")
 
 	preCommitCmd.Flags().BoolVar(&addFlag, "add", false, "Add license headers to files")
 	preCommitCmd.Flags().BoolVar(&updateFlag, "update", false, "Update existing license headers")

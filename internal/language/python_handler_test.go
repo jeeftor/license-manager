@@ -1,19 +1,20 @@
 package language
 
 import (
-	"github.com/jeeftor/license-manager/internal/logger"
-	"github.com/jeeftor/license-manager/internal/styles"
 	"strings"
 	"testing"
+
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/styles"
 )
 
 func TestPythonHandler_PreservePreamble(t *testing.T) {
 	tests := []struct {
-		name           string
-		content        string
-		wantPreamble   string
-		wantRest       string
-		wantSeparator  string
+		name          string
+		content       string
+		wantPreamble  string
+		wantRest      string
+		wantSeparator string
 	}{
 		{
 			name: "with shebang and encoding",
@@ -21,8 +22,8 @@ func TestPythonHandler_PreservePreamble(t *testing.T) {
 # -*- coding: utf-8 -*-
 def main():
     pass`,
-			wantPreamble: "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-",
-			wantRest: "def main():\n    pass",
+			wantPreamble:  "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-",
+			wantRest:      "def main():\n    pass",
 			wantSeparator: "\n",
 		},
 		{
@@ -30,8 +31,8 @@ def main():
 			content: `#!/usr/bin/env python3
 def main():
     pass`,
-			wantPreamble: "#!/usr/bin/env python3",
-			wantRest: "def main():\n    pass",
+			wantPreamble:  "#!/usr/bin/env python3",
+			wantRest:      "def main():\n    pass",
 			wantSeparator: "\n",
 		},
 		{
@@ -39,16 +40,16 @@ def main():
 			content: `# -*- coding: utf-8 -*-
 def main():
     pass`,
-			wantPreamble: "# -*- coding: utf-8 -*-",
-			wantRest: "def main():\n    pass",
+			wantPreamble:  "# -*- coding: utf-8 -*-",
+			wantRest:      "def main():\n    pass",
 			wantSeparator: "\n",
 		},
 		{
 			name: "no preamble",
 			content: `def main():
     pass`,
-			wantPreamble: "",
-			wantRest: "def main():\n    pass",
+			wantPreamble:  "",
+			wantRest:      "def main():\n    pass",
 			wantSeparator: "",
 		},
 	}
@@ -60,10 +61,18 @@ def main():
 			gotPreamble, gotRest := h.PreservePreamble(tt.content)
 
 			if gotPreamble != tt.wantPreamble {
-				t.Errorf("PythonHandler.PreservePreamble() preamble = %q, want %q", gotPreamble, tt.wantPreamble)
+				t.Errorf(
+					"PythonHandler.PreservePreamble() preamble = %q, want %q",
+					gotPreamble,
+					tt.wantPreamble,
+				)
 			}
 			if gotRest != tt.wantRest {
-				t.Errorf("PythonHandler.PreservePreamble() rest = %q, want %q", gotRest, tt.wantRest)
+				t.Errorf(
+					"PythonHandler.PreservePreamble() rest = %q, want %q",
+					gotRest,
+					tt.wantRest,
+				)
 			}
 		})
 	}
@@ -71,13 +80,13 @@ def main():
 
 func TestPythonHandler_FormatLicense(t *testing.T) {
 	tests := []struct {
-		name     string
-		license  string
-		style    styles.HeaderFooterStyle
-		want     string
+		name    string
+		license string
+		style   styles.HeaderFooterStyle
+		want    string
 	}{
 		{
-			name: "single line license",
+			name:    "single line license",
 			license: "Copyright 2025 Example Corp",
 			style: styles.HeaderFooterStyle{
 				Header: "License Header",

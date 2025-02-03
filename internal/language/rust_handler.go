@@ -1,10 +1,11 @@
 package language
 
 import (
-	"github.com/jeeftor/license-manager/internal/logger"
-	"github.com/jeeftor/license-manager/internal/styles"
 	"regexp"
 	"strings"
+
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/styles"
 )
 
 // RustHandler implements Rust-specific license handling

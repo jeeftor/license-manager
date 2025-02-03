@@ -1,10 +1,11 @@
 package language
 
 import (
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"strings"
 )
 
 type GoHandler struct {
@@ -75,7 +76,10 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 			directives = append(directives, line)
 			lastWasDirective = true
 			if h.logger != nil {
-				h.logger.LogVerbose("  Found 🔧 directive: %s", color.New(color.FgHiYellow).Sprint(line))
+				h.logger.LogVerbose(
+					"  Found 🔧 directive: %s",
+					color.New(color.FgHiYellow).Sprint(line),
+				)
 			}
 		} else if trimmed == "" {
 			// Keep blank lines if we're still in a directive section

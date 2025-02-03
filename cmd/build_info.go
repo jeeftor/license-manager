@@ -35,7 +35,8 @@ func GetFormattedBuildTime() string {
 
 func GetVersionString() string {
 	// For snapshot or dev builds
-	if buildVersion == "dev" || strings.Contains(buildVersion, "snapshot") || strings.Contains(buildVersion, "next") {
+	if buildVersion == "dev" || strings.Contains(buildVersion, "snapshot") ||
+		strings.Contains(buildVersion, "next") {
 		return fmt.Sprintf("%s (snapshot build %s)",
 			buildVersion,
 			time.Now().Local().Format("2006-01-02"),

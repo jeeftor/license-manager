@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/fatih/color"
+	"github.com/spf13/cobra"
 )
 
 var shortOutput bool

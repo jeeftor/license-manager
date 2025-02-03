@@ -212,7 +212,12 @@ func UncommentContent(content string, style styles.CommentLanguage) string {
 //   - footer: The last line before the comment end (usually contains a closing marker)
 //   - rest: Any remaining content after the license block
 //   - success: Whether the extraction was successful
-func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool, languageStyle styles.CommentLanguage) (header, body, footer, rest string, success bool) {
+func ExtractComponents(
+	logger *logger.Logger,
+	content string,
+	stripMarkers bool,
+	languageStyle styles.CommentLanguage,
+) (header, body, footer, rest string, success bool) {
 
 	if content == "" {
 		return "", "", "", "", false
@@ -237,7 +242,11 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 			if !foundStart && strings.HasPrefix(line, languageStyle.MultiStart) {
 				startIndex = i
 				foundStart = true
-				logger.LogDebug("  Found multi-line start marker: %s at line %d", languageStyle.MultiStart, i)
+				logger.LogDebug(
+					"  Found multi-line start marker: %s at line %d",
+					languageStyle.MultiStart,
+					i,
+				)
 			} else if foundStart && strings.HasSuffix(line, languageStyle.MultiEnd) {
 				endIndex = i
 				foundEnd = true
@@ -357,15 +366,23 @@ func ExtractComponents(logger *logger.Logger, content string, stripMarkers bool,
 	footer = strings.Join(footerLines, "\n")
 	rest = strings.Join(restLines, "\n")
 
-	logger.LogDebug("  Extracted components - Header: %d lines, Body: %d lines, Footer: %d lines, Rest: %d lines",
-		len(headerLines), len(bodyLines), len(footerLines), len(restLines))
+	logger.LogDebug(
+		"  Extracted components - Header: %d lines, Body: %d lines, Footer: %d lines, Rest: %d lines",
+		len(headerLines),
+		len(bodyLines),
+		len(footerLines),
+		len(restLines),
+	)
 
 	return header, body, footer, rest, true
 }
 
 // extractComponentsWithoutMarkers attempts to extract components using comment syntax and style inference.
 // This is a more intensive scan that tries to identify the comment type based on available styles.
-func extractComponentsWithoutMarkers(lines []string, shouldStrip bool) (header string, body string, footer string, success bool) {
+func extractComponentsWithoutMarkers(
+	lines []string,
+	shouldStrip bool,
+) (header string, body string, footer string, success bool) {
 	startIdx := -1
 	endIdx := -1
 	hasCommentMarkers := false
@@ -586,7 +603,11 @@ func looksLikeLicense(content string) bool {
 }
 
 // FormatComment formats text with the given comment style and header/footer style
-func FormatComment(text string, commentStyle styles.CommentLanguage, headerStyle styles.HeaderFooterStyle) string {
+func FormatComment(
+	text string,
+	commentStyle styles.CommentLanguage,
+	headerStyle styles.HeaderFooterStyle,
+) string {
 	lines := strings.Split(text, "\n")
 	var result []string
 
@@ -686,7 +707,12 @@ func addMarkers(text string) string {
 	return MarkerStart + text + MarkerEnd
 }
 
-func NewComment(style styles.CommentLanguage, hfStyle styles.HeaderFooterStyle, body string, langHandler LanguageHandler) *Comment {
+func NewComment(
+	style styles.CommentLanguage,
+	hfStyle styles.HeaderFooterStyle,
+	body string,
+	langHandler LanguageHandler,
+) *Comment {
 	return &Comment{
 		style:       style,
 		body:        body,

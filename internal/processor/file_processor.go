@@ -2,13 +2,14 @@ package processor
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/jeeftor/license-manager/internal/force"
 	"github.com/jeeftor/license-manager/internal/license"
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"path/filepath"
-	"strings"
 )
 
 // FileProcessor handles license operations on files
@@ -32,13 +33,18 @@ func NewFileProcessor(cfg *Config) *FileProcessor {
 	}
 }
 
-func (fp *FileProcessor) createLicenseManager(file string) (*license.LicenseManager, styles.CommentLanguage, error) {
+func (fp *FileProcessor) createLicenseManager(
+	file string,
+) (*license.LicenseManager, styles.CommentLanguage, error) {
 	// Get comment headerFooterStyle for file type
 	ext := filepath.Ext(file)
 	commentStyle := styles.GetLanguageCommentStyle(ext)
 
 	if fp.config.ForceCommentStyle == force.Single {
-		fp.logger.LogWarning("Overriding default comment headerFooterStyle to %s", fp.config.ForceCommentStyle)
+		fp.logger.LogWarning(
+			"Overriding default comment headerFooterStyle to %s",
+			fp.config.ForceCommentStyle,
+		)
 		commentStyle.PreferMulti = false
 	} else if fp.config.ForceCommentStyle == force.Multi {
 		fp.logger.LogWarning("Overriding default comment headerFooterStyle to %s", fp.config.ForceCommentStyle)
@@ -376,7 +382,11 @@ func (fp *FileProcessor) Check() error {
 				fp.logger.LogError("%s: License content mismatch", relPath)
 			case license.StyleMismatch:
 				hasStyleMismatch = true
-				fp.logger.LogError("%s: License style mismatch (expected %s)", relPath, manager.GetHeaderStyle().Name)
+				fp.logger.LogError(
+					"%s: License style mismatch (expected %s)",
+					relPath,
+					manager.GetHeaderStyle().Name,
+				)
 			case license.ContentAndStyleMismatch:
 				hasContentMismatch = true
 				hasStyleMismatch = true
@@ -392,16 +402,28 @@ func (fp *FileProcessor) Check() error {
 	}
 
 	if hasNoLicense {
-		return NewCheckError(license.NoLicense, "license check failed: some files have missing licenses")
+		return NewCheckError(
+			license.NoLicense,
+			"license check failed: some files have missing licenses",
+		)
 	}
 	if hasContentMismatch && hasStyleMismatch {
-		return NewCheckError(license.ContentAndStyleMismatch, "license check failed: some files have content and style mismatches")
+		return NewCheckError(
+			license.ContentAndStyleMismatch,
+			"license check failed: some files have content and style mismatches",
+		)
 	}
 	if hasContentMismatch {
-		return NewCheckError(license.ContentMismatch, "license check failed: some files have content mismatches")
+		return NewCheckError(
+			license.ContentMismatch,
+			"license check failed: some files have content mismatches",
+		)
 	}
 	if hasStyleMismatch {
-		return NewCheckError(license.StyleMismatch, "license check failed: some files have style mismatches")
+		return NewCheckError(
+			license.StyleMismatch,
+			"license check failed: some files have style mismatches",
+		)
 	}
 
 	fp.logger.PrintStats(fp.stats, "Checked")

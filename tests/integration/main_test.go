@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/jeeftor/license-manager/internal/license"
-	"github.com/jeeftor/license-manager/internal/styles"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,6 +11,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jeeftor/license-manager/internal/license"
+	"github.com/jeeftor/license-manager/internal/styles"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -52,10 +53,20 @@ func gatherTestFiles(searchPath string, outputPath string) []singleTestFile {
 
 		for _, match := range matches {
 			tf := singleTestFile{
-				fileName:         filepath.Base(match),
-				language:         style,
-				filePath:         filepath.Join(projectRoot, outputPath, style.Language, filepath.Base(match)),
-				templateFilePath: filepath.Join(projectRoot, searchPath, style.Language, filepath.Base(match)),
+				fileName: filepath.Base(match),
+				language: style,
+				filePath: filepath.Join(
+					projectRoot,
+					outputPath,
+					style.Language,
+					filepath.Base(match),
+				),
+				templateFilePath: filepath.Join(
+					projectRoot,
+					searchPath,
+					style.Language,
+					filepath.Base(match),
+				),
 			}
 
 			if err := resetFile(tf); err != nil {
@@ -251,7 +262,11 @@ func extractErrorText(input string) string {
 	return strings.Join(errors, "\n")
 }
 
-func checkLicenseWithErrorValue(file *singleTestFile, licensePath string, wantedExitCodes []int) error {
+func checkLicenseWithErrorValue(
+	file *singleTestFile,
+	licensePath string,
+	wantedExitCodes []int,
+) error {
 	stdout, stderr, err := CheckLicense(file.filePath, licensePath)
 
 	// Extract exit code from stderr
@@ -264,7 +279,12 @@ func checkLicenseWithErrorValue(file *singleTestFile, licensePath string, wanted
 	for _, code := range wantedExitCodes {
 		if code == 0 && exitCode == 0 {
 			if stderr != "" {
-				return fmt.Errorf("license check failed: %v\n %s\nStderr: %s", err, extractErrorText(stdout), stderr)
+				return fmt.Errorf(
+					"license check failed: %v\n %s\nStderr: %s",
+					err,
+					extractErrorText(stdout),
+					stderr,
+				)
 			}
 			return nil
 		}

@@ -168,20 +168,33 @@ package main`,
 
 			// Compare directives
 			if len(gotDirectives) != len(tt.wantDirectives) {
-				t.Errorf("ScanBuildDirectives() got %d directives, want %d", len(gotDirectives), len(tt.wantDirectives))
+				t.Errorf(
+					"ScanBuildDirectives() got %d directives, want %d",
+					len(gotDirectives),
+					len(tt.wantDirectives),
+				)
 				t.Errorf("Got directives:\n%s", strings.Join(gotDirectives, "\n"))
 				t.Errorf("Want directives:\n%s", strings.Join(tt.wantDirectives, "\n"))
 				return
 			}
 			for i := range gotDirectives {
 				if strings.TrimSpace(gotDirectives[i]) != strings.TrimSpace(tt.wantDirectives[i]) {
-					t.Errorf("ScanBuildDirectives() directive[%d] = %q, want %q", i, gotDirectives[i], tt.wantDirectives[i])
+					t.Errorf(
+						"ScanBuildDirectives() directive[%d] = %q, want %q",
+						i,
+						gotDirectives[i],
+						tt.wantDirectives[i],
+					)
 				}
 			}
 
 			// Compare end index
 			if gotEndIndex != tt.wantEndIndex {
-				t.Errorf("ScanBuildDirectives() gotEndIndex = %v, want %v", gotEndIndex, tt.wantEndIndex)
+				t.Errorf(
+					"ScanBuildDirectives() gotEndIndex = %v, want %v",
+					gotEndIndex,
+					tt.wantEndIndex,
+				)
 			}
 		})
 	}
@@ -370,7 +383,11 @@ func TestGoHandler_ScanBuildDirectivesFromTemplates(t *testing.T) {
 			}
 
 			if packageLine >= 0 && endIndex > packageLine {
-				t.Errorf("Directives end at line %d, but package declaration is at line %d", endIndex, packageLine)
+				t.Errorf(
+					"Directives end at line %d, but package declaration is at line %d",
+					endIndex,
+					packageLine,
+				)
 			}
 		})
 	}

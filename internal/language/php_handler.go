@@ -1,9 +1,10 @@
 package language
 
 import (
+	"strings"
+
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"strings"
 )
 
 // PHPHandler implements PHP-specific license handling

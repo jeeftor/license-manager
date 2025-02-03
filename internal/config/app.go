@@ -2,12 +2,13 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/jeeftor/license-manager/internal/errors"
 	"github.com/jeeftor/license-manager/internal/force"
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/processor"
-	"os"
-	"path/filepath"
 )
 
 // AppConfig holds CLI and application-level configuration

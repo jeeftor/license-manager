@@ -2,12 +2,13 @@ package processor
 
 import (
 	"io/fs"
-	"github.com/jeeftor/license-manager/internal/errors"
-	"github.com/jeeftor/license-manager/internal/logger"
-	"github.com/jeeftor/license-manager/internal/styles"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jeeftor/license-manager/internal/errors"
+	"github.com/jeeftor/license-manager/internal/logger"
+	"github.com/jeeftor/license-manager/internal/styles"
 
 	"github.com/bmatcuk/doublestar/v2"
 )
@@ -151,21 +152,24 @@ func (fh *FileHandler) FindFiles(pattern string) ([]string, error) {
 			}
 
 			if info.IsDir() {
-				err := filepath.WalkDir(absMatch, func(path string, d fs.DirEntry, err error) error {
-					if err != nil {
+				err := filepath.WalkDir(
+					absMatch,
+					func(path string, d fs.DirEntry, err error) error {
+						if err != nil {
+							return nil
+						}
+
+						// Check skip pattern for each walked file
+						if fh.shouldSkip(path) {
+							return filepath.SkipDir
+						}
+
+						if !d.IsDir() && isProcessableFile(path) {
+							allFiles = append(allFiles, path)
+						}
 						return nil
-					}
-
-					// Check skip pattern for each walked file
-					if fh.shouldSkip(path) {
-						return filepath.SkipDir
-					}
-
-					if !d.IsDir() && isProcessableFile(path) {
-						allFiles = append(allFiles, path)
-					}
-					return nil
-				})
+					},
+				)
 				if err != nil {
 					fh.logger.LogError("Error walking directory %s: %v", absMatch, err)
 				}

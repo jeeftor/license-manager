@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/jeeftor/license-manager/internal/language"
-	"github.com/jeeftor/license-manager/internal/logger"
 	"os"
 	"strings"
+
+	"github.com/jeeftor/license-manager/internal/language"
+	"github.com/jeeftor/license-manager/internal/logger"
 
 	"github.com/fatih/color"
 	"github.com/jeeftor/license-manager/internal/config"
@@ -61,8 +62,16 @@ var debugCmd = &cobra.Command{
 		// Show the actual file contents with markers visible
 		fmt.Println("Actual file contents:")
 		fmt.Println("--------------------")
-		debugContent := strings.ReplaceAll(string(content), language.MarkerStart, color.New(color.FgRed).Sprint("[START]"))
-		debugContent = strings.ReplaceAll(debugContent, language.MarkerEnd, color.New(color.FgRed).Sprint("[END]"))
+		debugContent := strings.ReplaceAll(
+			string(content),
+			language.MarkerStart,
+			color.New(color.FgRed).Sprint("[START]"),
+		)
+		debugContent = strings.ReplaceAll(
+			debugContent,
+			language.MarkerEnd,
+			color.New(color.FgRed).Sprint("[END]"),
+		)
 		fmt.Println(debugContent)
 
 		return nil

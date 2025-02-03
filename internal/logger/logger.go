@@ -122,6 +122,11 @@ func (l *Logger) LogInfo(format string, args ...interface{}) {
 	l.Log(InfoLevel, true, format, args...)
 }
 
+// LogInfo logs an notice message
+func (l *Logger) LogNotice(format string, args ...interface{}) {
+	l.Log(NoticeLevel, true, format, args...)
+}
+
 // LogQuestion formats a question message and returns it
 func (l *Logger) LogQuestion(format string, args ...interface{}) string {
 	return fmt.Sprintf("%s %s", l.colors["question"].Sprint("?"), fmt.Sprintf(format, args...))
@@ -154,15 +159,18 @@ func (l *Logger) PrintStats(stats map[string]int, operation string) {
 
 	fmt.Println("\nSummary:")
 	if stats["added"] > 0 {
-		l.LogSuccess("%s license to %d files", operation, stats["added"])
+		fmt.Printf("%s license to %d files\n", operation, stats["added"])
 	}
 	if stats["existing"] > 0 {
-		l.LogWarning("License already exists in %d files (use 'update' command to modify)", stats["existing"])
+		fmt.Printf(
+			"License already exists in %d files (use 'update' command to modify)\n",
+			stats["existing"],
+		)
 	}
 	if stats["skipped"] > 0 {
-		l.LogInfo("Skipped %d files", stats["skipped"])
+		fmt.Printf("Skipped %d files\n", stats["skipped"])
 	}
 	if stats["failed"] > 0 {
-		l.LogError("Failed to process %d files", stats["failed"])
+		fmt.Printf("Failed to process %d files\n", stats["failed"])
 	}
 }

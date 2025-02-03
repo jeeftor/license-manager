@@ -1,15 +1,20 @@
 package language
 
 import (
+	"strings"
+
 	"github.com/jeeftor/license-manager/internal/logger"
 	"github.com/jeeftor/license-manager/internal/styles"
-	"strings"
 )
 
 // LanguageHandler defines the interface for language-specific license formatting
 type LanguageHandler interface {
 	// FormatLicense formats the license text according to language conventions
-	FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock
+	FormatLicense(
+		license string,
+		commentStyle styles.CommentLanguage,
+		style styles.HeaderFooterStyle,
+	) FullLicenseBlock
 
 	// PreservePreamble extracts and preserves any language-specific preamble (e.g., shebang, package declaration)
 	PreservePreamble(content string) (preamble, rest string)
@@ -51,7 +56,9 @@ func NewCommentExtractor(logger *logger.Logger, style styles.CommentLanguage) *C
 	}
 }
 
-func (ce *CommentExtractor) extractSingleLineComments(lines []string) (header string, body []string, footer string, endIndex int, success bool) {
+func (ce *CommentExtractor) extractSingleLineComments(
+	lines []string,
+) (header string, body []string, footer string, endIndex int, success bool) {
 	if ce.style.Single == "" {
 		return "", nil, "", -1, false
 	}
@@ -127,7 +134,9 @@ func (ce *CommentExtractor) extractSingleLineComments(lines []string) (header st
 	return "", nil, "", -1, false
 }
 
-func (ce *CommentExtractor) extractMultiLineComments(lines []string) (header string, body []string, footer string, endIndex int, success bool) {
+func (ce *CommentExtractor) extractMultiLineComments(
+	lines []string,
+) (header string, body []string, footer string, endIndex int, success bool) {
 	if ce.style.MultiStart == "" || ce.style.MultiEnd == "" {
 		return "", nil, "", -1, false
 	}
@@ -219,7 +228,11 @@ type GenericHandler struct {
 
 }
 
-func NewGenericHandler(logger *logger.Logger, style styles.HeaderFooterStyle, extension string) *GenericHandler {
+func NewGenericHandler(
+	logger *logger.Logger,
+	style styles.HeaderFooterStyle,
+	extension string,
+) *GenericHandler {
 	h := &GenericHandler{
 		style:         style,
 		logger:        logger,
@@ -247,14 +260,17 @@ func (h *GenericHandler) validateComponents(header, footer string) bool {
 	}
 
 	// If we have a footer, it should match the header style with high confidence
-	if footer != "" && (footerMatch.Score <= 0.8 || headerMatch.Style.Name != footerMatch.Style.Name) {
+	if footer != "" &&
+		(footerMatch.Score <= 0.8 || headerMatch.Style.Name != footerMatch.Style.Name) {
 		return false
 	}
 
 	return true
 }
 
-func (h *GenericHandler) ExtractComponents(content string) (components ExtractedComponents, success bool) {
+func (h *GenericHandler) ExtractComponents(
+	content string,
+) (components ExtractedComponents, success bool) {
 	components = ExtractedComponents{
 		Preamble:         "",
 		Header:           "",
@@ -278,7 +294,9 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 
 	// Try multi-line extraction first if preferred
 	if h.languageStyle.PreferMulti {
-		header, bodyLines, footer, endIndex, success := extractor.extractMultiLineComments(remainingLines)
+		header, bodyLines, footer, endIndex, success := extractor.extractMultiLineComments(
+			remainingLines,
+		)
 		components.Header = header
 		components.Footer = footer
 
@@ -298,7 +316,9 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 
 	// Try single-line extraction
 	if h.languageStyle.Single != "" {
-		header, bodyLines, footer, endIndex, success := extractor.extractSingleLineComments(remainingLines)
+		header, bodyLines, footer, endIndex, success := extractor.extractSingleLineComments(
+			remainingLines,
+		)
 		components.Header = header
 		components.Footer = footer
 		if success && h.validateComponents(header, footer) {
@@ -314,7 +334,9 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 
 	// If single-line failed and multi-line wasn't preferred, try multi-line
 	if !h.languageStyle.PreferMulti && h.languageStyle.MultiStart != "" {
-		header, bodyLines, footer, endIndex, success := extractor.extractMultiLineComments(remainingLines)
+		header, bodyLines, footer, endIndex, success := extractor.extractMultiLineComments(
+			remainingLines,
+		)
 		components.Header = header
 		components.Footer = footer
 		if success && h.validateComponents(header, footer) {
@@ -332,7 +354,11 @@ func (h *GenericHandler) ExtractComponents(content string) (components Extracted
 	return components, false
 }
 
-func (h *GenericHandler) FormatLicense(license string, commentStyle styles.CommentLanguage, style styles.HeaderFooterStyle) FullLicenseBlock {
+func (h *GenericHandler) FormatLicense(
+	license string,
+	commentStyle styles.CommentLanguage,
+	style styles.HeaderFooterStyle,
+) FullLicenseBlock {
 	// Use FormatComment to do the heavy lifting
 	formatted := FormatComment(license, commentStyle, style)
 
