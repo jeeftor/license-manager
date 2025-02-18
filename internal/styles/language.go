@@ -47,10 +47,10 @@ var LanguageExtensions = map[string]CommentLanguage{
 	".py": {
 		Language:    "python",
 		Single:      "#",
-		MultiStart:  "'''",
-		MultiEnd:    "'''",
+		MultiStart:  `"""`,
+		MultiEnd:    `"""`,
 		MultiPrefix: "",
-		LinePrefix:  " ",
+		LinePrefix:  "",
 		PreferMulti: true,
 	},
 	".go": {

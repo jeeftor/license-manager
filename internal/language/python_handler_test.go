@@ -83,7 +83,7 @@ func TestPythonHandler_FormatLicense(t *testing.T) {
 		name    string
 		license string
 		style   styles.HeaderFooterStyle
-		want    string
+		want    FullLicenseBlock
 	}{
 		{
 			name:    "single line license",
@@ -92,11 +92,16 @@ func TestPythonHandler_FormatLicense(t *testing.T) {
 				Header: "License Header",
 				Footer: "License Footer",
 			},
-			want: `'''
+			want: FullLicenseBlock{
+				String: `'''
  * License Header
  * Copyright 2025 Example Corp
  * License Footer
  '''`,
+				Header: "License Header",
+				Body:   "Copyright 2025 Example Corp",
+				Footer: "License Footer",
+			},
 		},
 		{
 			name: "multi line license",
@@ -108,7 +113,8 @@ Licensed under MIT License`,
 				Header: "License Header",
 				Footer: "License Footer",
 			},
-			want: `'''
+			want: FullLicenseBlock{
+				String: `'''
  * License Header
  * Copyright 2025 Example Corp
  * All rights reserved.
@@ -116,6 +122,13 @@ Licensed under MIT License`,
  * Licensed under MIT License
  * License Footer
  '''`,
+				Header: "License Header",
+				Body: `Copyright 2025 Example Corp
+All rights reserved.
+
+Licensed under MIT License`,
+				Footer: "License Footer",
+			},
 		},
 	}
 
@@ -127,11 +140,175 @@ Licensed under MIT License`,
 			got := h.FormatLicense(tt.license, commentStyle, tt.style)
 
 			// Normalize line endings
-			got = strings.ReplaceAll(got, "\r\n", "\n")
-			tt.want = strings.ReplaceAll(tt.want, "\r\n", "\n")
+			gotString := strings.ReplaceAll(got.String, "\r\n", "\n")
+			wantString := strings.ReplaceAll(tt.want.String, "\r\n", "\n")
 
-			if got != tt.want {
-				t.Errorf("PythonHandler.FormatLicense() = %q, want %q", got, tt.want)
+			if gotString != wantString {
+				t.Errorf(
+					"PythonHandler.FormatLicense() String = %q, want %q",
+					gotString,
+					wantString,
+				)
+			}
+
+			// Compare normalized components
+			gotHeader := normalizeText(got.Header)
+			wantHeader := normalizeText(tt.want.Header)
+			if gotHeader != wantHeader {
+				t.Errorf("Header = %q, want %q", gotHeader, wantHeader)
+			}
+
+			gotBody := normalizeText(got.Body)
+			wantBody := normalizeText(tt.want.Body)
+			if gotBody != wantBody {
+				t.Errorf("Body = %q, want %q", gotBody, wantBody)
+			}
+
+			gotFooter := normalizeText(got.Footer)
+			wantFooter := normalizeText(tt.want.Footer)
+			if gotFooter != wantFooter {
+				t.Errorf("Footer = %q, want %q", gotFooter, wantFooter)
+			}
+		})
+	}
+}
+
+func TestPythonHandler_ExtractComponents(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		style   styles.HeaderFooterStyle
+		want    ExtractedComponents
+	}{
+		{
+			name: "triple double quotes with markers",
+			content: `"""
+​License Header‌
+Copyright 2025 Example Corp
+​License Footer‌
+"""`,
+			style: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			want: ExtractedComponents{
+				Header: "License Header",
+				Body:   "Copyright 2025 Example Corp",
+				Footer: "License Footer",
+			},
+		},
+		{
+			name: "triple single quotes with markers",
+			content: `'''
+​License Header‌
+Copyright 2025 Example Corp
+​License Footer‌
+'''`,
+			style: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			want: ExtractedComponents{
+				Header: "License Header",
+				Body:   "Copyright 2025 Example Corp",
+				Footer: "License Footer",
+			},
+		},
+		{
+			name: "hash comments with markers",
+			content: `# ​License Header‌
+# Copyright 2025 Example Corp
+# ​License Footer‌`,
+			style: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			want: ExtractedComponents{
+				Header: "License Header",
+				Body:   "Copyright 2025 Example Corp",
+				Footer: "License Footer",
+			},
+		},
+		{
+			name: "unicode escape sequences",
+			content: `"""
+\u200bLicense Header\u200c
+Copyright 2025 Example Corp
+\u200bLicense Footer\u200c
+"""`,
+			style: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			want: ExtractedComponents{
+				Header: "License Header",
+				Body:   "Copyright 2025 Example Corp",
+				Footer: "License Footer",
+			},
+		},
+		{
+			name: "mixed style - hash in triple quotes",
+			content: `"""
+# ​License Header‌
+# Copyright 2025 Example Corp
+# ​License Footer‌
+"""`,
+			style: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			want: ExtractedComponents{
+				Header: "License Header",
+				Body:   "Copyright 2025 Example Corp",
+				Footer: "License Footer",
+			},
+		},
+		{
+			name: "with extra whitespace",
+			content: `"""
+   ​License Header‌
+   Copyright 2025 Example Corp
+   ​License Footer‌
+"""`,
+			style: styles.HeaderFooterStyle{
+				Header: "License Header",
+				Footer: "License Footer",
+			},
+			want: ExtractedComponents{
+				Header: "License Header",
+				Body:   "Copyright 2025 Example Corp",
+				Footer: "License Footer",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testLogger := logger.NewLogger(logger.InfoLevel)
+			h := NewPythonHandler(testLogger, tt.style)
+			got, success := h.ExtractComponents(tt.content)
+
+			if !success {
+				t.Errorf("PythonHandler.ExtractComponents() success = false, want true")
+			}
+
+			// Compare normalized versions
+			gotHeader := normalizeText(got.Header)
+			wantHeader := normalizeText(tt.want.Header)
+			if gotHeader != wantHeader {
+				t.Errorf("Header = %q, want %q", gotHeader, wantHeader)
+			}
+
+			gotBody := normalizeText(got.Body)
+			wantBody := normalizeText(tt.want.Body)
+			if gotBody != wantBody {
+				t.Errorf("Body = %q, want %q", gotBody, wantBody)
+			}
+
+			gotFooter := normalizeText(got.Footer)
+			wantFooter := normalizeText(tt.want.Footer)
+			if gotFooter != wantFooter {
+				t.Errorf("Footer = %q, want %q", gotFooter, wantFooter)
 			}
 		})
 	}
