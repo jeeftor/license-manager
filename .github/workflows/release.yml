@@ -107,6 +107,11 @@ jobs:
             - name: Install CycloneDX
               run: |
                   go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+            - name: Install Syft
+              run: |
+                  curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+
 
               # Run GoReleaser with the GitHub App token
             - name: GoReleaser
