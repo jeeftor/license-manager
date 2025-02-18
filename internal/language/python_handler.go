@@ -225,10 +225,34 @@ func (h *PythonHandler) ExtractComponents(
 		if foundHeader && foundFooter {
 			body := strings.TrimSpace(strings.Join(bodyLines, "\n"))
 
+			// Find the rest of the content after the license block
+			var rest string
+			inLicenseBlock := false
+			seenEndQuote := false
+			for _, line := range lines {
+				trimmed := strings.TrimSpace(line)
+				if strings.HasPrefix(trimmed, `"""`) || strings.HasPrefix(trimmed, `'''`) {
+					if !inLicenseBlock {
+						inLicenseBlock = true
+					} else {
+						seenEndQuote = true
+					}
+					continue
+				}
+				if seenEndQuote {
+					if rest == "" {
+						rest = line
+					} else {
+						rest = rest + "\n" + line
+					}
+				}
+			}
+
 			return ExtractedComponents{
 				Header: header,
 				Body:   body,
 				Footer: footer,
+				Rest:   rest,
 				FullLicenseBlock: &FullLicenseBlock{
 					String: content,
 					Header: header,
@@ -242,8 +266,10 @@ func (h *PythonHandler) ExtractComponents(
 	// Try single-line comments if triple quotes didn't work
 	var header, footer string
 	var bodyLines []string
+	var rest []string
 	foundHeader := false
 	foundFooter := false
+	inLicenseBlock := false
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -256,17 +282,21 @@ func (h *PythonHandler) ExtractComponents(
 				if !foundHeader {
 					header = normalizedLine
 					foundHeader = true
+					inLicenseBlock = true
 					continue
 				} else {
 					footer = normalizedLine
 					foundFooter = true
-					break
+					inLicenseBlock = false
+					continue
 				}
 			}
 
 			if foundHeader && !foundFooter {
 				bodyLines = append(bodyLines, trimmed)
 			}
+		} else if !inLicenseBlock && (foundFooter || !foundHeader) {
+			rest = append(rest, line)
 		}
 	}
 
@@ -276,6 +306,7 @@ func (h *PythonHandler) ExtractComponents(
 			Header: header,
 			Body:   body,
 			Footer: footer,
+			Rest:   strings.Join(rest, "\n"),
 			FullLicenseBlock: &FullLicenseBlock{
 				String: content,
 				Header: header,
