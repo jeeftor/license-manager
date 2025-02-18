@@ -42,16 +42,16 @@ archives:
           - LICENSE*
           - CHANGELOG*
 
-sboms:
-    - documents:
-          - '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.bom.json'
-      artifacts: binary
-      cmd: cyclonedx-gomod
-      args: [app, -licenses, -json, -output, $document, ../]
-      env:
-          - GOARCH={{ .Arch }}
-          - GOOS={{ .Os }}
-          - GOFLAGS=-tags=foo,bar
+#sboms:
+#  - documents:
+#      - '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.bom.json'
+#    artifacts: binary
+#    cmd: cyclonedx-gomod
+#    args: [app, -json, -output, $document, -main, "../cmd/license-manager"]
+#    env:
+#      - GOARCH={{ .Arch }}
+#      - GOOS={{ .Os }}
+#      - GOFLAGS=-tags=foo,bar
 
 nfpms:
     - package_name: license-manager
