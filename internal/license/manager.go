@@ -186,6 +186,31 @@ func (m *LicenseManager) getLanguageHandler(fileType string) language.LanguageHa
 	return handler
 }
 
+// Common utility function to rebuild file content from components
+func (m *LicenseManager) rebuildContent(
+	components *language.ExtractedComponents,
+	newLicenseBlock string,
+) string {
+	var parts []string
+
+	if components.Preamble != "" {
+		parts = append(parts, components.Preamble)
+	}
+
+	if newLicenseBlock != "" {
+		parts = append(parts, newLicenseBlock)
+	}
+
+	if components.Rest != "" {
+		if !strings.HasPrefix(components.Rest, "\n") && len(parts) > 0 {
+			parts = append(parts, "") // Add blank line before content
+		}
+		parts = append(parts, strings.TrimPrefix(components.Rest, "\n"))
+	}
+
+	return strings.Join(parts, "\n")
+}
+
 // HasLicense checks if content contains any license block
 func (m *LicenseManager) HasLicense(content string) (bool, *language.ExtractedComponents) {
 	actualType := reflect.TypeOf(m.langHandler)
@@ -233,26 +258,18 @@ func (m *LicenseManager) HasLicense(content string) (bool, *language.ExtractedCo
 	return success, &components
 }
 
-// AddLicense adds a license block to the content
-func (m *LicenseManager) AddLicense(content string, fileType string) (string, error) {
+func (m *LicenseManager) AddLicense(
+	components *language.ExtractedComponents,
+	fileType string,
+) (string, error) {
 	m.logger.LogVerbose("Adding license to content...")
 
 	// Get language handler
 	handler := m.getLanguageHandler(fileType)
 
-	// Extract preamble (e.g., shebang, package declaration)
-	preamble, rest := handler.PreservePreamble(content)
-	if m.logger != nil {
-		if preamble != "" {
-			m.logger.LogVerbose("Found preamble: %s", truncateString(preamble, 50))
-		}
-	}
-
-	hasLicense, _ := m.HasLicense(rest)
-	// Check for existing license
-	if hasLicense {
-		// If we're updating, allow the license to be replaced
-		if status := m.CheckLicenseStatus(rest); status == FullMatch {
+	// We already know the license status from SearchForLicense
+	if m.HasInitialLicense {
+		if status := m.CheckLicenseStatus(m.FileContent); status == FullMatch {
 			return "", errors.NewLicenseError("license already exists and matches", "add")
 		}
 	}
@@ -260,30 +277,34 @@ func (m *LicenseManager) AddLicense(content string, fileType string) (string, er
 	// Format license block with comment style
 	licenseBlock := m.formatLicenseBlock(m.licenseTemplate)
 
-	// Scan for build directives
-	directives, endIndex := handler.ScanBuildDirectives(rest)
-	if m.logger != nil {
-		if len(directives) > 0 {
-			m.logger.LogVerbose("Found %d build directives", len(directives))
-		}
+	// Handle special case for c-go style headers
+	if m.commentStyle.Language == "go" && strings.HasPrefix(components.Header, "#include") {
+		m.logger.LogVerbose("Detected c-go style header... skipping")
+		return m.FileContent, nil
 	}
 
-	// Split content at build directives
+	// Scan for build directives in the Rest part
+	directives, endIndex := handler.ScanBuildDirectives(components.Rest)
+	if len(directives) > 0 {
+		m.logger.LogVerbose("Found %d build directives", len(directives))
+	}
+
+	// Split the Rest content at build directives
 	var beforeDirectives, afterDirectives string
 	if len(directives) > 0 {
-		lines := strings.Split(rest, "\n")
+		lines := strings.Split(components.Rest, "\n")
 		beforeDirectives = strings.Join(lines[:endIndex], "\n")
 		if endIndex < len(lines) {
 			afterDirectives = strings.Join(lines[endIndex:], "\n")
 		}
 	} else {
-		afterDirectives = rest
+		afterDirectives = components.Rest
 	}
 
 	// Build final content
 	var parts []string
-	if preamble != "" {
-		parts = append(parts, preamble)
+	if components.Preamble != "" {
+		parts = append(parts, components.Preamble)
 	}
 	if len(directives) > 0 {
 		parts = append(parts, beforeDirectives)
@@ -299,69 +320,103 @@ func (m *LicenseManager) AddLicense(content string, fileType string) (string, er
 	return strings.Join(parts, "\n"), nil
 }
 
-// RemoveLicense removes the license block from the content
-func (m *LicenseManager) RemoveLicense(content string, fileType string) (string, error) {
+//// RemoveLicense removes the license block from the content
+//func (m *LicenseManager) RemoveLicense(content string, fileType string) (string, error) {
+//	m.logger.LogDebug("  Attempting to remove license block...")
+//	handler := m.getLanguageHandler(fileType)
+//
+//	// First extract any preamble (build directives, etc.)
+//	preamble, rest := handler.PreservePreamble(content)
+//
+//	// Check if rest has a license block
+//	hasLicense, _ := m.HasLicense(rest)
+//	if !hasLicense {
+//		m.logger.LogDebug("  RemoveLicense::No license block detected in content")
+//		return content, nil
+//	}
+//
+//	// Extract components from the rest of the content
+//	extract, _ := handler.ExtractComponents(rest)
+//
+//	// Build final content:
+//	// 1. Start with preamble if it exists
+//	// 2. Add rest of content after license
+//	var parts []string
+//	if preamble != "" {
+//		parts = append(parts, preamble)
+//	}
+//	if extract.Rest != "" {
+//		parts = append(parts, strings.TrimSpace(extract.Rest))
+//	}
+//
+//	return strings.Join(parts, "\n\n"), nil
+//}
+
+// RemoveLicense removes the license block from the content using existing components
+func (m *LicenseManager) RemoveLicense(
+	components *language.ExtractedComponents,
+	fileType string,
+) (string, error) {
 	m.logger.LogDebug("  Attempting to remove license block...")
-	handler := m.getLanguageHandler(fileType)
 
-	// First extract any preamble (build directives, etc.)
-	preamble, rest := handler.PreservePreamble(content)
-
-	// Check if rest has a license block
-	hasLicense, _ := m.HasLicense(rest)
-	if !hasLicense {
+	if !m.HasInitialLicense {
 		m.logger.LogDebug("  RemoveLicense::No license block detected in content")
-		return content, nil
+		return m.FileContent, nil
 	}
 
-	// Extract components from the rest of the content
-	extract, _ := handler.ExtractComponents(rest)
-
-	// Build final content:
-	// 1. Start with preamble if it exists
-	// 2. Add rest of content after license
-	var parts []string
-	if preamble != "" {
-		parts = append(parts, preamble)
-	}
-	if extract.Rest != "" {
-		parts = append(parts, strings.TrimSpace(extract.Rest))
-	}
-
-	return strings.Join(parts, "\n\n"), nil
+	// Rebuild content without the license block
+	return m.rebuildContent(components, ""), nil
 }
 
-// UpdateLicense updates the license block in the content
-func (m *LicenseManager) UpdateLicense(content string, fileType string) (string, error) {
+// UpdateLicense updates the license block using existing components
+func (m *LicenseManager) UpdateLicense(
+	components *language.ExtractedComponents,
+	fileType string,
+) (string, error) {
 	m.logger.LogDebug("Attempting to update license block...")
-	handler := m.getLanguageHandler(fileType)
 
-	// First extract any preamble (build directives, etc.)
-	preamble, rest := handler.PreservePreamble(content)
-
-	// Check if rest has a license block
-	hasLicense, _ := m.HasLicense(rest)
-	if !hasLicense {
+	if !m.HasInitialLicense {
 		return "", errors.NewLicenseError("content has no license to update", "")
 	}
 
-	// Extract components from the rest of the content
-	extract, _ := handler.ExtractComponents(rest)
+	// Format the new license block
+	newLicenseBlock := m.formatLicenseBlock(m.licenseTemplate)
 
-	// Build content without license:
-	// 1. Start with preamble if it exists
-	// 2. Add rest of content after license
-	var parts []string
-	if preamble != "" {
-		parts = append(parts, preamble)
-	}
-	if extract.Rest != "" {
-		parts = append(parts, strings.TrimSpace(extract.Rest))
-	}
-
-	// Add the new license
-	return m.AddLicense(strings.Join(parts, "\n\n"), fileType)
+	// Rebuild the content with the new license block
+	return m.rebuildContent(components, newLicenseBlock), nil
 }
+
+//// UpdateLicense updates the license block in the content
+//func (m *LicenseManager) UpdateLicense(content string, fileType string) (string, error) {
+//	m.logger.LogDebug("Attempting to update license block...")
+//	handler := m.getLanguageHandler(fileType)
+//
+//	// First extract any preamble (build directives, etc.)
+//	preamble, rest := handler.PreservePreamble(content)
+//
+//	// Check if rest has a license block
+//	hasLicense, _ := m.HasLicense(rest)
+//	if !hasLicense {
+//		return "", errors.NewLicenseError("content has no license to update", "")
+//	}
+//
+//	// Extract components from the rest of the content
+//	extract, _ := handler.ExtractComponents(rest)
+//
+//	// Build content without license:
+//	// 1. Start with preamble if it exists
+//	// 2. Add rest of content after license
+//	var parts []string
+//	if preamble != "" {
+//		parts = append(parts, preamble)
+//	}
+//	if extract.Rest != "" {
+//		parts = append(parts, strings.TrimSpace(extract.Rest))
+//	}
+//
+//	// Add the new license
+//	return m.AddLicense(strings.Join(parts, "\n\n"), fileType)
+//}
 
 func (m *LicenseManager) CheckLicenseStatus(content string) Status {
 

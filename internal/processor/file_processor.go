@@ -192,6 +192,7 @@ func (fp *FileProcessor) prepareOperation() ([]string, error) {
 }
 
 // Add adds license headers to files
+// In file_processor.go
 func (fp *FileProcessor) Add() error {
 	files, err := fp.prepareOperation()
 	if err != nil {
@@ -205,6 +206,7 @@ func (fp *FileProcessor) Add() error {
 			continue
 		}
 
+		// We already have license status from SearchForLicense() in createLicenseManager
 		if manager.HasInitialLicense {
 			fp.stats["existing"]++
 			if !fp.config.IsPreCommit {
@@ -213,14 +215,11 @@ func (fp *FileProcessor) Add() error {
 			continue
 		}
 
-		newContent, err := manager.AddLicense(manager.InitialComponents.Rest, commentStyle.Language)
+		// Use the components we already have instead of re-extracting
+		newContent, err := manager.AddLicense(manager.InitialComponents, commentStyle.Language)
 		if err != nil {
 			fp.handleFileError(file, "add license to", err)
 			continue
-		}
-
-		if manager.InitialComponents.Preamble != "" {
-			newContent = manager.InitialComponents.Preamble + "\n" + newContent
 		}
 
 		// Debug the actual comment being added in verbose mode
@@ -243,55 +242,6 @@ func (fp *FileProcessor) Add() error {
 		fp.logger.LogSuccess("Added license to %s", file)
 	}
 
-	return nil
-}
-
-// Remove removes license headers from files
-func (fp *FileProcessor) Remove() error {
-	files, err := fp.prepareOperation()
-	if err != nil {
-		return err
-	}
-
-	for _, file := range files {
-		manager, commentStyle, err := fp.createLicenseManager(file)
-		if err != nil {
-			fp.handleFileError(file, "process", err)
-			continue
-		}
-
-		if !manager.HasInitialLicense {
-			fp.stats["skipped"]++
-			fp.logger.LogInfo("No license found in %s", file)
-			continue
-		}
-
-		newContent, err := manager.RemoveLicense(manager.FileContent, commentStyle.Language)
-		if err != nil {
-			fp.handleFileError(file, "remove license from", err)
-			continue
-		}
-
-		if newContent == manager.FileContent {
-			fp.stats["unchanged"]++
-			fp.logger.LogInfo("No changes needed for %s", file)
-			continue
-		}
-
-		if !fp.confirmAction("remove", file) {
-			continue
-		}
-
-		if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
-			fp.handleFileError(file, "write", err)
-			continue
-		}
-
-		fp.stats["removed"]++
-		fp.logger.LogSuccess("Removed license from %s", file)
-	}
-
-	fp.logger.PrintStats(fp.stats, "Removed")
 	return nil
 }
 
@@ -322,7 +272,7 @@ func (fp *FileProcessor) Update() error {
 			continue
 		}
 
-		newContent, err := manager.UpdateLicense(manager.FileContent, commentStyle.Language)
+		newContent, err := manager.UpdateLicense(manager.InitialComponents, commentStyle.Language)
 		if err != nil {
 			fp.handleFileError(file, "update license in", err)
 			continue
@@ -342,6 +292,55 @@ func (fp *FileProcessor) Update() error {
 	}
 
 	fp.logger.PrintStats(fp.stats, "Updated")
+	return nil
+}
+
+// Remove removes license headers from files
+func (fp *FileProcessor) Remove() error {
+	files, err := fp.prepareOperation()
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		manager, commentStyle, err := fp.createLicenseManager(file)
+		if err != nil {
+			fp.handleFileError(file, "process", err)
+			continue
+		}
+
+		if !manager.HasInitialLicense {
+			fp.stats["skipped"]++
+			fp.logger.LogInfo("No license found in %s", file)
+			continue
+		}
+
+		newContent, err := manager.RemoveLicense(manager.InitialComponents, commentStyle.Language)
+		if err != nil {
+			fp.handleFileError(file, "remove license from", err)
+			continue
+		}
+
+		if newContent == manager.FileContent {
+			fp.stats["unchanged"]++
+			fp.logger.LogInfo("No changes needed for %s", file)
+			continue
+		}
+
+		if !fp.confirmAction("remove", file) {
+			continue
+		}
+
+		if err := fp.fileHandler.WriteFile(file, newContent); err != nil {
+			fp.handleFileError(file, "write", err)
+			continue
+		}
+
+		fp.stats["removed"]++
+		fp.logger.LogSuccess("Removed license from %s", file)
+	}
+
+	fp.logger.PrintStats(fp.stats, "Removed")
 	return nil
 }
 
