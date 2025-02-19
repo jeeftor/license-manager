@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jeeftor/license-manager/internal/language"
+
 	"github.com/fatih/color"
 	"github.com/jeeftor/license-manager/internal/force"
 	"github.com/jeeftor/license-manager/internal/license"
@@ -178,8 +180,8 @@ func (fp *FileProcessor) handleFileError(file, operation string, err error) bool
 	return false
 }
 
-// prepareOperation sets up common operation requirements
-func (fp *FileProcessor) prepareOperation() ([]string, error) {
+// PrepareOperation sets up common operation requirements
+func (fp *FileProcessor) PrepareOperation() ([]string, error) {
 	fp.resetStats()
 
 	files, err := fp.fileHandler.FindFiles(fp.config.Input)
@@ -191,10 +193,26 @@ func (fp *FileProcessor) prepareOperation() ([]string, error) {
 	return files, nil
 }
 
+// GetFileComponents extracts and returns the components from a file
+func (fp *FileProcessor) GetFileComponents(
+	file string,
+) (*license.LicenseManager, *language.ExtractedComponents, error) {
+	manager, _, err := fp.createLicenseManager(file)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error processing file %s: %v", file, err)
+	}
+
+	if manager.InitialComponents == nil {
+		return nil, nil, fmt.Errorf("no components extracted from file %s", file)
+	}
+
+	return manager, manager.InitialComponents, nil
+}
+
 // Add adds license headers to files
 // In file_processor.go
 func (fp *FileProcessor) Add() error {
-	files, err := fp.prepareOperation()
+	files, err := fp.PrepareOperation()
 	if err != nil {
 		return err
 	}
@@ -247,7 +265,7 @@ func (fp *FileProcessor) Add() error {
 
 // Update updates license headers in files
 func (fp *FileProcessor) Update() error {
-	files, err := fp.prepareOperation()
+	files, err := fp.PrepareOperation()
 	if err != nil {
 		return err
 	}
@@ -297,7 +315,7 @@ func (fp *FileProcessor) Update() error {
 
 // Remove removes license headers from files
 func (fp *FileProcessor) Remove() error {
-	files, err := fp.prepareOperation()
+	files, err := fp.PrepareOperation()
 	if err != nil {
 		return err
 	}
@@ -346,7 +364,7 @@ func (fp *FileProcessor) Remove() error {
 
 // Check verifies license headers in files
 func (fp *FileProcessor) Check() error {
-	files, err := fp.prepareOperation()
+	files, err := fp.PrepareOperation()
 	if err != nil {
 		return err
 	}
