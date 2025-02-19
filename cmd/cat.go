@@ -275,38 +275,39 @@ Use -s or --special to show special characters (spaces, CR, LF).`,
 
 			lic := components.FullLicenseBlock
 
-			licenseStrings := strings.Split(lic.String, "\n")
+			if lic != nil {
+				licenseStrings := strings.Split(lic.String, "\n")
 
-			for i, line := range licenseStrings {
-				if i < lic.BodyStart {
-					output = append(output, addLetterPrefix(
-						line,
-						"H",
-						sections[1].color,
-						currentLine+i,
-						cfgShowLineNumbers,
-					))
-				} else if i < lic.FooterStart {
-					output = append(output, addLetterPrefix(
-						line,
-						"L",
-						sections[2].color,
-						currentLine+i,
-						cfgShowLineNumbers,
-					))
-				} else {
-					output = append(output, addLetterPrefix(
-						line,
-						"F",
-						sections[3].color,
-						currentLine+i,
-						cfgShowLineNumbers,
-					))
+				for i, line := range licenseStrings {
+					if i < lic.BodyStart {
+						output = append(output, addLetterPrefix(
+							line,
+							"H",
+							sections[1].color,
+							currentLine+i,
+							cfgShowLineNumbers,
+						))
+					} else if i < lic.FooterStart {
+						output = append(output, addLetterPrefix(
+							line,
+							"L",
+							sections[2].color,
+							currentLine+i,
+							cfgShowLineNumbers,
+						))
+					} else {
+						output = append(output, addLetterPrefix(
+							line,
+							"F",
+							sections[3].color,
+							currentLine+i,
+							cfgShowLineNumbers,
+						))
+					}
 				}
+
+				currentLine += len(strings.Split(components.FullLicenseBlock.String, "\n"))
 			}
-
-			currentLine += len(strings.Split(components.FullLicenseBlock.String, "\n"))
-
 			if components.Rest != "" {
 				output = append(
 					output,
