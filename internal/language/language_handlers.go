@@ -37,10 +37,16 @@ type ExtractedComponents struct {
 }
 
 type FullLicenseBlock struct {
-	String string // Entire license block
-	Body   string // just body
-	Header string // header portion
-	Footer string // footer portion
+	String      string // Entire license block
+	Body        string // just body
+	Header      string // header portion
+	Footer      string // footer portion
+	BodyStart   int
+	FooterStart int
+}
+
+func GetLicenseParts(f *FullLicenseBlock) (string, string, string) {
+	return "", "", ""
 }
 
 // CommentExtractor handles the extraction of comment blocks
@@ -310,6 +316,7 @@ func (h *GenericHandler) ExtractComponents(
 
 			return components, true
 		} else {
+
 			h.logger.LogDebug("Multi-line extraction failed -- trying single-line")
 		}
 	}
@@ -334,10 +341,12 @@ func (h *GenericHandler) ExtractComponents(
 
 	// If single-line failed and multi-line wasn't preferred, try multi-line
 	if !h.languageStyle.PreferMulti && h.languageStyle.MultiStart != "" {
+		//TODO: I think this fails regardless of the case
 		header, bodyLines, footer, endIndex, success := extractor.extractMultiLineComments(
 			remainingLines,
 		)
 		components.Header = header
+
 		components.Footer = footer
 		if success && h.validateComponents(header, footer) {
 			components.Body = strings.Join(bodyLines, "\n")
@@ -365,20 +374,24 @@ func (h *GenericHandler) FormatLicense(
 	// Extract the parts we need for the FullLicenseBlock
 	lines := strings.Split(formatted, "\n")
 	var headerFormatted, bodyFormatted, footerFormatted string
+	var bodyStart, footerStart int = -1, -1 // Initialize to -1 (unset)
 
 	if len(lines) > 0 {
 		// Find header (first line with markers)
-		for _, line := range lines {
+		for i, line := range lines {
 			if hasMarkers(line) {
 				headerFormatted = strings.TrimSpace(stripMarkers(line))
+				bodyStart = i + 1
 				break
 			}
+
 		}
 
 		// Find footer (last line with markers)
 		for i := len(lines) - 1; i >= 0; i-- {
 			if hasMarkers(lines[i]) {
 				footerFormatted = strings.TrimSpace(stripMarkers(lines[i]))
+				footerStart = i
 				break
 			}
 		}
@@ -402,10 +415,12 @@ func (h *GenericHandler) FormatLicense(
 	}
 
 	return FullLicenseBlock{
-		String: formatted,
-		Body:   bodyFormatted,
-		Header: headerFormatted,
-		Footer: footerFormatted,
+		String:      formatted,
+		Header:      headerFormatted,
+		Body:        bodyFormatted,
+		BodyStart:   bodyStart,
+		Footer:      footerFormatted,
+		FooterStart: footerStart,
 	}
 }
 

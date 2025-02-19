@@ -39,6 +39,7 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 	var lastWasDirective bool
 	var inBuildSection bool
 	var inGenerateSection bool
+	var blankLinesAfterDirectives int
 
 	if h.logger != nil {
 		h.logger.LogVerbose("Go handler: Scanning 📡️ for directives...")
@@ -64,8 +65,8 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 			isGenerate := h.isGenerateDirective(line)
 			if !inGenerateSection && isGenerate {
 				inGenerateSection = true
-				if inBuildSection {
-					// Add a blank line between build and generate sections
+				if inBuildSection && len(directives) > 0 && directives[len(directives)-1] != "" {
+					// Add a blank line only if the last line wasn’t already blank
 					directives = append(directives, "")
 				}
 			}
@@ -82,12 +83,18 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 				)
 			}
 		} else if trimmed == "" {
-			// Keep blank lines if we're still in a directive section
+			// Keep up to two blank lines after the last directive
 			if lastWasDirective {
-				directives = append(directives, line)
-				if h.logger != nil {
-					h.logger.LogVerbose("  Found ↕ blank line after directive")
+				if blankLinesAfterDirectives < 2 {
+					directives = append(directives, line)
+					blankLinesAfterDirectives++
+					if h.logger != nil {
+						h.logger.LogVerbose("  Found ↕ blank line after directive")
+					}
 				}
+			} else if blankLinesAfterDirectives > 0 {
+				// Stop collecting blank lines if we’re past the directive section
+				return directives, i, true
 			}
 		} else {
 			// If we hit a non-directive line that's not a package declaration
@@ -110,8 +117,13 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 		}
 	}
 
-	// If we found directives, return them
+	// If we found directives, return them with the correct end index
 	if len(directives) > 0 {
+		// Trim any trailing empty strings beyond two
+		for len(directives) > 0 && directives[len(directives)-1] == "" && blankLinesAfterDirectives > 2 {
+			directives = directives[:len(directives)-1]
+			blankLinesAfterDirectives--
+		}
 		return directives, len(lines), true
 	}
 	return nil, len(lines), false

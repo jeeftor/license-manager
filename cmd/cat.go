@@ -247,6 +247,7 @@ Use -s or --special to show special characters (spaces, CR, LF).`,
 			}
 
 			_, components, err := p.GetFileComponents(file)
+
 			if err != nil {
 				return fmt.Errorf("error processing file %s: %v", file, err)
 			}
@@ -270,45 +271,42 @@ Use -s or --special to show special characters (spaces, CR, LF).`,
 				)
 				currentLine += len(strings.Split(components.Preamble, "\n"))
 			}
-			if components.Header != "" {
-				output = append(
-					output,
-					addLetterPrefix(
-						components.Header,
+			// process license block
+
+			lic := components.FullLicenseBlock
+
+			licenseStrings := strings.Split(lic.String, "\n")
+
+			for i, line := range licenseStrings {
+				if i < lic.BodyStart {
+					output = append(output, addLetterPrefix(
+						line,
 						"H",
 						sections[1].color,
-						currentLine,
+						currentLine+i,
 						cfgShowLineNumbers,
-					),
-				)
-				currentLine += len(strings.Split(components.Header, "\n"))
-			}
-			if components.Body != "" {
-				output = append(
-					output,
-					addLetterPrefix(
-						components.Body,
-						"B",
+					))
+				} else if i < lic.FooterStart {
+					output = append(output, addLetterPrefix(
+						line,
+						"L",
 						sections[2].color,
-						currentLine,
+						currentLine+i,
 						cfgShowLineNumbers,
-					),
-				)
-				currentLine += len(strings.Split(components.Body, "\n"))
-			}
-			if components.Footer != "" {
-				output = append(
-					output,
-					addLetterPrefix(
-						components.Footer,
+					))
+				} else {
+					output = append(output, addLetterPrefix(
+						line,
 						"F",
 						sections[3].color,
-						currentLine,
+						currentLine+i,
 						cfgShowLineNumbers,
-					),
-				)
-				currentLine += len(strings.Split(components.Footer, "\n"))
+					))
+				}
 			}
+
+			currentLine += len(strings.Split(components.FullLicenseBlock.String, "\n"))
+
 			if components.Rest != "" {
 				output = append(
 					output,
