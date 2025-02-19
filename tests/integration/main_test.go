@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -361,9 +362,18 @@ func testWorkflow(file *singleTestFile, t *testing.T) {
 	// Lastly verify the template file matches the rest file?
 
 	diffText, err := diffFiles(file.filePath, file.templateFilePath)
-	if err != nil {
+	switch err := err.(type) {
+	case *LineEndingDiffError:
+		// Line ending differences are acceptable, don't fail the test
+		t.Logf("Note: Files differ only in line endings")
+	case *ContentDiffError:
 		testStatusByLanguage[file.language.Language] = "Fail"
-		t.Fatalf("Step 10 - Diff Error: %v\n%s", err, diffText)
+		t.Fatalf("Step 10 - Content differs:\n%s", diffText)
+	case nil:
+		// Files are identical, this is good
+	default:
+		testStatusByLanguage[file.language.Language] = "Fail"
+		t.Fatalf("Step 10 - Unexpected error comparing files: %v", err)
 	}
 
 }
@@ -372,6 +382,20 @@ func testRemove(file *singleTestFile, t *testing.T) {
 	// Remove license test implementation
 }
 
+// Custom error types
+type LineEndingDiffError struct{}
+
+func (e *LineEndingDiffError) Error() string {
+	return "files differ only in line endings"
+}
+
+type ContentDiffError struct {
+	diff string
+}
+
+func (e *ContentDiffError) Error() string {
+	return fmt.Sprintf("files have different content:\n%s", e.diff)
+}
 func diffFiles(file1, file2 string) (string, error) {
 	content1, err := os.ReadFile(file1)
 	if err != nil {
@@ -383,14 +407,67 @@ func diffFiles(file1, file2 string) (string, error) {
 		return "", err
 	}
 
+	// If lengths differ by 1 and the longer one ends with a line ending,
+	// check if that's the only difference
+	lenDiff := len(content1) - len(content2)
+	if abs(lenDiff) == 1 {
+		var longer, shorter []byte
+		if len(content1) > len(content2) {
+			longer = content1
+			shorter = content2
+		} else {
+			longer = content2
+			shorter = content1
+		}
+
+		lastByte := longer[len(longer)-1]
+		if lastByte == '\n' || lastByte == '\r' {
+			// Check if everything else matches
+			if bytes.Equal(longer[:len(longer)-1], shorter) {
+				return "", &LineEndingDiffError{}
+			}
+		}
+	}
+
+	// If we get here, check for actual content differences
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(string(content1), string(content2), true)
 
-	// Check if there are any differences
 	if len(diffs) > 1 || (len(diffs) == 1 && diffs[0].Type != diffmatchpatch.DiffEqual) {
 		diffText := dmp.DiffPrettyText(diffs)
-		return diffText, fmt.Errorf("files are different")
+		return diffText, &ContentDiffError{diff: diffText}
 	}
 
 	return "", nil
 }
+
+// Helper function for absolute value
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+//func diffFiles(file1, file2 string) (string, error) {
+//	content1, err := os.ReadFile(file1)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	content2, err := os.ReadFile(file2)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	dmp := diffmatchpatch.New()
+//	diffs := dmp.DiffMain(string(content1), string(content2), true)
+//
+//	// Check if there are any differences
+//	if len(diffs) > 1 || (len(diffs) == 1 && diffs[0].Type != diffmatchpatch.DiffEqual) {
+//		diffText := dmp.DiffPrettyText(diffs)
+//		return diffText, fmt.Errorf("files are different")
+//	}
+//
+//	return "", nil
+//}

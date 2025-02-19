@@ -241,12 +241,15 @@ func (h *PythonHandler) ExtractComponents(
 				}
 				if seenEndQuote {
 					if rest == "" {
-						rest = line
+						rest = strings.TrimLeft(line, "\n")
 					} else {
 						rest = rest + "\n" + line
 					}
 				}
 			}
+
+			// Ensure exactly one trailing newline
+			rest = strings.TrimRight(rest, "\n") + "\n"
 
 			return ExtractedComponents{
 				Header: header,
@@ -266,7 +269,7 @@ func (h *PythonHandler) ExtractComponents(
 	// Try single-line comments if triple quotes didn't work
 	var header, footer string
 	var bodyLines []string
-	var rest []string
+	var restLines []string
 	foundHeader := false
 	foundFooter := false
 	inLicenseBlock := false
@@ -296,17 +299,21 @@ func (h *PythonHandler) ExtractComponents(
 				bodyLines = append(bodyLines, trimmed)
 			}
 		} else if !inLicenseBlock && (foundFooter || !foundHeader) {
-			rest = append(rest, line)
+			restLines = append(restLines, line)
 		}
 	}
 
 	if foundHeader && foundFooter {
 		body := strings.TrimSpace(strings.Join(bodyLines, "\n"))
+		rest := strings.TrimSpace(strings.Join(restLines, "\n"))
+		if rest != "" {
+			rest += "\n"
+		}
 		return ExtractedComponents{
 			Header: header,
 			Body:   body,
 			Footer: footer,
-			Rest:   strings.Join(rest, "\n"),
+			Rest:   rest,
 			FullLicenseBlock: &FullLicenseBlock{
 				String: content,
 				Header: header,

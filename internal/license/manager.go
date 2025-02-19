@@ -301,46 +301,66 @@ func (m *LicenseManager) AddLicense(content string, fileType string) (string, er
 
 // RemoveLicense removes the license block from the content
 func (m *LicenseManager) RemoveLicense(content string, fileType string) (string, error) {
-
 	m.logger.LogDebug("  Attempting to remove license block...")
 	handler := m.getLanguageHandler(fileType)
-	_, rest := handler.PreservePreamble(content)
+
+	// First extract any preamble (build directives, etc.)
+	preamble, rest := handler.PreservePreamble(content)
+
+	// Check if rest has a license block
 	hasLicense, _ := m.HasLicense(rest)
 	if !hasLicense {
 		m.logger.LogDebug("  RemoveLicense::No license block detected in content")
 		return content, nil
 	}
 
-	// Removal Logic - Can be inlined I think
-	extract, _ := handler.ExtractComponents(content)
+	// Extract components from the rest of the content
+	extract, _ := handler.ExtractComponents(rest)
 
-	// Remove existing license -> including a \n usually added after it
-	contentWithoutLicense := extract.Preamble + "\n" + strings.TrimLeft(extract.Rest, "\n")
-	return contentWithoutLicense, nil
+	// Build final content:
+	// 1. Start with preamble if it exists
+	// 2. Add rest of content after license
+	var parts []string
+	if preamble != "" {
+		parts = append(parts, preamble)
+	}
+	if extract.Rest != "" {
+		parts = append(parts, strings.TrimSpace(extract.Rest))
+	}
+
+	return strings.Join(parts, "\n\n"), nil
 }
 
 // UpdateLicense updates the license block in the content
 func (m *LicenseManager) UpdateLicense(content string, fileType string) (string, error) {
-
 	m.logger.LogDebug("Attempting to update license block...")
-	// Use the filetype to identify the correct langauge Handler
 	handler := m.getLanguageHandler(fileType)
 
-	// Determine whether there IS a license
-	_, rest := handler.PreservePreamble(content)
+	// First extract any preamble (build directives, etc.)
+	preamble, rest := handler.PreservePreamble(content)
+
+	// Check if rest has a license block
 	hasLicense, _ := m.HasLicense(rest)
 	if !hasLicense {
 		return "", errors.NewLicenseError("content has no license to update", "")
 	}
 
-	// Removal Logic - Can be inlined I think
-	extract, _ := handler.ExtractComponents(content)
+	// Extract components from the rest of the content
+	extract, _ := handler.ExtractComponents(rest)
 
-	// Remove existing license -> including a \n usually added after it
-	contentWithoutLicense := extract.Preamble + strings.TrimLeft(extract.Rest, "\n")
+	// Build content without license:
+	// 1. Start with preamble if it exists
+	// 2. Add rest of content after license
+	var parts []string
+	if preamble != "" {
+		parts = append(parts, preamble)
+	}
+	if extract.Rest != "" {
+		parts = append(parts, strings.TrimSpace(extract.Rest))
+	}
 
 	// Add the new license
-	return m.AddLicense(contentWithoutLicense, m.commentStyle.Language)
+	return m.AddLicense(strings.Join(parts, "\n\n"), fileType)
 }
 
 func (m *LicenseManager) CheckLicenseStatus(content string) Status {
