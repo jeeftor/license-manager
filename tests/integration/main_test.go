@@ -386,5 +386,11 @@ func diffFiles(file1, file2 string) (string, error) {
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(string(content1), string(content2), true)
 
-	return dmp.DiffPrettyText(diffs), nil
+	// Check if there are any differences
+	if len(diffs) > 1 || (len(diffs) == 1 && diffs[0].Type != diffmatchpatch.DiffEqual) {
+		diffText := dmp.DiffPrettyText(diffs)
+		return diffText, fmt.Errorf("files are different")
+	}
+
+	return "", nil
 }
