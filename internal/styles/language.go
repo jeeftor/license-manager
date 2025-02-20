@@ -1,3 +1,4 @@
+// language.go
 package styles
 
 import "strings"
