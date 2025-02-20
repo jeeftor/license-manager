@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+
+
 def greet(name: str) -> str:
     """Generate a personalized greeting message.
 

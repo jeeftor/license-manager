@@ -25,7 +25,7 @@ func renderLegend() string {
 	}{
 		{"P", "Preamble (build tags, package)", color.New(color.BgRed)},
 		{"H", "License Header", color.New(color.BgGreen)},
-		{"B", "License Body", color.New(color.BgYellow)},
+		{"L", "License Body", color.New(color.BgYellow)},
 		{"F", "License Footer", color.New(color.BgBlue)},
 		{"C", "Code", color.New(color.BgMagenta)},
 	}
@@ -125,9 +125,6 @@ func addLetterPrefix(
 	startLine int,
 	showLineNumbers bool,
 ) string {
-	if text == "" {
-		return ""
-	}
 
 	lines := strings.Split(text, "\n")
 
