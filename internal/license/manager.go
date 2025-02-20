@@ -314,7 +314,7 @@ func (m *LicenseManager) AddLicense(
 		if !strings.HasPrefix(afterDirectives, "\n") {
 			parts = append(parts, "") // Add blank line before content
 		}
-		parts = append(parts, strings.TrimPrefix(afterDirectives, "\n"))
+		parts = append(parts, afterDirectives)
 	}
 
 	return strings.Join(parts, "\n"), nil

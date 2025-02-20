@@ -185,22 +185,59 @@ func addLetterPrefix(
 	return strings.Join(lines, "\n")
 }
 
+// processCatPatterns handles pattern processing specifically for the cat command
+func processCatPatterns(patterns []string) []string {
+	if patterns == nil {
+		return nil
+	}
+
+	var result []string
+	for _, pattern := range patterns {
+		// Split pattern on commas and process each part
+		parts := strings.Split(pattern, ",")
+		for _, part := range parts {
+			if trimmed := strings.TrimSpace(part); trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+	}
+	return result
+}
+
 var catCmd = &cobra.Command{
-	Use:   "cat",
+	Use:   "cat [files...]",
 	Short: "Display file with colored component blocks",
 	Long: `Show file contents with colored block prefixes indicating different components (preamble, license, code).
 
 Use -n or --line-numbers to display line numbers.
-Use -s or --special to show special characters (spaces, CR, LF).`,
+Use -s or --special to show special characters (spaces, CR, LF).
+
+Files can be specified either:
+- As arguments: license-manager cat -n -s file1.go file2.go
+- Using --input flag: license-manager cat -n -s --input "*.go"
+- Or both: license-manager cat -n -s --input "lib/*.go" cmd/*.go`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if cfgInputs == nil {
-			return fmt.Errorf("input file (--input) is required for cat command")
+		// Process all input sources
+		var allInputs []string
+
+		// Process --input flag patterns
+		if cfgInputs != nil {
+			allInputs = append(allInputs, processCatPatterns(cfgInputs)...)
+		}
+
+		// Process command line arguments
+		if len(args) > 0 {
+			allInputs = append(allInputs, processCatPatterns(args)...)
+		}
+
+		// Ensure we have at least one input source
+		if len(allInputs) == 0 {
+			return fmt.Errorf("no input files specified - use arguments or --input flag")
 		}
 
 		appCfg := config.AppConfig{
-			// File paths
-			Inputs: ProcessPatterns(cfgInputs),
-			Skips:  ProcessPatterns(cfgSkips),
+			Inputs: strings.Join(allInputs, ","), // Join processed inputs for compatibility
+			Skips:  ProcessPatterns(cfgSkips),    // Use original ProcessPatterns for skips
 
 			// Style settings
 			HeaderStyle:  cfgPresetStyle,
@@ -335,6 +372,7 @@ func init() {
 	rootCmd.AddCommand(catCmd)
 
 	// Add line number flag
+	catCmd.Flags().StringSliceVar(&cfgInputs, "input", nil, "input file patterns (optional)")
 	catCmd.Flags().BoolVarP(&cfgShowLineNumbers, "line-numbers", "n", false, "show line numbers")
 	catCmd.Flags().BoolVarP(&cfgShowSpecial, "special", "s", false, "show special characters")
 }
