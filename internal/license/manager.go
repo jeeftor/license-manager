@@ -202,10 +202,11 @@ func (m *LicenseManager) rebuildContent(
 	}
 
 	if components.Rest != "" {
-		if !strings.HasPrefix(components.Rest, "\n") && len(parts) > 0 {
-			parts = append(parts, "") // Add blank line before content
-		}
-		parts = append(parts, strings.TrimPrefix(components.Rest, "\n"))
+		parts = append(parts, components.Rest)
+		//if !strings.HasPrefix(components.Rest, "\n") && len(parts) > 0 {
+		//	parts = append(parts, "") // Add blank line before content
+		//}
+		//parts = append(parts, strings.TrimPrefix(components.Rest, "\n"))
 	}
 
 	return strings.Join(parts, "\n")
@@ -311,46 +312,15 @@ func (m *LicenseManager) AddLicense(
 	}
 	parts = append(parts, licenseBlock)
 	if afterDirectives != "" {
-		if !strings.HasPrefix(afterDirectives, "\n") {
-			parts = append(parts, "") // Add blank line before content
-		}
+		//if !strings.HasPrefix(afterDirectives, "\n") {
+		//	parts = append(parts, "") // Add blank line before content
+		//}
 		parts = append(parts, afterDirectives)
 	}
-
 	return strings.Join(parts, "\n"), nil
-}
 
-//// RemoveLicense removes the license block from the content
-//func (m *LicenseManager) RemoveLicense(content string, fileType string) (string, error) {
-//	m.logger.LogDebug("  Attempting to remove license block...")
-//	handler := m.getLanguageHandler(fileType)
-//
-//	// First extract any preamble (build directives, etc.)
-//	preamble, rest := handler.PreservePreamble(content)
-//
-//	// Check if rest has a license block
-//	hasLicense, _ := m.HasLicense(rest)
-//	if !hasLicense {
-//		m.logger.LogDebug("  RemoveLicense::No license block detected in content")
-//		return content, nil
-//	}
-//
-//	// Extract components from the rest of the content
-//	extract, _ := handler.ExtractComponents(rest)
-//
-//	// Build final content:
-//	// 1. Start with preamble if it exists
-//	// 2. Add rest of content after license
-//	var parts []string
-//	if preamble != "" {
-//		parts = append(parts, preamble)
-//	}
-//	if extract.Rest != "" {
-//		parts = append(parts, strings.TrimSpace(extract.Rest))
-//	}
-//
-//	return strings.Join(parts, "\n\n"), nil
-//}
+	//return strings.TrimSuffix(strings.Join(parts, "\n"), "\n"), nil
+}
 
 // RemoveLicense removes the license block from the content using existing components
 func (m *LicenseManager) RemoveLicense(
