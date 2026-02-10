@@ -25,8 +25,9 @@ var updateCmd = &cobra.Command{
 			Skips:       ProcessPatterns(cfgSkips),
 
 			// Style settings
-			HeaderStyle:  cfgPresetStyle,
-			CommentStyle: "go", // default
+			HeaderStyle:       cfgPresetStyle,
+			CommentStyle:      "go", // default
+			ForceCommentStyle: cfgForceCommentStyle,
 
 			// Behavior flags
 			LogLevel: logger.ParseLogLevel(cfgLogLevel),

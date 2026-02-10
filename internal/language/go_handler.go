@@ -132,7 +132,7 @@ func (h *GoHandler) scanDirectives(content string) ([]string, int, bool) {
 func (h *GoHandler) PreservePreamble(content string) (string, string) {
 	directives, endIndex, found := h.scanDirectives(content)
 	if !found {
-		return "", strings.TrimSpace(content)
+		return "", content
 	}
 
 	lines := strings.Split(content, "\n")
@@ -142,8 +142,8 @@ func (h *GoHandler) PreservePreamble(content string) (string, string) {
 	//	directives = append(directives, "")
 	//}
 
-	// Return preamble and rest
-	return strings.Join(directives, "\n"), strings.TrimSpace(strings.Join(lines[endIndex:], "\n"))
+	// Return preamble and rest - preserve trailing newlines
+	return strings.Join(directives, "\n"), strings.Join(lines[endIndex:], "\n")
 }
 
 func (h *GoHandler) ScanBuildDirectives(content string) ([]string, int) {
