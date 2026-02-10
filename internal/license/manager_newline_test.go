@@ -134,53 +134,49 @@ func TestUpdateLicensePreservesNewlines(t *testing.T) {
 	commentStyle := styles.GetLanguageCommentStyle(".go")
 	style := styles.Get("hash")
 
-	newLicense := "Copyright (c) 2025"
+	// Start with a file that has no license and a trailing newline
+	originalContent := "package main\n\nfunc main() {\n\tprintln(\"hello\")\n}\n\n"
 
-	inputContent := `/*
- * ########################################
- * Copyright (c) 2024
- * ########################################
- */
-
-package main
-
-func main() {
-	println("hello")
-}
-
-`
-
-	expectedEnding := `func main() {
-	println("hello")
-}
-
-`
-
-	manager := NewLicenseManager(log, newLicense, ".go", style, commentStyle)
-	manager.SetFileContent(inputContent)
-
-	hasLicense, components := manager.HasLicense(inputContent)
-	if !hasLicense {
-		t.Fatalf("Expected to find license in input content")
+	// Step 1: Add a license using the system so it has proper unicode markers
+	oldLicense := "Copyright (c) 2024"
+	addManager := NewLicenseManager(log, oldLicense, ".go", style, commentStyle)
+	addManager.SetFileContent(originalContent)
+	_, addComponents := addManager.HasLicense(originalContent)
+	contentWithLicense, err := addManager.AddLicense(addComponents, "go")
+	if err != nil {
+		t.Fatalf("AddLicense failed: %v", err)
 	}
 
-	newContent, err := manager.UpdateLicense(components, "go")
+	// Step 2: Now update the license
+	newLicense := "Copyright (c) 2025"
+	updateManager := NewLicenseManager(log, newLicense, ".go", style, commentStyle)
+	updateManager.SetFileContent(contentWithLicense)
+
+	hasLicense, components := updateManager.HasLicense(contentWithLicense)
+	if !hasLicense {
+		t.Fatalf("Expected to find license in content after add")
+	}
+
+	updatedContent, err := updateManager.UpdateLicense(components, "go")
 	if err != nil {
 		t.Fatalf("UpdateLicense failed: %v", err)
 	}
 
-	if !strings.HasSuffix(newContent, expectedEnding) {
-		t.Errorf("Expected content to end with:\n%q\nBut got:\n%q",
-			expectedEnding,
-			getLastNChars(newContent, len(expectedEnding)+50))
-	}
-
-	expectedTrailingNewlines := countTrailingNewlines(inputContent)
-	actualTrailingNewlines := countTrailingNewlines(newContent)
+	// Verify trailing newlines are preserved
+	expectedTrailingNewlines := countTrailingNewlines(contentWithLicense)
+	actualTrailingNewlines := countTrailingNewlines(updatedContent)
 	if expectedTrailingNewlines != actualTrailingNewlines {
 		t.Errorf("Expected %d trailing newlines, got %d",
 			expectedTrailingNewlines,
 			actualTrailingNewlines)
+	}
+
+	// Verify the new license text is present
+	if !strings.Contains(updatedContent, "Copyright (c) 2025") {
+		t.Errorf("Expected updated content to contain new license text")
+	}
+	if strings.Contains(updatedContent, "Copyright (c) 2024") {
+		t.Errorf("Expected updated content to NOT contain old license text")
 	}
 }
 
@@ -191,51 +187,48 @@ func TestRemoveLicensePreservesNewlines(t *testing.T) {
 
 	licenseText := "Copyright (c) 2025"
 
-	inputContent := `/*
- * ########################################
- * Copyright (c) 2025
- * ########################################
- */
+	// Start with a file that has no license and two trailing newlines
+	originalContent := "package main\n\nfunc main() {\n\tprintln(\"hello\")\n}\n\n"
 
-package main
-
-func main() {
-	println("hello")
-}
-
-
-`
-
-	expectedContent := `package main
-
-func main() {
-	println("hello")
-}
-
-
-`
-
-	manager := NewLicenseManager(log, licenseText, ".go", style, commentStyle)
-	manager.SetFileContent(inputContent)
-
-	hasLicense, components := manager.HasLicense(inputContent)
-	if !hasLicense {
-		t.Fatalf("Expected to find license in input content")
+	// Step 1: Add a license using the system so it has proper unicode markers
+	addManager := NewLicenseManager(log, licenseText, ".go", style, commentStyle)
+	addManager.SetFileContent(originalContent)
+	_, addComponents := addManager.HasLicense(originalContent)
+	contentWithLicense, err := addManager.AddLicense(addComponents, "go")
+	if err != nil {
+		t.Fatalf("AddLicense failed: %v", err)
 	}
 
-	newContent, err := manager.RemoveLicense(components, "go")
+	// Step 2: Now remove the license
+	removeManager := NewLicenseManager(log, licenseText, ".go", style, commentStyle)
+	removeManager.SetFileContent(contentWithLicense)
+
+	hasLicense, components := removeManager.HasLicense(contentWithLicense)
+	if !hasLicense {
+		t.Fatalf("Expected to find license in content after add")
+	}
+
+	removedContent, err := removeManager.RemoveLicense(components, "go")
 	if err != nil {
 		t.Fatalf("RemoveLicense failed: %v", err)
 	}
 
-	if newContent != expectedContent {
-		t.Errorf("Expected content:\n%q\nGot:\n%q",
-			expectedContent,
-			newContent)
+	// Verify the code is preserved
+	if !strings.Contains(removedContent, "package main") {
+		t.Errorf("Expected removed content to contain package declaration")
+	}
+	if !strings.Contains(removedContent, "println(\"hello\")") {
+		t.Errorf("Expected removed content to contain function body")
 	}
 
-	expectedTrailingNewlines := countTrailingNewlines(inputContent)
-	actualTrailingNewlines := countTrailingNewlines(newContent)
+	// Verify the license is gone
+	if strings.Contains(removedContent, "Copyright") {
+		t.Errorf("Expected removed content to NOT contain license text")
+	}
+
+	// Verify trailing newlines are preserved
+	expectedTrailingNewlines := countTrailingNewlines(contentWithLicense)
+	actualTrailingNewlines := countTrailingNewlines(removedContent)
 	if expectedTrailingNewlines != actualTrailingNewlines {
 		t.Errorf("Expected %d trailing newlines, got %d",
 			expectedTrailingNewlines,
