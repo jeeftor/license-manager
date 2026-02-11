@@ -20,10 +20,6 @@ func runCommand(args ...string) (string, string, error) {
 	stdoutStr := strings.TrimSpace(stdout.String())
 	stderrStr := strings.TrimSpace(stderr.String())
 
-	if err != nil && stderrStr != "" && err.Error() != stderrStr {
-		err = fmt.Errorf(stderrStr)
-	}
-
 	return stdoutStr, stderrStr, err
 }
 
