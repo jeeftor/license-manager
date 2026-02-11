@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -271,11 +270,19 @@ func checkLicenseWithErrorValue(
 ) error {
 	stdout, stderr, err := CheckLicense(file.filePath, licensePath)
 
-	// Extract exit code from the exec.ExitError
+	// Extract exit code from stderr. go run wraps the program exit code —
+	// it always returns exit code 1 for any non-zero program exit.
+	// The actual program exit code appears as "exit status N" at the end of stderr.
 	exitCode := 0
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode = exitErr.ExitCode()
+		// Scan from the end of stderr for "exit status N"
+		lines := strings.Split(stderr, "\n")
+		for i := len(lines) - 1; i >= 0; i-- {
+			line := strings.TrimSpace(lines[i])
+			if strings.HasPrefix(line, "exit status ") {
+				fmt.Sscanf(line, "exit status %d", &exitCode)
+				break
+			}
 		}
 	}
 
