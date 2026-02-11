@@ -21,7 +21,6 @@ func NewRubyHandler(logger *logger.Logger, style styles.HeaderFooterStyle) *Ruby
 func (h *RubyHandler) PreservePreamble(content string) (string, string) {
 	lines := strings.Split(content, "\n")
 	var preamble []string
-	var rest []string
 
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -32,24 +31,27 @@ func (h *RubyHandler) PreservePreamble(content string) (string, string) {
 			continue
 		}
 
-		// Check for magic comments
-		if strings.HasPrefix(trimmed, "# frozen_string_literal:") ||
-			strings.HasPrefix(trimmed, "# encoding:") ||
-			strings.HasPrefix(trimmed, "# warn_indent:") {
+		// Check for magic comments (must be consecutive with shebang)
+		if len(preamble) > 0 &&
+			(strings.HasPrefix(trimmed, "# frozen_string_literal:") ||
+				strings.HasPrefix(trimmed, "# encoding:") ||
+				strings.HasPrefix(trimmed, "# warn_indent:")) {
 			preamble = append(preamble, line)
 			continue
 		}
 
-		// If we hit any other content, we're done with preamble
-		if trimmed != "" {
-			rest = lines[i:]
-			break
+		// Once we've collected preamble, take the rest from here (preserving blank lines)
+		if len(preamble) > 0 {
+			return strings.Join(preamble, "\n"), strings.Join(lines[i:], "\n")
 		}
+
+		// No preamble found at line 0
+		break
 	}
 
 	if len(preamble) == 0 {
 		return "", content
 	}
 
-	return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
+	return strings.Join(preamble, "\n"), ""
 }

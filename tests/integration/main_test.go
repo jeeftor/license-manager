@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -270,25 +271,16 @@ func checkLicenseWithErrorValue(
 ) error {
 	stdout, stderr, err := CheckLicense(file.filePath, licensePath)
 
-	// Extract exit code from stderr
+	// Extract exit code from the exec.ExitError
 	exitCode := 0
-	if strings.Contains(stderr, "exit status") {
-		fmt.Sscanf(stderr, "exit status %d", &exitCode)
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		}
 	}
 
 	// Check if the exit code is one of the wanted codes
 	for _, code := range wantedExitCodes {
-		if code == 0 && exitCode == 0 {
-			if stderr != "" {
-				return fmt.Errorf(
-					"license check failed: %v\n %s\nStderr: %s",
-					err,
-					extractErrorText(stdout),
-					stderr,
-				)
-			}
-			return nil
-		}
 		if code == exitCode {
 			return nil
 		}

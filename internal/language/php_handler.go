@@ -25,6 +25,9 @@ func (h *PHPHandler) PreservePreamble(content string) (string, string) {
 		return "", content
 	}
 
-	// Include the opening tag in preamble
-	return content[:idx+5], strings.TrimSpace(content[idx+5:])
+	// Include the opening tag in preamble, preserve leading blank lines in rest
+	rest := content[idx+5:]
+	// Strip at most one leading newline (the one right after <?php)
+	rest = strings.TrimPrefix(rest, "\n")
+	return content[:idx+5], rest
 }
