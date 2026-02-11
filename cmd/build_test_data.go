@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jeeftor/license-manager/internal/logger"
 
@@ -54,7 +55,9 @@ func getTestFiles() []TestFile {
 		}
 
 		// Create the corresponding test_data path
-		testPath := filepath.Join("test_data", relPath)
+		// Strip .tmpl suffix so templates become real source files in test_data
+		targetRelPath := strings.TrimSuffix(relPath, ".tmpl")
+		testPath := filepath.Join("test_data", targetRelPath)
 
 		files = append(files, TestFile{
 			SourcePath: path,

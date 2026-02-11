@@ -32,7 +32,14 @@ jobs:
                   sudo apt-get update
                   sudo apt-get install -y gh
 
-            - name: Run tests
+            - name: Run unit tests
+              run: |
+                  gotestsum --format github-actions \
+                    --junitfile unit-junit.xml \
+                    --jsonfile unit-test-output.json \
+                    -- -v ./internal/...
+
+            - name: Run integration tests
               run: |
                   gotestsum --format github-actions \
                     --junitfile junit.xml \
@@ -88,7 +95,8 @@ jobs:
               if: always()
               with:
                   files: |-
-                      *.xml
+                      unit-junit.xml
+                      junit.xml
 #                      *.json
                   json_test_case_results: true # This enables writing out all test case results to JSON
                   report_individual_runs: true
