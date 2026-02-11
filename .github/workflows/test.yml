@@ -3,7 +3,7 @@ name: Tests 🧪️
 on:
     pull_request:
     push:
-        branches: [master]
+        branches: [master, feature/**]
         tags-ignore: [v*]
 permissions:
     checks: write
