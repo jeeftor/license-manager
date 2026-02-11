@@ -116,39 +116,5 @@ func (h *PythonHandler) PreservePreamble(content string) (string, string) {
 	return strings.Join(preamble, "\n"), strings.Join(rest, "\n")
 }
 
-// FormatLicense formats the license text according to Python conventions
-func (h *PythonHandler) FormatLicense(
-	license string,
-	commentStyle styles.CommentLanguage,
-	style styles.HeaderFooterStyle,
-) FullLicenseBlock {
-	// Normalize any Unicode escapes in the license text and style markers
-	normalizedLicense := normalizeText(license)
-	header := normalizeText(stripMarkers(style.Header))
-	footer := normalizeText(stripMarkers(style.Footer))
-
-	// Format the license block with triple quotes
-	var result []string
-	result = append(result, "'''")
-	result = append(result, " * "+header)
-
-	// Add the license body
-	lines := strings.Split(normalizedLicense, "\n")
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
-			result = append(result, " *")
-		} else {
-			result = append(result, " * "+line)
-		}
-	}
-
-	result = append(result, " * "+footer)
-	result = append(result, " '''")
-
-	return FullLicenseBlock{
-		String: strings.Join(result, "\n"),
-		Header: header,
-		Body:   normalizedLicense,
-		Footer: footer,
-	}
-}
+// FormatLicense is handled by GenericHandler.FormatLicense which uses FormatComment
+// and respects the language's actual comment style (no MultiPrefix for Python).

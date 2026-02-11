@@ -73,7 +73,6 @@ func TestGoHandler_ScanBuildDirectives(t *testing.T) {
 package main`,
 			wantDirectives: []string{
 				"//go:build linux",
-				"",
 			},
 			wantEndIndex: 1,
 		},
@@ -126,9 +125,8 @@ package main2`,
 				"//go:generate stringer -type=MyEnumType",
 				"//go:generate command",
 				"//go:linkname",
-				"",
 			},
-			wantEndIndex: 14,
+			wantEndIndex: 13,
 		},
 		{
 			name: "directives separated by multiple blank lines",
@@ -144,8 +142,11 @@ package main`,
 				"//go:build linux",
 				"// +build linux",
 				"",
+				"",
+				"//go:build !windows",
+				"// +build !windows",
 			},
-			wantEndIndex: 3,
+			wantEndIndex: 7,
 		},
 		{
 			name: "directives after package declaration",
@@ -308,11 +309,11 @@ func TestGoHandler_ScanBuildDirectivesFromTemplates(t *testing.T) {
 	}
 
 	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".go") {
+		if !strings.HasSuffix(file.Name(), ".go.tmpl") {
 			continue
 		}
 
-		t.Run(file.Name(), func(t *testing.T) {
+		t.Run(strings.TrimSuffix(file.Name(), ".tmpl"), func(t *testing.T) {
 			testLogger := logger.NewLogger(logger.InfoLevel)
 			content, err := os.ReadFile(filepath.Join(templateDir, file.Name()))
 			if err != nil {
@@ -341,7 +342,7 @@ func TestGoHandler_ScanBuildDirectivesFromTemplates(t *testing.T) {
 			}
 
 			// Verify files with _with_directive suffix contain directives
-			if strings.HasSuffix(file.Name(), "_with_directive.go") {
+			if strings.HasSuffix(file.Name(), "_with_directive.go.tmpl") {
 				assert.Greater(
 					t,
 					len(directives),
