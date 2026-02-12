@@ -42,7 +42,7 @@ repos:
           - id: check-yaml
           - id: check-added-large-files
     - repo: https://github.com/segmentio/golines
-      rev: v0.12.2
+      rev: v0.13.0
       hooks:
           - id: golines
 #
@@ -69,13 +69,6 @@ repos:
             language: system
             types: [go]
             args: [-w, -l]
-
-          - id: golines
-            name: golines
-            entry: bash -c 'go install github.com/segmentio/golines@latest && golines'
-            language: system
-            types: [go]
-            args: [-w]
 
     - repo: local
       hooks:
